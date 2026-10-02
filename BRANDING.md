@@ -8,6 +8,7 @@ use is classified in `tools/rename-allowlist.txt` and checked by `tools/rename_a
 | Change | Where |
 |---|---|
 | applicationId `org.websnake.vidchain` | `app/build.gradle` |
+| Own version line: versionName `MAJOR.MINOR.PATCH`, versionCode `MAJOR*10000 + MINOR*100 + PATCH` (first: 0.0.1 / 1), set together with `release-contract.json` | `app/build.gradle` |
 | taskAffinity `${applicationId}.mother` (no clash with another install of the original app) | `AndroidManifest.xml` |
 | App name, folder names, category names, help texts, player/service titles: "AIO" -> "VidChain" | `values/strings_library.xml`, `values-bn/strings_library.xml`, `strings_unit_ids.xml` (BUILD-FIXES) |
 | Official page / privacy / terms links -> this repository (`PRIVACY.md`, `LICENSE.md`) | same string files |
