@@ -1,0 +1,16 @@
+name: env-guard-test (temporary, T0.5)
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  no-env:
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          P: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        run: if [ -z "$P" ]; then echo "RESULT no-env - signing secret is EMPTY"; else echo "RESULT no-env - SECRET VISIBLE"; exit 1; fi
+  with-env:
+    runs-on: ubuntu-24.04
+    environment: release
+    steps:
+      - run: echo "RESULT with-env - job ran, should have been blocked"; exit 1
