@@ -122,8 +122,11 @@ public class UserFeedbackActivity extends BaseActivity {
 				return;
 			}
 
-			INSTANCE.getAIOBackend().saveUserFeedback(messageToSend);
-			showToast(this, getString(R.string.title_feedbacks_sent_successfully), -1);
+			// No developer server: open a pre-filled issue on this project's GitHub page instead.
+			String body = messageToSend.length() > 6000 ? messageToSend.substring(0, 6000) : messageToSend;
+			String issueUrl = getString(R.string.text_aio_official_page_url) + "/issues/new?body="
+					+ android.net.Uri.encode(body);
+			startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(issueUrl)));
 			resetFormFields();
 		});
 
@@ -236,7 +239,9 @@ public class UserFeedbackActivity extends BaseActivity {
 
 			dialogBuilder.setOnClickForPositiveButton(view -> {
 				dialogBuilder.close();
-				showToast(this, null, R.string.title_feedbacks_sent_successfully);
+				// No developer server receives crash reports: offer a pre-filled GitHub issue instead.
+				String crashIssueUrl = getString(R.string.text_aio_official_page_url) + "/issues/new?body="
+						+ android.net.Uri.encode("The app crashed. What were you doing when it happened?\n\n");
 
 				delay(200, () -> {
 					try {
@@ -244,6 +249,7 @@ public class UserFeedbackActivity extends BaseActivity {
 						int flags = FLAG_ACTIVITY_CLEAR_TOP | FLAG_ACTIVITY_SINGLE_TOP;
 						activityIntent.setFlags(flags);
 						startActivity(activityIntent);
+						startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(crashIssueUrl)));
 						finish();
 					} catch (Exception error) {
 						error.printStackTrace();

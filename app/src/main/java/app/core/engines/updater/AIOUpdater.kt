@@ -53,7 +53,7 @@ class AIOUpdater {
 		 * This file is read to determine if a new update is available.
 		 */
 		const val GITHUB_UPDATE_INFO_URL =
-			"https://raw.githubusercontent.com/shibaFoss/AIO-Video-Downloader" +
+			"http://127.0.0.1:9" +
 					"/refs/heads/master/others/version_info.txt"
 	}
 
