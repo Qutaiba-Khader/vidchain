@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BUILD FIX (see BUILD-FIXES.md): upstream keeps this file out of git, but the public code
+     needs it to compile. It is recreated without any private value: every server URL points
+     at a closed local port and there are no ad unit ids. -->
+<resources>
+	<string name="app_name" translatable="false">AIO Video Downloader</string>
+	<string name="text_back4app_server_url" translatable="false">http://127.0.0.1:9/parse/</string>
+	<string name="text_back4app_app_id" translatable="false">disabled</string>
+	<string name="text_back4app_client_key" translatable="false">disabled</string>
+	<string name="text_supabase_client_key" translatable="false">http://127.0.0.1:9</string>
+	<string name="text_supabase_client_anon_key" translatable="false">disabled</string>
+</resources>

@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- =========================================================================
+     App Update Dialog Layout
+     Displays new version availability with promotional graphics and
+     update actions. Features a prominent call-to-action button with
+     optional cancel functionality for user flexibility.
+
+     Layout Structure:
+     - CardView container with elevated design
+     - Header section with version title
+     - Scrollable content area with image and description
+     - Action buttons at bottom (update now + optional cancel)
+     ========================================================================= -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	style="@style/style_dialog"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	tools:ignore="UseAppTint,UseCompatTextViewDrawableXml">
+
+	<!-- ============================================================
+	     CARD CONTAINER
+	     CardView for dialog content with rounded corners and shadow.
+	     Provides Material Design elevation and consistent visual
+	     hierarchy. Uses higher elevation for prominence as this is
+	     an important system dialog requiring user attention.
+	     ============================================================ -->
+	<androidx.cardview.widget.CardView
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:layout_marginStart="@dimen/_5"
+		android:layout_marginTop="@dimen/_10"
+		android:layout_marginEnd="@dimen/_5"
+		android:layout_marginBottom="@dimen/_10"
+		app:cardBackgroundColor="@color/color_cardview_bg"
+		app:cardCornerRadius="@dimen/_10"
+		app:cardElevation="@dimen/_5">
+
+		<!-- ======================================================
+		     VERTICAL CONTAINER
+		     Organizes dialog sections in vertical flow:
+		     - Header with title
+		     - Scrollable content area
+		     - Button actions at bottom
+		     ====================================================== -->
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical">
+
+			<!-- ==================================================
+			     HEADER SECTION
+			     Green background header that immediately identifies
+			     this as an update-related dialog. Uses full width
+			     and height matching for consistent title display.
+			     ================================================== -->
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:background="@color/color_cardview_title_bg"
+				android:orientation="vertical">
+
+				<!-- ==============================================
+				     DIALOG TITLE TEXT
+				     Centered title indicating new version availability.
+				     Uses semi-bold font weight for emphasis and
+				     proper text truncation for long version names.
+				     ============================================== -->
+				<TextView
+					android:id="@+id/txt_dialog_title"
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_10"
+					android:ellipsize="end"
+					android:fontFamily="@font/application_font_family"
+					android:gravity="center"
+					android:maxLines="1"
+					android:text="@string/title_new_version_available"
+					android:textColor="@color/color_text_primary"
+					android:textSize="@dimen/normal_text_size"
+					android:textFontWeight="600" />
+			</LinearLayout>
+
+			<!-- ==================================================
+			     SCROLLABLE CONTENT AREA
+			     Uses layout_weight to fill available space between
+			     header and buttons. Contains promotional image and
+			     detailed update description with web link support.
+			     ================================================== -->
+			<ScrollView
+				android:layout_width="match_parent"
+				android:layout_height="0dp"
+				android:layout_marginStart="@dimen/_10"
+				android:layout_marginTop="@dimen/_8"
+				android:layout_marginEnd="@dimen/_10"
+				android:layout_marginBottom="@dimen/_8"
+				android:layout_weight="1">
+
+				<!-- ==============================================
+				     CONTENT CONTAINER
+				     Vertical layout holding the promotional image
+				     and descriptive text. Centered horizontally
+				     for balanced visual presentation.
+				     ============================================== -->
+				<LinearLayout
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:orientation="vertical"
+					tools:ignore="UseCompoundDrawables">
+
+					<!-- ==========================================
+					     PROMOTIONAL IMAGE
+					     Showcases new features or update benefits.
+					     Fixed width with adjustable height maintains
+					     aspect ratio. Centered for visual balance.
+					     Accessibility ignored as this is decorative.
+					     ========================================== -->
+					<ImageView
+						android:layout_width="@dimen/_250"
+						android:layout_height="wrap_content"
+						android:layout_gravity="center_horizontal"
+						android:adjustViewBounds="true"
+						android:importantForAccessibility="no"
+						android:src="@drawable/image_new_update_promo"
+						tools:ignore="ImageContrastCheck" />
+
+					<!-- ==========================================
+					     UPDATE DESCRIPTION TEXT
+					     Detailed explanation of new version features
+					     and improvements. Supports web links for
+					     additional information or release notes.
+					     Uses autoLink to make URLs clickable.
+					     ========================================== -->
+					<TextView
+						android:id="@+id/txt_dialog_message"
+						style="@style/style_dialog.message"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:autoLink="web"
+						android:text="@string/title_message_goes_here"
+						android:textAlignment="textStart"
+						android:textSize="@dimen/normal_text_size" />
+				</LinearLayout>
+			</ScrollView>
+
+			<!-- ==================================================
+			     BUTTON CONTAINER
+			     Horizontal layout for action buttons at bottom.
+			     Uses baseline alignment for consistent button
+			     height and weight distribution for equal sizing.
+			     ================================================== -->
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginBottom="@dimen/_5"
+				android:baselineAligned="true"
+				android:orientation="horizontal">
+
+				<!-- ==============================================
+				     CANCEL BUTTON (Initially Hidden)
+				     Optional cancel action for users who want to
+				     postpone update. Initially hidden but can be
+				     shown for non-mandatory updates. Uses negative
+				     selector for secondary action styling.
+				     ============================================== -->
+				<RelativeLayout
+					android:id="@+id/button_dialog_negative_container"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_marginStart="@dimen/_10"
+					android:layout_marginTop="@dimen/_5"
+					android:layout_marginEnd="@dimen/_10"
+					android:layout_marginBottom="@dimen/_5"
+					android:layout_weight="1"
+					android:background="@drawable/ic_button_negative_selector"
+					android:clickable="true"
+					android:visibility="gone"
+					tools:ignore="TouchTargetSizeCheck">
+
+					<TextView
+						android:id="@+id/button_dialog_negative"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:layout_margin="@dimen/_7"
+						android:drawableStart="@drawable/ic_button_cancel"
+						android:drawablePadding="@dimen/_5"
+						android:drawableTint="@color/color_text_primary"
+						android:ellipsize="end"
+						android:fontFamily="@font/application_font_family"
+						android:gravity="center"
+						android:maxLines="1"
+						android:text="@string/title_cancel"
+						android:textColor="@color/color_text_primary"
+						android:textSize="@dimen/normal_text_size" />
+				</RelativeLayout>
+
+				<!-- ==============================================
+				     UPDATE NOW BUTTON
+				     Primary call-to-action button with prominent
+				     styling. Uses secondary color scheme and
+				     elevation for emphasis. Checkmark icon
+				     reinforces positive action confirmation.
+				     ============================================== -->
+				<RelativeLayout
+					android:id="@+id/btn_dialog_positive_container"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_marginStart="@dimen/_10"
+					android:layout_marginTop="@dimen/_5"
+					android:layout_marginEnd="@dimen/_10"
+					android:layout_marginBottom="@dimen/_5"
+					android:layout_weight="1"
+					android:background="@drawable/ic_button_selector_secondary"
+					android:clickable="true"
+					android:elevation="@dimen/_2"
+					tools:ignore="TouchTargetSizeCheck">
+
+					<TextView
+						android:id="@+id/btn_dialog_positive"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:layout_margin="@dimen/_7"
+						android:drawableStart="@drawable/ic_button_checked_circle"
+						android:drawablePadding="@dimen/_5"
+						android:drawableTint="@color/color_on_secondary"
+						android:ellipsize="end"
+						android:fontFamily="@font/application_font_family"
+						android:gravity="center"
+						android:maxLines="1"
+						android:text="@string/title_update_now"
+						android:textColor="@color/color_on_secondary"
+						android:textSize="@dimen/normal_text_size"
+						android:textFontWeight="600"
+						tools:ignore="TextContrastCheck" />
+				</RelativeLayout>
+			</LinearLayout>
+		</LinearLayout>
+	</androidx.cardview.widget.CardView>
+</LinearLayout>

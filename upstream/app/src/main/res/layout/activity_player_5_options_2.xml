@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- =========================================================================
+     Player Settings Dialog Layout
+     This layout defines a settings dialog for controlling player behavior
+     (playback speed, mode, subtitle/audio tracks, background playback, etc.)
+     Wrapped in a CardView with styled sections for better visual grouping.
+     Includes ScrollView for content that may exceed screen height.
+     ========================================================================= -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	style="@style/style_dialog"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	tools:ignore="UseAppTint,UseCompatTextViewDrawableXml">
+
+	<!-- ==================================================
+		 CARD CONTAINER
+		 Provides rounded corners, elevation, and background
+		 tint for dialog content. Acts as the main wrapper
+		 for all settings within the scrollable area.
+		 ================================================== -->
+	<androidx.cardview.widget.CardView
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:layout_marginStart="@dimen/_5"
+		android:layout_marginTop="@dimen/_10"
+		android:layout_marginEnd="@dimen/_5"
+		android:layout_marginBottom="@dimen/_10"
+		app:cardBackgroundColor="@color/color_cardview_bg"
+		app:cardCornerRadius="@dimen/_10"
+		app:cardElevation="@dimen/_2">
+
+		<!-- ==================================================
+			 ROOT LAYOUT
+			 Holds all dialog elements vertically stacked
+			 within the card container. Maintains consistent
+			 spacing and alignment for settings options.
+			 ================================================== -->
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical">
+
+			<!-- ==============================================
+				 TITLE BAR
+				 Displays dialog title on a colored background
+				 with centered text and appropriate styling
+				 for dialog headers.
+				 ============================================== -->
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="@dimen/_35"
+				android:background="@color/color_cardview_title_bg"
+				android:orientation="horizontal"
+				android:visibility="visible"
+				tools:ignore="TextSizeCheck">
+
+				<TextView
+					style="@style/style_dialog.title"
+					android:layout_gravity="center"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/title_player_settings"
+					android:textColor="@color/color_text_primary"
+					android:textFontWeight="600"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ============================================================
+				 SCROLL VIEW CONTAINER
+				 Wraps the entire dialog content to enable scrolling when
+				 media options exceed available screen height. Ensures
+				 all options remain accessible on smaller displays.
+				 ============================================================ -->
+			<ScrollView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content">
+
+				<!-- ======================================================
+					 SCROLL CONTENT CONTAINER
+					 LinearLayout container for scrollable content that
+					 maintains vertical orientation and proper spacing
+					 for all media action sections.
+					 ====================================================== -->
+				<LinearLayout
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:orientation="vertical">
+
+					<!-- ==============================================
+						PLAYBACK SPEED OPTION
+						Opens a dialog for selecting playback speed
+						multipliers (0.5x, 1x, 1.5x, 2x, etc.)
+						============================================== -->
+					<LinearLayout
+						android:id="@+id/btn_playback_speed"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck,DuplicateSpeakableTextCheck">
+
+						<TextView
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_speed"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_playback_speed"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- ==============================================
+						 VIDEO SCREEN MODE OPTION
+						 Controls video aspect ratio and display mode
+						 (fit, fill, stretch, original size, etc.)
+						 ============================================== -->
+					<LinearLayout
+						android:id="@+id/btn_video_screen_mode"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_fullscreen"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_video_scale_type"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- ==============================================
+						 PLAYBACK MODE OPTION
+						 Lets user toggle between repeat modes
+						 (none, one, all) and shuffle functionality.
+						 ============================================== -->
+					<LinearLayout
+						android:id="@+id/btn_playback_repeat_mode"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_repeat_mode"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_playback_repeat"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- ==============================================
+						 PLAYER ROTATION OPTION
+                         Controls screen orientation locking and
+                         auto-rotation behavior during playback.
+                         Allows manual rotation or auto-rotation.
+						 ============================================== -->
+					<LinearLayout
+						android:id="@+id/btn_player_rotation"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_rotate"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_player_orientation"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- ==============================================
+						 SUBTITLE TRACKS OPTION
+						 Opens list of available subtitle tracks for
+						 selection and configuration (language,
+						 styling, visibility).
+						 ============================================== -->
+					<LinearLayout
+						android:id="@+id/btn_subtitle_tracks"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_subtitles"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_subtitle_tracks"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- ==============================================
+						 AUDIO TRACKS OPTION
+						 Opens list of available audio tracks for
+						 selection (different languages, commentary
+						 tracks, audio descriptions, etc.)
+						 ============================================== -->
+					<LinearLayout
+						android:id="@+id/btn_audio_tracks"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_audio_folder"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_audio_tracks"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- ==============================================
+						 BACKGROUND PLAY OPTION
+						 Enables or disables playback in the background
+						 when app is minimized or screen is off.
+						 ============================================== -->
+					<LinearLayout
+						android:id="@+id/btn_play_in_background"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_10"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_volume_v1"
+							android:drawableEnd="@drawable/ic_button_play_arrow_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_background_play"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+				</LinearLayout>
+			</ScrollView>
+		</LinearLayout>
+	</androidx.cardview.widget.CardView>
+</LinearLayout>

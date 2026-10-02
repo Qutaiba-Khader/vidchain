@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- =========================================================================
+     Media Player Action Bar Layout
+     Defines the top action bar for media player with navigation controls,
+     media title display, and options menu. Features a card-based design
+     with back button, scrolling title, and settings access.
+     ========================================================================= -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@color/transparent"
+	android:orientation="vertical"
+	tools:ignore="UseCompatTextViewDrawableXml,UseAppTint">
+
+	<!-- ============================================================
+		 TOP ACTION BAR CARD CONTAINER
+         Main card container that holds all action bar elements.
+         Features rounded corners and semi-transparent background
+         for overlay display during media playback.
+		 ============================================================ -->
+	<androidx.cardview.widget.CardView
+		android:id="@+id/top_actionbar_section"
+		android:layout_width="match_parent"
+		android:layout_height="@dimen/_50"
+		android:layout_marginStart="@dimen/_10"
+		android:layout_marginTop="@dimen/_10"
+		android:layout_marginEnd="@dimen/_10"
+		android:layout_marginBottom="@dimen/_0"
+		app:cardBackgroundColor="@color/color_actionbar_title_bg"
+		app:cardCornerRadius="@dimen/_10">
+
+		<!-- ======================================================
+			 ACTION BAR CONTENT CONTAINER
+             RelativeLayout container for positioning the three
+             main action bar components: back button, title, and menu.
+			 ====================================================== -->
+		<RelativeLayout
+			android:id="@+id/container_actionbar_top"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent">
+
+			<!-- ==================================================
+				 BACK BUTTON
+                 Navigation button for returning to previous screen
+                 or exiting fullscreen mode. Uses selector for
+                 touch feedback and centered icon for clear affordance.
+				 ================================================== -->
+			<RelativeLayout
+				android:id="@+id/btn_actionbar_back"
+				android:layout_width="@dimen/_50"
+				android:layout_height="match_parent"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				tools:ignore="SpeakableTextPresentCheck">
+
+				<!-- Back arrow icon with secondary color tint -->
+				<ImageView
+					android:id="@+id/btn_actionbar_back_img"
+					android:layout_width="@dimen/_30"
+					android:layout_height="wrap_content"
+					android:layout_centerInParent="true"
+					android:adjustViewBounds="true"
+					android:importantForAccessibility="no"
+					android:src="@drawable/ic_button_actionbar_back"
+					android:tint="@color/color_secondary"
+					tools:ignore="ImageContrastCheck" />
+			</RelativeLayout>
+
+			<!-- ==================================================
+				 MEDIA TITLE DISPLAY
+                 Text view for showing current media file name with
+                 marquee scrolling for long titles. Automatically
+                 scrolls horizontally when text overflows available space.
+				 ================================================== -->
+			<TextView
+				android:id="@+id/txt_video_file_name"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginStart="@dimen/_5"
+				android:layout_marginTop="@dimen/_0"
+				android:layout_marginEnd="@dimen/_5"
+				android:layout_marginBottom="@dimen/_0"
+				android:layout_toStartOf="@id/btn_actionbar_option"
+				android:layout_toEndOf="@+id/btn_actionbar_back"
+				android:ellipsize="marquee"
+				android:focusable="true"
+				android:focusableInTouchMode="true"
+				android:fontFamily="@font/application_font_family"
+				android:gravity="center_vertical"
+				android:marqueeRepeatLimit="marquee_forever"
+				android:maxLines="1"
+				android:scrollHorizontally="true"
+				android:singleLine="true"
+				android:text="@string/title__"
+				android:textSize="@dimen/normal_text_size"
+				android:textStyle="bold" />
+
+			<!-- ==================================================
+				 OPTIONS MENU BUTTON
+                 Access point for additional media player settings
+                 and features. Positioned at the end of the action bar
+                 with consistent styling matching the back button.
+				 ================================================== -->
+			<RelativeLayout
+				android:id="@+id/btn_actionbar_option"
+				android:layout_width="@dimen/_50"
+				android:layout_height="match_parent"
+				android:layout_alignParentEnd="true"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				tools:ignore="SpeakableTextPresentCheck">
+
+				<!-- Menu icon with secondary color tint -->
+				<ImageView
+					android:id="@+id/btn_actionbar_option_img"
+					android:layout_width="@dimen/_30"
+					android:layout_height="wrap_content"
+					android:layout_centerInParent="true"
+					android:adjustViewBounds="true"
+					android:importantForAccessibility="no"
+					android:src="@drawable/ic_button_actionbar_menu"
+					android:tint="@color/color_secondary"
+					tools:ignore="ImageContrastCheck" />
+			</RelativeLayout>
+
+		</RelativeLayout>
+	</androidx.cardview.widget.CardView>
+</RelativeLayout>

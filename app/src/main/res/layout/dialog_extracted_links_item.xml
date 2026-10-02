@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?><!-- List item layout for displaying video information -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:background="@color/transparent"
+	android:orientation="vertical"
+	tools:ignore="UseAppTint">
+
+	<!-- Main container with clickable background -->
+	<RelativeLayout
+		android:id="@+id/main_container"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginStart="@dimen/_8"
+		android:layout_marginTop="@dimen/_5"
+		android:layout_marginEnd="@dimen/_8"
+		android:layout_marginBottom="@dimen/_3"
+		android:background="@drawable/ic_webtab_selector_background"
+		android:clickable="true"
+		android:elevation="@dimen/_1"
+		tools:ignore="UselessParent,TouchTargetSizeCheck">
+
+		<!-- Video type indicator icon -->
+		<ImageView
+			android:id="@+id/img_video_type_indicator"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentStart="true"
+			android:layout_centerVertical="true"
+			android:layout_marginStart="@dimen/_8"
+			android:layout_marginEnd="@dimen/_8"
+			android:adjustViewBounds="true"
+			android:importantForAccessibility="no"
+			android:src="@drawable/ic_button_video"
+			android:tint="@color/color_secondary"
+			android:visibility="visible"
+			tools:ignore="ImageContrastCheck" />
+
+		<!-- Container for video URL information -->
+		<RelativeLayout
+			android:id="@+id/video_info_container"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="@dimen/_5"
+			android:layout_toEndOf="@+id/img_video_type_indicator">
+
+			<!-- Video URL text (truncated) -->
+			<TextView
+				android:id="@+id/txt_video_url"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_centerVertical="true"
+				android:layout_toStartOf="@+id/img_link_open_indicator"
+				android:fontFamily="@font/application_font_family"
+				android:singleLine="true"
+				android:text="@string/title__"
+				android:textColor="@color/color_text_hint"
+				android:textSize="@dimen/small_text_size"
+				tools:ignore="TextContrastCheck" />
+
+			<!-- Open link indicator icon -->
+			<ImageView
+				android:id="@+id/img_link_open_indicator"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_alignParentEnd="true"
+				android:layout_centerVertical="true"
+				android:layout_marginStart="@dimen/_5"
+				android:layout_marginEnd="@dimen/_10"
+				android:adjustViewBounds="true"
+				android:importantForAccessibility="no"
+				android:src="@drawable/ic_button_open_small"
+				android:tint="@color/color_secondary"
+				tools:ignore="ImageContrastCheck" />
+		</RelativeLayout>
+
+		<!-- Additional video information (title/details) -->
+		<TextView
+			android:id="@+id/txt_video_info"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_below="@id/video_info_container"
+			android:layout_marginTop="@dimen/_0"
+			android:layout_marginBottom="@dimen/_8"
+			android:layout_toEndOf="@+id/img_video_type_indicator"
+			android:fontFamily="@font/application_font_family"
+			android:singleLine="true"
+			android:text="@string/title__"
+			android:textColor="@color/color_text_primary"
+			android:textFontWeight="600"
+			android:textSize="@dimen/small_text_size" />
+	</RelativeLayout>
+</RelativeLayout>

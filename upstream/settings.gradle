@@ -1,0 +1,93 @@
+// -----------------------------------------------------------------------------
+// Settings-level Gradle configuration
+// This file controls plugin resolution, dependency repositories,
+// and overall project structure.
+// -----------------------------------------------------------------------------
+
+/**
+ * Configures where Gradle should search for plugins.
+ * This block is evaluated before any build scripts and applies globally.
+ */
+pluginManagement {
+
+	/**
+	 * Repositories used to resolve Gradle plugins.
+	 * Restricting repository content improves performance and security.
+	 */
+	repositories {
+
+		/**
+		 * Google’s Maven repository.
+		 * Content filtering limits downloads to Android and Google-related plugins only.
+		 */
+		google {
+			content {
+				includeGroupByRegex("com\\.android.*")
+				includeGroupByRegex("com\\.google.*")
+				includeGroupByRegex("androidx.*")
+			}
+		}
+
+		// Maven Central repository for widely used community plugins.
+		mavenCentral()
+
+		// Official Gradle Plugin Portal for Gradle-specific plugins.
+		gradlePluginPortal()
+	}
+}
+
+/**
+ * Plugins applied at the settings level.
+ * These affect the build environment rather than individual modules.
+ */
+plugins {
+
+	/**
+	 * Foojay Toolchains Resolver plugin.
+	 * Automatically provisions and aligns JDK versions across
+	 * developers and CI environments.
+	 */
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+/**
+ * Centralized dependency repository configuration.
+ * Enforces consistent dependency resolution across all modules.
+ */
+dependencyResolutionManagement {
+
+	/**
+	 * Prefers repositories defined in this file over module-level repositories.
+	 * Helps avoid accidental or insecure repository usage in submodules.
+	 */
+	repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+
+	/**
+	 * Repositories used to resolve project dependencies (libraries).
+	 */
+	repositories {
+
+		// Google’s Maven repository for Android and Google libraries.
+		google()
+
+		// Primary repository for Java and Kotlin open-source libraries.
+		mavenCentral()
+
+		// Gradle Plugin Portal (occasionally used by libraries).
+		gradlePluginPortal()
+
+		// JitPack repository for dependencies built directly from Git repositories.
+		maven { url "https://jitpack.io" }
+	}
+}
+
+/**
+ * Defines the logical name of the root project.
+ * Used in Gradle outputs and IDE project views.
+ */
+rootProject.name = "AIO_VDM"
+
+/**
+ * Includes the application module in the build.
+ */
+include ':app'

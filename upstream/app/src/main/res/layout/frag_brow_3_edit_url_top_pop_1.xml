@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auto-complete suggestions dropdown layout for search/URL input -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:layout_marginStart="@dimen/_8"
+	android:layout_marginTop="@dimen/_2"
+	android:layout_marginEnd="@dimen/_8"
+	android:layout_marginBottom="@dimen/_8"
+	android:background="@drawable/ic_dialog_bg"
+	android:elevation="@dimen/_5"
+	android:orientation="vertical"
+	tools:ignore="VisualLintBounds">
+
+	<!-- ListView for displaying search/URL auto-complete suggestions -->
+	<ListView
+		android:id="@+id/list_auto_complete_suggestion"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginStart="@dimen/_5"
+		android:layout_marginEnd="@dimen/_5"
+		android:divider="@color/transparent"
+		android:dividerHeight="@dimen/_2" />
+</LinearLayout>

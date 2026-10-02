@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="utf-8"?><!-- Main container for browser settings screen -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@drawable/ic_background_gradient"
+	android:orientation="vertical"
+	tools:context="app.ui.main.fragments.settings.activities.browser.AdvBrowserSettingsActivity"
+	tools:ignore="UseCompatTextViewDrawableXml,UseAppTint,VisualLintBounds">
+
+	<!-- Top action bar with back button and title -->
+	<androidx.cardview.widget.CardView
+		android:id="@+id/top_actionbar_section"
+		android:layout_width="match_parent"
+		android:layout_height="@dimen/_50"
+		android:layout_alignParentTop="true"
+		android:layout_marginStart="@dimen/_10"
+		android:layout_marginTop="@dimen/_10"
+		android:layout_marginEnd="@dimen/_10"
+		android:layout_marginBottom="@dimen/_8"
+		app:cardBackgroundColor="@color/color_actionbar_title_bg"
+		app:cardCornerRadius="@dimen/_10">
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="match_parent">
+
+			<!-- Back button container -->
+			<RelativeLayout
+				android:id="@+id/btn_left_actionbar"
+				android:layout_width="@dimen/_50"
+				android:layout_height="match_parent"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				tools:ignore="SpeakableTextPresentCheck">
+
+				<ImageView
+					android:id="@+id/btn_left_actionbar_img"
+					android:layout_width="@dimen/_30"
+					android:layout_height="wrap_content"
+					android:layout_centerInParent="true"
+					android:adjustViewBounds="true"
+					android:importantForAccessibility="no"
+					android:src="@drawable/ic_button_actionbar_back"
+					android:tint="@color/color_secondary"
+					tools:ignore="ImageContrastCheck" />
+			</RelativeLayout>
+
+			<!-- Screen title -->
+			<TextView
+				android:id="@+id/txt_actionbar"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginStart="@dimen/_10"
+				android:layout_marginTop="@dimen/_0"
+				android:layout_marginEnd="@dimen/_10"
+				android:layout_marginBottom="@dimen/_0"
+				android:layout_toEndOf="@id/btn_left_actionbar"
+				android:ellipsize="end"
+				android:fontFamily="@font/application_font_family"
+				android:gravity="center_vertical"
+				android:maxLines="1"
+				android:text="@string/title_browser_settings"
+				android:textSize="@dimen/title_text_size"
+				android:textFontWeight="600" />
+
+		</RelativeLayout>
+	</androidx.cardview.widget.CardView>
+
+	<!-- Scrollable content area below action bar -->
+	<ScrollView
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:layout_below="@+id/top_actionbar_section"
+		android:orientation="vertical"
+		tools:ignore="UseCompatTextViewDrawableXml,UseAppTint,TooManyViews">
+
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical">
+
+			<!-- Main browser settings card -->
+			<androidx.cardview.widget.CardView
+				android:id="@+id/container_browser_settings"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginStart="@dimen/_10"
+				android:layout_marginTop="@dimen/_2"
+				android:layout_marginEnd="@dimen/_10"
+				android:layout_marginBottom="@dimen/_10"
+				android:orientation="vertical"
+				app:cardBackgroundColor="@color/color_cardview_bg"
+				app:cardCornerRadius="@dimen/_10">
+
+				<LinearLayout
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:orientation="vertical">
+
+					<!-- Homepage setting -->
+					<LinearLayout
+						android:id="@+id/btn_browser_homepage"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_browser_homepage"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_document_big"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_browser_homepage"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- JavaScript toggle -->
+					<LinearLayout
+						android:id="@+id/btn_enable_javascript"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_enable_javascript"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_javascript"
+							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/text_enable_browser_javascript"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Adblock toggle -->
+					<LinearLayout
+						android:id="@+id/btn_enable_adblock"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_enable_adblock"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_adblock"
+							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_enable_browser_adblock"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Divider -->
+					<View
+						android:layout_width="match_parent"
+						android:layout_height="@dimen/_1"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_5"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_5"
+						android:background="@color/transparent_dark" />
+
+					<!-- Show images toggle -->
+					<LinearLayout
+						android:id="@+id/btn_show_image_on_web"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_show_image_on_web"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_images"
+							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_show_image_on_webpage"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Video grabber toggle -->
+					<LinearLayout
+						android:id="@+id/btn_enable_video_grabber"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_enable_video_grabber"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_video"
+							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_show_video_grabber"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Popup blocker toggle -->
+					<LinearLayout
+						android:id="@+id/btn_enable_popup_blocker"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_enable_popup_blocker"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_popup_block"
+							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/title_block_popup_ads"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Divider -->
+					<View
+						android:layout_width="match_parent"
+						android:layout_height="@dimen/_1"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_5"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_5"
+						android:background="@color/transparent_dark" />
+
+					<!-- Desktop mode toggle -->
+					<LinearLayout
+						android:id="@+id/btn_enable_desktop_mode"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_enable_desktop_mode"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_desktop"
+							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/text_enable_desktop_mode"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Private mode toggle -->
+					<LinearLayout
+						android:id="@+id/btn_enable_private_mode"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_enable_private_mode"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_private"
+							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/text_enable_private_mode"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- User agent setting -->
+					<LinearLayout
+						android:id="@+id/btn_browser_useragent"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_browser_useragent"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_user_agent"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/text_browser_useragent"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Clear cache button -->
+					<LinearLayout
+						android:id="@+id/btn_clear_browser_caches"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_clear_browser_caches"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_clear"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_7"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/text_clear_browser_caches"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Divider -->
+					<View
+						android:layout_width="match_parent"
+						android:layout_height="@dimen/_1"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_5"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_5"
+						android:background="@color/transparent_dark" />
+
+					<!-- Import bookmarks -->
+					<LinearLayout
+						android:id="@+id/btn_import_browser_bookmarks"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_0"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_import_browser_bookmark"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_exit"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/text_import_browser_bookmark"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+					<!-- Export bookmarks -->
+					<LinearLayout
+						android:id="@+id/btn_export_browser_bookmarks"
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_0"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_10"
+						android:background="@drawable/ic_button_negative_selector"
+						android:clickable="true"
+						android:orientation="vertical"
+						tools:ignore="TouchTargetSizeCheck">
+
+						<TextView
+							android:id="@+id/txt_export_browser_bookmark"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_8"
+							android:drawableStart="@drawable/ic_button_export"
+							android:drawableEnd="@drawable/ic_button_open_small"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:text="@string/text_export_browser_bookmark"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size" />
+					</LinearLayout>
+
+				</LinearLayout>
+			</androidx.cardview.widget.CardView>
+
+			<!-- Reset settings card -->
+			<androidx.cardview.widget.CardView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginStart="@dimen/_10"
+				android:layout_marginTop="@dimen/_0"
+				android:layout_marginEnd="@dimen/_10"
+				android:layout_marginBottom="@dimen/_10"
+				android:orientation="vertical"
+				app:cardBackgroundColor="@color/color_cardview_bg"
+				app:cardCornerRadius="@dimen/_10">
+
+				<LinearLayout
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:orientation="vertical">
+
+					<LinearLayout
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:background="@color/color_cardview_title_bg"
+						android:orientation="vertical"
+						tools:ignore="TooManyViews">
+
+						<!-- Reset settings title -->
+						<TextView
+							android:id="@+id/txt_reset_browser_settings"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:layout_margin="@dimen/_10"
+							android:ellipsize="end"
+							android:fontFamily="@font/application_font_family"
+							android:gravity="center"
+							android:maxLines="1"
+							android:text="@string/title_reset_settings"
+							android:textColor="@color/color_text_primary"
+							android:textSize="@dimen/normal_text_size"
+							android:textFontWeight="600" />
+					</LinearLayout>
+
+					<!-- Reset settings description -->
+					<TextView
+						android:layout_width="match_parent"
+						android:layout_height="match_parent"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:autoLink="web"
+						android:fontFamily="@font/application_font_family"
+						android:gravity="center"
+						android:text="@string/text_reset_browser_settings"
+						android:textColor="@color/color_text_primary"
+						android:textSize="@dimen/message_text_size"
+						tools:ignore="TextContrastCheck" />
+
+					<!-- Reset settings button -->
+					<RelativeLayout
+						android:id="@+id/btn_reset_browser_settings"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:layout_marginStart="@dimen/_10"
+						android:layout_marginTop="@dimen/_10"
+						android:layout_marginEnd="@dimen/_10"
+						android:layout_marginBottom="@dimen/_10"
+						android:background="@drawable/ic_button_selector_secondary"
+						android:clickable="true"
+						android:elevation="@dimen/_2"
+						tools:ignore="TouchTargetSizeCheck,DuplicateSpeakableTextCheck">
+
+						<TextView
+							android:id="@+id/txt_check_new_update"
+							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
+							android:layout_centerInParent="true"
+							android:layout_margin="@dimen/_7"
+							android:drawableStart="@drawable/ic_button_clear"
+							android:drawablePadding="@dimen/_5"
+							android:drawableTint="@color/color_on_secondary"
+							android:fontFamily="@font/application_font_family"
+							android:gravity="center"
+							android:text="@string/title_reset_settings"
+							android:textColor="@color/color_on_secondary"
+							android:textSize="@dimen/normal_text_size"
+							android:textFontWeight="600" />
+					</RelativeLayout>
+
+				</LinearLayout>
+			</androidx.cardview.widget.CardView>
+		</LinearLayout>
+	</ScrollView>
+</RelativeLayout>

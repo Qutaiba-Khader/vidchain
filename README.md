@@ -1,0 +1,16 @@
+# Video downloader with on-device fallbacks (working title)
+
+An Android video downloader **based on [AIO Video Downloader](https://github.com/shibaFoss/AIO-Video-Downloader)
+by shibaFoss** - an independent, non-commercial derivative, **not** the official app and not endorsed by
+its author (see `ATTRIBUTION.md`).
+
+- No ads, no tracking, no self-updater, no remote kill switch, no developer cloud sync.
+- Everything runs on the phone; no servers.
+- Planned: when the original download method fails, further on-device methods are tried one after
+  another (the original method always runs first, unchanged).
+
+Status: the repository is being set up. The app name, install instructions (GitHub Releases + Obtainium)
+and the signing certificate fingerprint are added before the first release.
+
+Licence: `LICENSE.md` (Non-Commercial Use Free License, from the original app) plus third-party
+licences in `THIRD_PARTY_NOTICES.md`. Source provenance: `PROVENANCE.md`, `VENDORED_FROM`, `upstream/`.

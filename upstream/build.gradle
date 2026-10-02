@@ -1,0 +1,62 @@
+// -----------------------------------------------------------------------------
+// Top-level Gradle build file
+// This file defines configuration shared across all modules in the project.
+// It is evaluated before any module-level build.gradle files.
+// -----------------------------------------------------------------------------
+
+/**
+ * The `buildscript` block configures Gradle’s own build environment.
+ * Dependencies declared here are used during the build process only
+ * and are not included in the final application.
+ */
+buildscript {
+
+	/**
+	 * Extra project-wide properties.
+	 * Used to keep plugin and tooling versions centralized and consistent.
+	 */
+	ext {
+
+		// Version of ObjectBox used by the Gradle plugin and runtime libraries.
+		objectboxVersion = "5.0.1"
+	}
+
+	/**
+	 * Repositories used to resolve buildscript dependencies.
+	 * These repositories are only consulted for Gradle plugins and tooling.
+	 */
+	repositories {
+
+		// Google’s Maven repository (required for Android tooling).
+		google()
+
+		// Maven Central repository for Java and JVM-based libraries.
+		mavenCentral()
+
+		// Official Gradle Plugin Portal for community and third-party plugins.
+		gradlePluginPortal()
+	}
+
+	/**
+	 * Buildscript dependencies.
+	 * These extend Gradle with additional build-time capabilities.
+	 */
+	dependencies {
+
+		// ObjectBox Gradle plugin for database code generation and schema handling.
+		classpath "io.objectbox:objectbox-gradle-plugin:$objectboxVersion"
+	}
+}
+
+/**
+ * Plugin declarations using the Version Catalog.
+ * Plugins are declared here and selectively applied in module build files.
+ */
+plugins {
+
+	// Android Application plugin (applied in the app module).
+	alias(libs.plugins.android.application) apply false
+
+	// Kotlin Android plugin (applied in modules using Kotlin).
+	alias(libs.plugins.kotlin.android) apply false
+}

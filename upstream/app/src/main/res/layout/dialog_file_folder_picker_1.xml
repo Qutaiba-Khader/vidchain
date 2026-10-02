@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- =========================================================================
+     Content Region Selection Dialog Layout
+     Provides a user interface for selecting preferred content regions/locations
+     with a list-based selection approach and application restart requirement notice.
+
+     This dialog is used when users need to choose their geographic content preference
+     (e.g., country, region) which may affect available content, language defaults,
+     or service availability. The selection requires app restart to fully apply
+     regional-specific configurations and content filtering.
+
+     Layout Structure:
+     - CardView container with elevated Material Design styling
+     - Optional title section for dialog context (currently visible)
+     - Breadcrumb navigation for hierarchical location browsing
+     - Back navigation button for directory traversal
+     - Scrollable ListView for region/location option presentation
+     - Dual action buttons (cancel and confirm) with weighted layout
+     - Proper spacing and touch target sizing for accessibility
+     ========================================================================= -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	style="@style/style_dialog"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	tools:ignore="UseAppTint,UseCompatTextViewDrawableXml,VisualLintBounds">
+
+	<!-- ============================================================
+	     DIALOG CARD CONTAINER
+	     Material Design CardView providing visual elevation, rounded
+	     corners, and consistent dialog styling. Uses moderate elevation
+	     for prominence while maintaining accessibility standards.
+	     Margin spacing ensures proper visual separation from screen edges.
+	     ============================================================ -->
+	<androidx.cardview.widget.CardView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginStart="@dimen/_5"
+		android:layout_marginTop="@dimen/_10"
+		android:layout_marginEnd="@dimen/_5"
+		android:layout_marginBottom="@dimen/_10"
+		app:cardBackgroundColor="@color/color_cardview_bg"
+		app:cardCornerRadius="@dimen/_10"
+		app:cardElevation="@dimen/_5">
+
+		<!-- ======================================================
+		     VERTICAL CONTENT CONTAINER
+		     Organizes dialog elements in sequential vertical order:
+		     title header, breadcrumb navigation, back button, content
+		     list, and action buttons. Uses wrap_content height to
+		     accommodate variable list sizes.
+		     ====================================================== -->
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical">
+
+			<!-- ==================================================
+			     DIALOG TITLE SECTION
+			     Currently visible header providing context about
+			     the dialog's purpose. Uses colored background
+			     for visual separation from content area.
+			     Can be hidden if title context is provided elsewhere.
+			     ================================================== -->
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:background="@color/color_cardview_title_bg"
+				android:orientation="vertical"
+				android:visibility="visible">
+
+				<!-- Dialog title text with proper typography and truncation -->
+				<TextView
+					android:id="@+id/txt_dialog_title"
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_10"
+					android:ellipsize="end"
+					android:fontFamily="@font/application_font_family"
+					android:gravity="center"
+					android:maxLines="1"
+					android:text="@string/title_file_folder_picker"
+					android:textColor="@color/color_text_primary"
+					android:textFontWeight="600"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ==================================================
+			     BREADCRUMB NAVIGATION CONTAINER
+			     Horizontal scrollable container displaying the current
+			     directory path hierarchy. Allows users to quickly
+			     navigate to any parent directory in the current path.
+
+			     Features:
+			     - Horizontal scrolling for long directory paths
+			     - Dynamic path segment generation
+			     - Clickable path segments for direct navigation
+			     - Visual separation from main content area
+			     ================================================== -->
+			<HorizontalScrollView
+				android:id="@+id/container_breadcrumb_scroll"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:layout_marginTop="@dimen/_5"
+				android:background="@drawable/rounded_transparent_black"
+				android:scrollbars="none"
+				tools:ignore="SpeakableTextPresentCheck">
+
+				<!-- ==============================================
+				     BREADCRUMB PATH CONTAINER
+				     Dynamic container that holds the clickable path
+				     segments representing the current directory hierarchy.
+				     Path segments are added programmatically based on
+				     the current navigation location.
+				     ============================================== -->
+				<LinearLayout
+					android:id="@+id/container_breadcrumb"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_gravity="center_vertical"
+					android:layout_marginHorizontal="@dimen/_5"
+					android:layout_marginVertical="@dimen/_5"
+					android:orientation="horizontal" />
+			</HorizontalScrollView>
+
+			<!-- ==================================================
+			     BACK NAVIGATION BUTTON
+			     Provides a convenient way to navigate to the parent
+			     directory of the current location. Uses a back arrow
+			     icon and clear text label for intuitive navigation.
+
+			     Behavior: When clicked, moves up one level in the
+			     directory hierarchy and updates the breadcrumb and
+			     file list accordingly.
+			     ================================================== -->
+			<TextView
+				android:id="@+id/btn_go_to_previous_dir"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:layout_marginVertical="@dimen/_5"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				android:drawableStart="@drawable/ic_button_arrow_back"
+				android:drawablePadding="@dimen/_5"
+				android:drawableTint="@color/color_secondary"
+				android:gravity="center_vertical"
+				android:padding="@dimen/_3"
+				android:text="@string/go_back_previous_path"
+				android:textFontWeight="600"
+				tools:ignore="TouchTargetSizeCheck" />
+
+			<!-- ==================================================
+			     CONTENT REGION SELECTION LISTVIEW
+			     Scrollable list container for displaying available
+			     content regions, files, or folders. Uses layout_weight
+			     to fill available vertical space between navigation
+			     elements and action buttons.
+
+			     Features:
+			     - Dynamic height allocation based on content
+			     - Transparent divider for clean visual separation
+			     - Optimized for potentially long item lists
+			     - Built-in scrolling for overflow handling
+			     - Supports both single and multiple selection modes
+
+			     Expected data: List of files, folders, or regions
+			     with selection states (radio buttons or checkmarks)
+			     ================================================== -->
+			<ListView
+				android:id="@+id/list_of_files_folders"
+				android:layout_width="match_parent"
+				android:layout_height="0dp"
+				android:layout_marginStart="@dimen/_0"
+				android:layout_marginTop="@dimen/_0"
+				android:layout_marginEnd="@dimen/_0"
+				android:layout_marginBottom="@dimen/_0"
+				android:layout_weight="1"
+				android:divider="@color/transparent"
+				android:visibility="visible" />
+
+			<!-- ==================================================
+			     DUAL ACTION BUTTON CONTAINER
+			     Horizontal layout containing both cancel and confirm
+			     buttons with weighted width distribution (40% cancel,
+			     60% confirm). Uses baseline alignment for consistent
+			     button height and visual balance.
+
+			     Design Rationale:
+			     - Confirm button gets more prominence (60% width)
+			     - Cancel button remains accessible but less prominent
+			     - Consistent spacing and margin application
+			     ================================================== -->
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginBottom="@dimen/_5"
+				android:baselineAligned="true"
+				android:orientation="horizontal">
+
+				<!-- ==============================================
+				     CANCEL BUTTON CONTAINER
+				     Secondary action button allowing users to
+				     dismiss the dialog without making changes.
+				     Uses negative selector styling to indicate
+				     secondary action and occupies 40% of width.
+
+				     Behavior: Closes the dialog and discards any
+				     selection changes made during the session.
+				     ============================================== -->
+				<RelativeLayout
+					android:id="@+id/button_dialog_negative_container"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_marginStart="@dimen/_10"
+					android:layout_marginTop="@dimen/_5"
+					android:layout_marginEnd="@dimen/_10"
+					android:layout_marginBottom="@dimen/_5"
+					android:layout_weight="0.4"
+					android:background="@drawable/ic_button_negative_selector"
+					android:clickable="true"
+					tools:ignore="TouchTargetSizeCheck">
+
+					<!-- Cancel button with X icon and primary text color -->
+					<TextView
+						android:id="@+id/button_dialog_negative"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:layout_margin="@dimen/_7"
+						android:drawableStart="@drawable/ic_button_cancel"
+						android:drawablePadding="@dimen/_5"
+						android:drawableTint="@color/color_text_primary"
+						android:ellipsize="end"
+						android:fontFamily="@font/application_font_family"
+						android:gravity="center"
+						android:maxLines="1"
+						android:text="@string/title_cancel"
+						android:textColor="@color/color_text_primary"
+						android:textSize="@dimen/normal_text_size" />
+				</RelativeLayout>
+
+				<!-- ==============================================
+				     CONFIRM/SELECT BUTTON CONTAINER
+				     Primary action button for confirming the
+				     current selection. Uses secondary color scheme
+				     and elevation for visual prominence, occupying
+				     60% of the available width.
+
+				     Behavior: When clicked, applies the current
+				     selection (file, folder, or region) and may
+				     show additional instructions or close the dialog.
+				     ============================================== -->
+				<RelativeLayout
+					android:id="@+id/btn_dialog_positive_container"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_marginStart="@dimen/_10"
+					android:layout_marginTop="@dimen/_5"
+					android:layout_marginEnd="@dimen/_10"
+					android:layout_marginBottom="@dimen/_5"
+					android:layout_weight="0.6"
+					android:background="@drawable/ic_button_selector_secondary"
+					android:clickable="true"
+					android:elevation="@dimen/_2"
+					tools:ignore="TouchTargetSizeCheck">
+
+					<!-- Select button with checkmark icon and contrast text -->
+					<TextView
+						android:id="@+id/btn_dialog_positive"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:layout_margin="@dimen/_7"
+						android:drawableStart="@drawable/ic_button_checked_circle"
+						android:drawablePadding="@dimen/_5"
+						android:drawableTint="@color/color_on_secondary"
+						android:ellipsize="end"
+						android:fontFamily="@font/application_font_family"
+						android:gravity="center"
+						android:maxLines="1"
+						android:text="@string/title_select"
+						android:textColor="@color/color_on_secondary"
+						android:textFontWeight="600"
+						android:textSize="@dimen/normal_text_size"
+						tools:ignore="TextContrastCheck" />
+				</RelativeLayout>
+			</LinearLayout>
+		</LinearLayout>
+	</androidx.cardview.widget.CardView>
+</LinearLayout>

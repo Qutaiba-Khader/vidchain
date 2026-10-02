@@ -1,0 +1,16 @@
+*.iml
+.gradle
+.kotlin
+.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+release_signature.jks
+client_secret_google_auth.json
+memory_paper.txt
+release_signature_key.png
+/others/store_info/
+/others/studio_configs/settings_1.zip

@@ -1,0 +1,8 @@
+repo: https://github.com/shibaFoss/AIO-Video-Downloader
+branch: master
+commit: cd975f230e865e8f8150456a9dbf5760cfdbafc0
+tarball: https://codeload.github.com/shibaFoss/AIO-Video-Downloader/tar.gz/cd975f230e865e8f8150456a9dbf5760cfdbafc0
+tarball_sha256: 6e046e88fff89c6cdcc398ebff5dff9636360568088be233a5b4259634afa23c
+tree_sha256: 280f808c1dbbfb265807d49560f8a4586f9a3f0aed03311e07325d1eb2c4c135
+imported: 2026-10-02T21:43:09Z
+purpose: licence and provenance record only - no upstream sync (owner decision Q20 = C)

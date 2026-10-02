@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Font family definition file for Android app
+    Defines a complete font family with multiple weights and styles
+-->
+
+<font-family
+	xmlns:android="http://schemas.android.com/apk/res/android">
+	
+	<!-- Thin weight (100) - Normal style -->
+	<font
+		android:font="@font/font_family_thin"
+		android:fontStyle="normal"
+		android:fontWeight="100"
+		/>
+	
+	<!-- Extra Light weight (200) - Normal style -->
+	<font
+		android:font="@font/font_family_extralight"
+		android:fontStyle="normal"
+		android:fontWeight="200"
+		/>
+	
+	<!-- Light weight (300) - Normal style -->
+	<font
+		android:font="@font/font_family_light"
+		android:fontStyle="normal"
+		android:fontWeight="300"
+		/>
+	
+	<!-- Regular weight (400) - Normal style (Default weight) -->
+	<font
+		android:font="@font/font_family_regular"
+		android:fontStyle="normal"
+		android:fontWeight="400"
+		/>
+	
+	<!-- Medium weight (500) - Normal style -->
+	<font
+		android:font="@font/font_family_medium"
+		android:fontStyle="normal"
+		android:fontWeight="500"
+		/>
+	
+	<!--  Medium weight (600) - Normal style -->
+	<font
+		android:font="@font/font_family_medium"
+		android:fontStyle="normal"
+		android:fontWeight="600"
+		/>
+	
+	<!-- Semi-Bold weight (700) - Normal style -->
+	<font
+		android:font="@font/font_family_semibold"
+		android:fontStyle="normal"
+		android:fontWeight="700"
+		/>
+	
+	<!-- Bold weight (800) - Normal style -->
+	<font
+		android:font="@font/font_family_bold"
+		android:fontStyle="normal"
+		android:fontWeight="800"
+		/>
+	
+	<!-- =============================================== -->
+	<!-- Italic variants of the font weights below -->
+	<!-- =============================================== -->
+	
+	<!-- Thin weight (100) - Italic style -->
+	<font
+		android:font="@font/font_family_thinitalic"
+		android:fontStyle="italic"
+		android:fontWeight="100"
+		/>
+	
+	<!-- Extra Light weight (200) - Italic style -->
+	<font
+		android:font="@font/font_family_extralightitalic"
+		android:fontStyle="italic"
+		android:fontWeight="200"
+		/>
+	
+	<!-- Light weight (300) - Italic style -->
+	<font
+		android:font="@font/font_family_lightitalic"
+		android:fontStyle="italic"
+		android:fontWeight="300"
+		/>
+	
+	<!-- Regular weight (400) - Italic style -->
+	<font
+		android:font="@font/font_family_italic"
+		android:fontStyle="italic"
+		android:fontWeight="400"
+		/>
+	
+	<!-- Medium weight (500) - Italic style -->
+	<font
+		android:font="@font/font_family_mediumitalic"
+		android:fontStyle="italic"
+		android:fontWeight="500"
+		/>
+	
+	<!-- Medium weight (600) - Italic style -->
+	<font
+		android:font="@font/font_family_mediumitalic"
+		android:fontStyle="italic"
+		android:fontWeight="600"
+		/>
+	
+	<!-- Semi-Bold weight (700) - Italic style -->
+	<font
+		android:font="@font/font_family_semibolditalic"
+		android:fontStyle="italic"
+		android:fontWeight="700"
+		/>
+	
+	<!-- Bold weight (800) - Italic style -->
+	<font
+		android:font="@font/font_family_bolditalic"
+		android:fontStyle="italic"
+		android:fontWeight="800"
+		/>
+
+</font-family>

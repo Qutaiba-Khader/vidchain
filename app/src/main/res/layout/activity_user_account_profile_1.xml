@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?><!-- Main container for user feedback screen -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@drawable/ic_background_gradient"
+	android:orientation="vertical"
+	tools:context="app.ui.others.information.UserFeedbackActivity"
+	tools:ignore="UseCompatTextViewDrawableXml,UseAppTint"
+	>
+	
+	<LinearLayout
+		android:id="@+id/container_layout_loading"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_centerInParent="true"
+		android:orientation="vertical"
+		>
+		
+		<com.airbnb.lottie.LottieAnimationView
+			android:id="@+id/img_layout_loading_anim"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:layout_gravity="center"
+			android:layout_margin="@dimen/_5"
+			android:adjustViewBounds="true"
+			android:hardwareAccelerated="true"
+			android:importantForAccessibility="no"
+			android:layerType="hardware"
+			app:lottie_autoPlay="true"
+			app:lottie_enableMergePathsForKitKatAndAbove="true"
+			app:lottie_loop="true"
+			app:lottie_rawRes="@raw/animation_layout_load"
+			tools:ignore="ImageContrastCheck"
+			/>
+	
+	</LinearLayout>
+	
+	<androidx.cardview.widget.CardView
+		android:id="@+id/top_actionbar_section"
+		android:layout_width="match_parent"
+		android:layout_height="@dimen/_50"
+		android:layout_alignParentTop="true"
+		android:layout_marginHorizontal="@dimen/_5"
+		android:layout_marginTop="@dimen/_10"
+		android:layout_marginBottom="@dimen/_5"
+		app:cardBackgroundColor="@color/color_actionbar_title_bg"
+		app:cardCornerRadius="@dimen/_10"
+		>
+		
+		<RelativeLayout
+			android:id="@+id/container_actionbar_top"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			>
+			
+			<RelativeLayout
+				android:id="@+id/btn_left_actionbar"
+				android:layout_width="@dimen/_50"
+				android:layout_height="match_parent"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				tools:ignore="SpeakableTextPresentCheck"
+				>
+				
+				<ImageView
+					android:id="@+id/btn_left_actionbar_img"
+					android:layout_width="@dimen/_30"
+					android:layout_height="wrap_content"
+					android:layout_centerInParent="true"
+					android:adjustViewBounds="true"
+					android:importantForAccessibility="no"
+					android:src="@drawable/ic_button_actionbar_back"
+					android:tint="@color/color_secondary"
+					tools:ignore="ImageContrastCheck"
+					/>
+			</RelativeLayout>
+			
+			<TextView
+				android:id="@+id/txt_actionbar"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginStart="@dimen/_10"
+				android:layout_marginTop="@dimen/_0"
+				android:layout_marginEnd="@dimen/_10"
+				android:layout_marginBottom="@dimen/_0"
+				android:layout_toStartOf="@id/btn_right_actionbar"
+				android:layout_toEndOf="@id/btn_left_actionbar"
+				android:ellipsize="end"
+				android:fontFamily="@font/font_family_bold"
+				android:gravity="center_vertical"
+				android:maxLines="1"
+				android:text="@string/title_account_details"
+				android:textSize="@dimen/title_text_size"
+				/>
+		</RelativeLayout>
+	</androidx.cardview.widget.CardView>
+	
+	<ScrollView
+		android:id="@+id/container_main_layout"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:layout_below="@+id/top_actionbar_section"
+		>
+		
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical"
+			>
+		
+		
+		</LinearLayout>
+	</ScrollView>
+</RelativeLayout>

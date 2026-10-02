@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- =========================================================================
+     Browser History Options Dialog Layout
+     Defines a dialog that presents multiple actions for managing
+     browser history entries such as open, edit, set homepage,
+     share, bookmark, copy, and delete.
+
+     Each action is represented as a clickable LinearLayout styled
+     with consistent spacing, icons, and text appearance.
+     ========================================================================= -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	style="@style/style_dialog"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	tools:ignore="UseAppTint,UseCompatTextViewDrawableXml">
+
+	<!-- ============================================================
+		 CARD CONTAINER
+		 Provides a unified visual shell with rounded corners,
+		 elevation, and margin spacing for all dialog options.
+		 ============================================================ -->
+	<androidx.cardview.widget.CardView
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:layout_marginStart="@dimen/_5"
+		android:layout_marginTop="@dimen/_10"
+		android:layout_marginEnd="@dimen/_5"
+		android:layout_marginBottom="@dimen/_10"
+		app:cardBackgroundColor="@color/color_cardview_bg"
+		app:cardCornerRadius="@dimen/_10"
+		app:cardElevation="@dimen/_2">
+
+		<!-- ======================================================
+			 ROOT LAYOUT
+			 Organizes all history option buttons vertically
+			 inside the card container.
+			 ====================================================== -->
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical">
+
+			<!-- ==================================================
+				 TITLE BAR
+				 Displays the title text for the dialog header.
+				 ================================================== -->
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="@dimen/_35"
+				android:background="@color/color_cardview_title_bg"
+				android:orientation="horizontal"
+				android:visibility="visible">
+
+				<TextView
+					style="@style/style_dialog.title"
+					android:layout_gravity="center"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/title_web_history_options"
+					android:textColor="@color/color_text_primary"
+					android:textFontWeight="600"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ==================================================
+				 OPEN HISTORY OPTION
+				 Opens the selected history entry in the browser.
+				 ================================================== -->
+			<LinearLayout
+				android:id="@+id/btn_open_history"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:layout_marginTop="@dimen/_10"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				android:orientation="vertical"
+				tools:ignore="TouchTargetSizeCheck">
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_8"
+					android:drawableStart="@drawable/ic_button_open_v2"
+					android:drawableEnd="@drawable/ic_button_open_small"
+					android:drawablePadding="@dimen/_5"
+					android:drawableTint="@color/color_secondary"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/title_open_in_browser"
+					android:textColor="@color/color_text_primary"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ==================================================
+				 EDIT HISTORY OPTION
+				 Allows modification or annotation of a saved history entry.
+				 ================================================== -->
+			<LinearLayout
+				android:id="@+id/btn_edit_history"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				android:orientation="vertical"
+				tools:ignore="TouchTargetSizeCheck">
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_8"
+					android:drawableStart="@drawable/ic_button_edit_text"
+					android:drawableEnd="@drawable/ic_button_open_small"
+					android:drawablePadding="@dimen/_5"
+					android:drawableTint="@color/color_secondary"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/title_update_edit_history"
+					android:textColor="@color/color_text_primary"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ==================================================
+				 SET AS HOMEPAGE OPTION
+				 Sets the selected history entry as the browser homepage.
+				 ================================================== -->
+			<LinearLayout
+				android:id="@+id/btn_browser_homepage"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				android:orientation="vertical"
+				tools:ignore="TouchTargetSizeCheck">
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_8"
+					android:drawableStart="@drawable/ic_button_save_bookmark"
+					android:drawableEnd="@drawable/ic_button_open_small"
+					android:drawablePadding="@dimen/_5"
+					android:drawableTint="@color/color_secondary"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/text_make_default_homepage"
+					android:textColor="@color/color_text_primary"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ==================================================
+				 SHARE HISTORY OPTION
+				 Shares the history entry’s URL with other apps.
+				 ================================================== -->
+			<LinearLayout
+				android:id="@+id/btn_share_history"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				android:orientation="vertical"
+				tools:ignore="TouchTargetSizeCheck">
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_8"
+					android:drawableStart="@drawable/ic_button_share_v3"
+					android:drawableEnd="@drawable/ic_button_open_small"
+					android:drawablePadding="@dimen/_5"
+					android:drawableTint="@color/color_secondary"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/title_share_with_others"
+					android:textColor="@color/color_text_primary"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ==================================================
+				 ADD TO BOOKMARKS OPTION
+				 Saves the selected history entry to bookmarks for quick access.
+				 ================================================== -->
+			<LinearLayout
+				android:id="@+id/btn_add_to_bookmark"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				android:orientation="vertical"
+				tools:ignore="TouchTargetSizeCheck">
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_8"
+					android:drawableStart="@drawable/ic_button_save_bookmark"
+					android:drawableEnd="@drawable/ic_button_open_small"
+					android:drawablePadding="@dimen/_5"
+					android:drawableTint="@color/color_secondary"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/title_add_to_bookmark"
+					android:textColor="@color/color_text_primary"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ==================================================
+				 COPY HISTORY URL OPTION
+				 Copies the URL of the selected history entry
+				 to the clipboard for pasting elsewhere.
+				 ================================================== -->
+			<LinearLayout
+				android:id="@+id/btn_copy_history"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				android:orientation="vertical"
+				tools:ignore="TouchTargetSizeCheck">
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_8"
+					android:drawableStart="@drawable/ic_button_clipboard_v2"
+					android:drawableEnd="@drawable/ic_button_open_small"
+					android:drawablePadding="@dimen/_5"
+					android:drawableTint="@color/color_secondary"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/title_copy_history"
+					android:textColor="@color/color_text_primary"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+			<!-- ==================================================
+				 DELETE HISTORY OPTION
+				 Permanently deletes the selected history record
+				 from the user’s browsing history.
+				 ================================================== -->
+			<LinearLayout
+				android:id="@+id/btn_delete_history"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:layout_marginHorizontal="@dimen/_10"
+				android:layout_marginBottom="@dimen/_10"
+				android:background="@drawable/ic_button_negative_selector"
+				android:clickable="true"
+				android:orientation="vertical"
+				tools:ignore="TouchTargetSizeCheck">
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="match_parent"
+					android:layout_margin="@dimen/_8"
+					android:drawableStart="@drawable/ic_button_delete_v2"
+					android:drawableEnd="@drawable/ic_button_open_small"
+					android:drawablePadding="@dimen/_5"
+					android:drawableTint="@color/color_secondary"
+					android:fontFamily="@font/application_font_family"
+					android:text="@string/title_delete_web_history"
+					android:textColor="@color/color_text_primary"
+					android:textSize="@dimen/normal_text_size" />
+			</LinearLayout>
+
+		</LinearLayout>
+	</androidx.cardview.widget.CardView>
+</LinearLayout>

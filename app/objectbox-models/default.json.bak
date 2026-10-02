@@ -1,0 +1,1339 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:5859520049495032366",
+      "lastPropertyId": "68:178972667968884868",
+      "name": "AIOSettings",
+      "properties": [
+        {
+          "id": "1:5536534779022978228",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:8662162876929210614",
+          "name": "userInstallationId",
+          "type": 9
+        },
+        {
+          "id": "3:7288215625851949191",
+          "name": "isFirstTimeLanguageSelectionComplete",
+          "type": 1
+        },
+        {
+          "id": "4:2983331562371260121",
+          "name": "hasUserRatedTheApplication",
+          "type": 1
+        },
+        {
+          "id": "5:281261148925906891",
+          "name": "totalNumberOfSuccessfulDownloads",
+          "type": 5
+        },
+        {
+          "id": "6:3522376920435625038",
+          "name": "totalUsageTimeInMs",
+          "type": 7
+        },
+        {
+          "id": "7:4410102520692434629",
+          "name": "totalUsageTimeInFormat",
+          "type": 9
+        },
+        {
+          "id": "8:8154042720511162989",
+          "name": "lastProcessedClipboardText",
+          "type": 9
+        },
+        {
+          "id": "9:3963306522544591536",
+          "name": "defaultDownloadLocation",
+          "type": 5
+        },
+        {
+          "id": "10:6501611964314601059",
+          "name": "userSelectedUILanguage",
+          "type": 9
+        },
+        {
+          "id": "11:1566909660993660347",
+          "name": "userSelectedContentRegion",
+          "type": 9
+        },
+        {
+          "id": "12:8095304523251633182",
+          "name": "themeAppearance",
+          "type": 5
+        },
+        {
+          "id": "13:3384339227325602286",
+          "name": "enableDailyContentSuggestion",
+          "type": 1
+        },
+        {
+          "id": "14:2881968139621945821",
+          "name": "totalClickCountOnLanguageChange",
+          "type": 5
+        },
+        {
+          "id": "15:8638609267991085452",
+          "name": "totalClickCountOnMediaPlayback",
+          "type": 5
+        },
+        {
+          "id": "16:513698043252742938",
+          "name": "totalClickCountOnHowToGuide",
+          "type": 5
+        },
+        {
+          "id": "17:1847190105380749421",
+          "name": "totalClickCountOnVideoUrlEditor",
+          "type": 5
+        },
+        {
+          "id": "18:3378966242129703731",
+          "name": "totalClickCountOnHomeHistory",
+          "type": 5
+        },
+        {
+          "id": "19:5371096800327356198",
+          "name": "totalClickCountOnHomeBookmarks",
+          "type": 5
+        },
+        {
+          "id": "20:8544482036119016733",
+          "name": "totalClickCountOnRecentDownloads",
+          "type": 5
+        },
+        {
+          "id": "21:8770536921242150141",
+          "name": "totalClickCountOnHomeFavicon",
+          "type": 5
+        },
+        {
+          "id": "22:1099636832906278823",
+          "name": "totalClickCountOnVersionCheck",
+          "type": 5
+        },
+        {
+          "id": "23:283683769079006975",
+          "name": "totalInterstitialAdClick",
+          "type": 5
+        },
+        {
+          "id": "24:3118776531868546941",
+          "name": "totalInterstitialImpression",
+          "type": 5
+        },
+        {
+          "id": "25:6055604640816716731",
+          "name": "totalRewardedAdClick",
+          "type": 5
+        },
+        {
+          "id": "26:5171164103232239461",
+          "name": "totalRewardedImpression",
+          "type": 5
+        },
+        {
+          "id": "27:6387077614539557229",
+          "name": "whatsAppStatusFullFolderPath",
+          "type": 9
+        },
+        {
+          "id": "28:2282241618211965127",
+          "name": "downloadSingleUIProgress",
+          "type": 1
+        },
+        {
+          "id": "29:8101330331599860874",
+          "name": "downloadHideVideoThumbnail",
+          "type": 1
+        },
+        {
+          "id": "30:8626320837717071599",
+          "name": "downloadPlayNotificationSound",
+          "type": 1
+        },
+        {
+          "id": "31:2136951364153505594",
+          "name": "downloadHideNotification",
+          "type": 1
+        },
+        {
+          "id": "32:1843967718886008863",
+          "name": "hideDownloadProgressFromUI",
+          "type": 1
+        },
+        {
+          "id": "33:2805879738975993397",
+          "name": "downloadAutoRemoveTasks",
+          "type": 1
+        },
+        {
+          "id": "34:8843810869536467899",
+          "name": "downloadAutoRemoveTaskAfterNDays",
+          "type": 5
+        },
+        {
+          "id": "35:400673780812491024",
+          "name": "openDownloadedFileOnSingleClick",
+          "type": 1
+        },
+        {
+          "id": "36:5368173238966574097",
+          "name": "downloadAutoResume",
+          "type": 1
+        },
+        {
+          "id": "37:5703999695116771932",
+          "name": "downloadAutoResumeMaxErrors",
+          "type": 5
+        },
+        {
+          "id": "38:7018008441146886701",
+          "name": "downloadAutoLinkRedirection",
+          "type": 1
+        },
+        {
+          "id": "39:6153914679992493135",
+          "name": "downloadAutoFolderCatalog",
+          "type": 1
+        },
+        {
+          "id": "40:5740906553815984466",
+          "name": "downloadAutoThreadSelection",
+          "type": 1
+        },
+        {
+          "id": "41:4161122541743039912",
+          "name": "downloadAutoFileMoveToPrivate",
+          "type": 1
+        },
+        {
+          "id": "42:691090019275506173",
+          "name": "downloadAutoConvertVideosToMp3",
+          "type": 1
+        },
+        {
+          "id": "43:8422384584269261385",
+          "name": "downloadBufferSize",
+          "type": 5
+        },
+        {
+          "id": "44:8308415927123928707",
+          "name": "downloadMaxHttpReadingTimeout",
+          "type": 5
+        },
+        {
+          "id": "45:7462623648669458889",
+          "name": "downloadDefaultThreadConnections",
+          "type": 5
+        },
+        {
+          "id": "46:5898609099335122388",
+          "name": "downloadDefaultParallelConnections",
+          "type": 5
+        },
+        {
+          "id": "47:7788839609873101074",
+          "name": "downloadVerifyChecksum",
+          "type": 1
+        },
+        {
+          "id": "48:8870837114535722936",
+          "name": "downloadMaxNetworkSpeed",
+          "type": 6
+        },
+        {
+          "id": "49:8989113041225331529",
+          "name": "downloadWifiOnly",
+          "type": 1
+        },
+        {
+          "id": "50:4882162195152536589",
+          "name": "downloadHttpUserAgent",
+          "type": 9
+        },
+        {
+          "id": "51:3231886137193591161",
+          "name": "downloadHttpProxyServer",
+          "type": 9
+        },
+        {
+          "id": "52:883222227669834056",
+          "name": "hasAppCrashedRecently",
+          "type": 1
+        },
+        {
+          "id": "53:4894935924321540907",
+          "name": "privateFolderPassword",
+          "type": 9
+        },
+        {
+          "id": "54:806782438636084558",
+          "name": "numberOfMaxDownloadThreshold",
+          "type": 5
+        },
+        {
+          "id": "55:2913482189265102125",
+          "name": "numberOfDownloadsUserDid",
+          "type": 5
+        },
+        {
+          "id": "56:5990595968761273983",
+          "name": "browserDefaultHomepage",
+          "type": 9
+        },
+        {
+          "id": "57:2358615554393062033",
+          "name": "browserDesktopBrowsing",
+          "type": 1
+        },
+        {
+          "id": "58:4251676488114464655",
+          "name": "browserEnableAdblocker",
+          "type": 1
+        },
+        {
+          "id": "59:5911640183694829779",
+          "name": "browserEnableJavascript",
+          "type": 1
+        },
+        {
+          "id": "60:5756854036142300667",
+          "name": "browserEnableImages",
+          "type": 1
+        },
+        {
+          "id": "61:6564889131488235090",
+          "name": "browserEnablePopupBlocker",
+          "type": 1
+        },
+        {
+          "id": "62:7252994239412481997",
+          "name": "browserEnableVideoGrabber",
+          "type": 1
+        },
+        {
+          "id": "63:8272900143591826724",
+          "name": "browserHttpUserAgent",
+          "type": 9
+        },
+        {
+          "id": "66:2046752512379718317",
+          "name": "downloadDataModelDBId",
+          "type": 6
+        },
+        {
+          "id": "67:1368932844357110787",
+          "name": "hasUserSkipBatteryOptimization",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "2:3767404968214686921",
+      "lastPropertyId": "1:403002537298811762",
+      "name": "AIOBookmarks",
+      "properties": [
+        {
+          "id": "1:403002537298811762",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "3:2307488981260415545",
+      "lastPropertyId": "19:8389972517642319067",
+      "name": "BookmarkModel",
+      "properties": [
+        {
+          "id": "1:7455450476392514125",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:6043250443886865076",
+          "name": "bookmarkUrl",
+          "type": 9
+        },
+        {
+          "id": "3:9188066751481366719",
+          "name": "bookmarkName",
+          "type": 9
+        },
+        {
+          "id": "4:8257638487089056512",
+          "name": "bookmarkCreationDate",
+          "type": 10
+        },
+        {
+          "id": "5:2823363919739107904",
+          "name": "bookmarkModifiedDate",
+          "type": 10
+        },
+        {
+          "id": "6:4505051398448937021",
+          "name": "bookmarkThumbFilePath",
+          "type": 9
+        },
+        {
+          "id": "7:8011003905271057020",
+          "name": "bookmarkDescription",
+          "type": 9
+        },
+        {
+          "id": "8:41292766099215195",
+          "name": "bookmarkTags",
+          "type": 9
+        },
+        {
+          "id": "9:6003071519641374005",
+          "name": "bookmarkFavorite",
+          "type": 1
+        },
+        {
+          "id": "10:5875801932174093591",
+          "name": "bookmarkFolder",
+          "type": 9
+        },
+        {
+          "id": "11:2029431802147771606",
+          "name": "bookmarkAccessCount",
+          "type": 5
+        },
+        {
+          "id": "12:7818002935312673621",
+          "name": "bookmarkLastAccessed",
+          "type": 9
+        },
+        {
+          "id": "13:4611904477687830307",
+          "name": "bookmarkRating",
+          "type": 7
+        },
+        {
+          "id": "14:7470355060441313380",
+          "name": "bookmarkPriority",
+          "type": 5
+        },
+        {
+          "id": "15:392693607117375286",
+          "name": "bookmarkArchived",
+          "type": 1
+        },
+        {
+          "id": "16:2265801733946678920",
+          "name": "bookmarkIcon",
+          "type": 9
+        },
+        {
+          "id": "17:1679472400112124240",
+          "name": "bookmarkNotes",
+          "type": 9
+        },
+        {
+          "id": "18:839378594421356036",
+          "name": "bookmarkOwner",
+          "type": 9
+        },
+        {
+          "id": "19:8389972517642319067",
+          "name": "bookmarkSharedWith",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "4:5029330056376301026",
+      "lastPropertyId": "1:2521194207320409760",
+      "name": "AIOHistory",
+      "properties": [
+        {
+          "id": "1:2521194207320409760",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "5:7403477038855140073",
+      "lastPropertyId": "26:3625279620909251778",
+      "name": "HistoryModel",
+      "properties": [
+        {
+          "id": "1:2921240377271752255",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3880231891924291368",
+          "name": "historyUrl",
+          "type": 9
+        },
+        {
+          "id": "3:5732275793460016009",
+          "name": "historyTitle",
+          "type": 9
+        },
+        {
+          "id": "4:4667288199519500735",
+          "name": "historyVisitDateTime",
+          "type": 10
+        },
+        {
+          "id": "5:4379762311414936218",
+          "name": "historyFaviconFilePath",
+          "type": 9
+        },
+        {
+          "id": "6:7803478157902954803",
+          "name": "historyDescription",
+          "type": 9
+        },
+        {
+          "id": "7:1707833443124584038",
+          "name": "historyImportant",
+          "type": 1
+        },
+        {
+          "id": "8:5636164955573121092",
+          "name": "historyFolder",
+          "type": 9
+        },
+        {
+          "id": "9:8259028069721346990",
+          "name": "historyAccessCount",
+          "type": 5
+        },
+        {
+          "id": "10:568566525434914957",
+          "name": "historyLastAccessed",
+          "type": 10
+        },
+        {
+          "id": "11:4904547255356139053",
+          "name": "historyDuration",
+          "type": 6
+        },
+        {
+          "id": "12:4109086647883428630",
+          "name": "historyRating",
+          "type": 7
+        },
+        {
+          "id": "13:5002677692318431605",
+          "name": "historyPriority",
+          "type": 5
+        },
+        {
+          "id": "14:8691680513065540241",
+          "name": "historyArchived",
+          "type": 1
+        },
+        {
+          "id": "15:1079359745201580135",
+          "name": "historyIcon",
+          "type": 9
+        },
+        {
+          "id": "16:8966217588691762926",
+          "name": "historyNotes",
+          "type": 9
+        },
+        {
+          "id": "17:2682316753981959692",
+          "name": "historyOwner",
+          "type": 9
+        },
+        {
+          "id": "18:5890606131626001733",
+          "name": "historySharedWith",
+          "type": 9
+        },
+        {
+          "id": "19:5771654032101474595",
+          "name": "historySessionId",
+          "type": 9
+        },
+        {
+          "id": "20:4621810374460115663",
+          "name": "historyUserAgent",
+          "type": 9
+        },
+        {
+          "id": "21:5349362192426370584",
+          "name": "historyReferrer",
+          "type": 9
+        },
+        {
+          "id": "22:2142424454481117558",
+          "name": "historyTags",
+          "type": 9
+        },
+        {
+          "id": "23:6874279781964394488",
+          "name": "historySearchTerms",
+          "type": 9
+        },
+        {
+          "id": "24:6498643772008514399",
+          "name": "historyContentType",
+          "type": 9
+        },
+        {
+          "id": "25:2107459999209269288",
+          "name": "historyDeviceType",
+          "type": 9
+        },
+        {
+          "id": "26:3625279620909251778",
+          "name": "historyLocation",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "6:8161844310512022224",
+      "lastPropertyId": "10:1787382685343138234",
+      "name": "RemoteFileInfo",
+      "properties": [
+        {
+          "id": "1:6771642486107937440",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7632833671107402987",
+          "name": "isFileForbidden",
+          "type": 1
+        },
+        {
+          "id": "3:7152208448347784918",
+          "name": "errorMessage",
+          "type": 9
+        },
+        {
+          "id": "4:6246656849426985437",
+          "name": "fileName",
+          "type": 9
+        },
+        {
+          "id": "5:5871834240394081123",
+          "name": "fileSize",
+          "type": 6
+        },
+        {
+          "id": "6:7979223330535356420",
+          "name": "fileChecksum",
+          "type": 9
+        },
+        {
+          "id": "7:141160228647688712",
+          "name": "isSupportsMultipart",
+          "type": 1
+        },
+        {
+          "id": "8:3731541173510125556",
+          "name": "isSupportsResume",
+          "type": 1
+        },
+        {
+          "id": "10:1787382685343138234",
+          "name": "downloadDataModelDBId",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "7:4731141476551157893",
+      "lastPropertyId": "13:2855976916647726564",
+      "name": "VideoFormat",
+      "properties": [
+        {
+          "id": "1:2169597765780774463",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7587224227383010860",
+          "name": "isFromSocialMedia",
+          "type": 1
+        },
+        {
+          "id": "3:6807651644945994259",
+          "name": "formatId",
+          "type": 9
+        },
+        {
+          "id": "4:8260179859463978249",
+          "name": "formatExtension",
+          "type": 9
+        },
+        {
+          "id": "5:6336639809416177884",
+          "name": "formatResolution",
+          "type": 9
+        },
+        {
+          "id": "6:6363344158893076946",
+          "name": "formatFileSize",
+          "type": 9
+        },
+        {
+          "id": "7:169471700049573394",
+          "name": "formatVcodec",
+          "type": 9
+        },
+        {
+          "id": "8:2675930095528449893",
+          "name": "formatAcodec",
+          "type": 9
+        },
+        {
+          "id": "9:2835446283277357260",
+          "name": "formatTBR",
+          "type": 9
+        },
+        {
+          "id": "10:539222671309682395",
+          "name": "formatProtocol",
+          "type": 9
+        },
+        {
+          "id": "11:3170303839480699888",
+          "name": "formatStreamingUrl",
+          "type": 9
+        },
+        {
+          "id": "13:2855976916647726564",
+          "name": "downloadDataModelDBId",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "8:5804091465831558502",
+      "lastPropertyId": "12:2452018272927001079",
+      "name": "VideoInfo",
+      "properties": [
+        {
+          "id": "1:918970822017709105",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:2476229169724575952",
+          "name": "videoTitle",
+          "type": 9
+        },
+        {
+          "id": "3:5003933081891959624",
+          "name": "videoThumbnailUrl",
+          "type": 9
+        },
+        {
+          "id": "4:6983605977580220167",
+          "name": "videoThumbnailByReferer",
+          "type": 1
+        },
+        {
+          "id": "5:1889772363621956149",
+          "name": "videoDescription",
+          "type": 9
+        },
+        {
+          "id": "6:7819759913030063491",
+          "name": "videoUrlReferer",
+          "type": 9
+        },
+        {
+          "id": "7:3380106292892113917",
+          "name": "videoUrl",
+          "type": 9
+        },
+        {
+          "id": "8:3991572238309884093",
+          "name": "videoCookie",
+          "type": 9
+        },
+        {
+          "id": "9:3788877724798945455",
+          "name": "videoDuration",
+          "type": 6
+        },
+        {
+          "id": "10:2217520220478222731",
+          "name": "videoCookieTempPath",
+          "type": 9
+        },
+        {
+          "id": "12:2452018272927001079",
+          "name": "downloadDataModelDBId",
+          "type": 6
+        }
+      ],
+      "relations": [
+        {
+          "id": "1:8496475234812365537",
+          "name": "videoFormats",
+          "targetId": "7:4731141476551157893"
+        }
+      ]
+    },
+    {
+      "id": "9:4808231721176100847",
+      "lastPropertyId": "70:682849658308711800",
+      "name": "DownloadDataModel",
+      "properties": [
+        {
+          "id": "1:7616137412114891120",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3842218249226122726",
+          "name": "downloadId",
+          "type": 5
+        },
+        {
+          "id": "3:4108480979182910509",
+          "name": "status",
+          "type": 5
+        },
+        {
+          "id": "4:7238542411610556820",
+          "name": "isRunning",
+          "type": 1
+        },
+        {
+          "id": "5:4861363914424350251",
+          "name": "isComplete",
+          "type": 1
+        },
+        {
+          "id": "6:3019217439540617782",
+          "name": "isDeleted",
+          "type": 1
+        },
+        {
+          "id": "7:5200391487977460270",
+          "name": "isRemoved",
+          "type": 1
+        },
+        {
+          "id": "8:4142427084282206786",
+          "name": "isWentToPrivateFolder",
+          "type": 1
+        },
+        {
+          "id": "9:7723018875252462266",
+          "name": "isFileUrlExpired",
+          "type": 1
+        },
+        {
+          "id": "10:3326339356896902899",
+          "name": "isYtdlpHavingProblem",
+          "type": 1
+        },
+        {
+          "id": "11:3787738380298211205",
+          "name": "ytdlpProblemMsg",
+          "type": 9
+        },
+        {
+          "id": "12:1730630732749654196",
+          "name": "isDestinationFileNotExisted",
+          "type": 1
+        },
+        {
+          "id": "13:3351124240103915237",
+          "name": "isFileChecksumValidationFailed",
+          "type": 1
+        },
+        {
+          "id": "14:5897070297726344154",
+          "name": "isWaitingForNetwork",
+          "type": 1
+        },
+        {
+          "id": "15:2295259144552972616",
+          "name": "isFailedToAccessFile",
+          "type": 1
+        },
+        {
+          "id": "16:833878411408845997",
+          "name": "isExpiredURLDialogShown",
+          "type": 1
+        },
+        {
+          "id": "17:3463133419154777496",
+          "name": "isSmartCategoryDirProcessed",
+          "type": 1
+        },
+        {
+          "id": "18:7853767615267797664",
+          "name": "msgToShowUserViaDialog",
+          "type": 9
+        },
+        {
+          "id": "19:527319740558199788",
+          "name": "isDownloadFromBrowser",
+          "type": 1
+        },
+        {
+          "id": "20:3424889830863932283",
+          "name": "isBasicYtdlpModelInitialized",
+          "type": 1
+        },
+        {
+          "id": "21:2271194318698275532",
+          "name": "additionalWebHeaders",
+          "type": 13
+        },
+        {
+          "id": "22:8752427224835782218",
+          "name": "fileName",
+          "type": 9
+        },
+        {
+          "id": "23:4062479265477053243",
+          "name": "fileURL",
+          "type": 9
+        },
+        {
+          "id": "24:3003494433607022794",
+          "name": "siteReferrer",
+          "type": 9
+        },
+        {
+          "id": "25:3711253303404429854",
+          "name": "fileDirectory",
+          "type": 9
+        },
+        {
+          "id": "26:1635338574080906502",
+          "name": "fileMimeType",
+          "type": 9
+        },
+        {
+          "id": "27:3426572233040174270",
+          "name": "fileContentDisposition",
+          "type": 9
+        },
+        {
+          "id": "28:4463896904894325823",
+          "name": "siteCookieString",
+          "type": 9
+        },
+        {
+          "id": "29:7291187656221272818",
+          "name": "thumbPath",
+          "type": 9
+        },
+        {
+          "id": "30:2515048392958965346",
+          "name": "thumbnailUrl",
+          "type": 9
+        },
+        {
+          "id": "31:2815129779601003157",
+          "name": "tempYtdlpDestinationFilePath",
+          "type": 9
+        },
+        {
+          "id": "32:7472766029810480080",
+          "name": "tempYtdlpStatusInfo",
+          "type": 9
+        },
+        {
+          "id": "33:17287100883619742",
+          "name": "fileDirectoryURI",
+          "type": 9
+        },
+        {
+          "id": "34:8474426087120474726",
+          "name": "fileCategoryName",
+          "type": 9
+        },
+        {
+          "id": "35:8633548774740376738",
+          "name": "startTimeDateInFormat",
+          "type": 9
+        },
+        {
+          "id": "36:1923041189589442916",
+          "name": "startTimeDate",
+          "type": 6
+        },
+        {
+          "id": "37:1899669087813619567",
+          "name": "lastModifiedTimeDateInFormat",
+          "type": 9
+        },
+        {
+          "id": "38:7907944546696291105",
+          "name": "lastModifiedTimeDate",
+          "type": 6
+        },
+        {
+          "id": "39:1748941301851325759",
+          "name": "isUnknownFileSize",
+          "type": 1
+        },
+        {
+          "id": "40:439983927016667686",
+          "name": "fileSize",
+          "type": 6
+        },
+        {
+          "id": "41:457631141857290652",
+          "name": "fileChecksum",
+          "type": 9
+        },
+        {
+          "id": "42:8405028193263504813",
+          "name": "fileSizeInFormat",
+          "type": 9
+        },
+        {
+          "id": "43:5653187564051013684",
+          "name": "averageSpeed",
+          "type": 6
+        },
+        {
+          "id": "44:2549882648331281806",
+          "name": "maxSpeed",
+          "type": 6
+        },
+        {
+          "id": "45:8181739388741773607",
+          "name": "realtimeSpeed",
+          "type": 6
+        },
+        {
+          "id": "46:8274866615861329521",
+          "name": "averageSpeedInFormat",
+          "type": 9
+        },
+        {
+          "id": "47:4949991279616611319",
+          "name": "maxSpeedInFormat",
+          "type": 9
+        },
+        {
+          "id": "48:3747897805913533541",
+          "name": "realtimeSpeedInFormat",
+          "type": 9
+        },
+        {
+          "id": "49:3620960329374392596",
+          "name": "isResumeSupported",
+          "type": 1
+        },
+        {
+          "id": "50:5338302917238090581",
+          "name": "isMultiThreadSupported",
+          "type": 1
+        },
+        {
+          "id": "51:5328335211906371337",
+          "name": "resumeSessionRetryCount",
+          "type": 5
+        },
+        {
+          "id": "52:2567710730507199068",
+          "name": "totalTrackedConnectionRetries",
+          "type": 5
+        },
+        {
+          "id": "53:8651908477126997148",
+          "name": "progressPercentage",
+          "type": 6
+        },
+        {
+          "id": "54:3577127931689145629",
+          "name": "progressPercentageInFormat",
+          "type": 9
+        },
+        {
+          "id": "55:2831831047711370591",
+          "name": "downloadedByte",
+          "type": 6
+        },
+        {
+          "id": "56:8292587088375231952",
+          "name": "downloadedByteInFormat",
+          "type": 9
+        },
+        {
+          "id": "57:6774181292959676687",
+          "name": "partStartingPoint",
+          "type": 27
+        },
+        {
+          "id": "58:5934039683412992609",
+          "name": "partEndingPoint",
+          "type": 27
+        },
+        {
+          "id": "59:2221361922895237168",
+          "name": "partChunkSizes",
+          "type": 27
+        },
+        {
+          "id": "60:1758719773411529940",
+          "name": "partsDownloadedByte",
+          "type": 27
+        },
+        {
+          "id": "61:7617764230928114262",
+          "name": "partProgressPercentage",
+          "type": 26
+        },
+        {
+          "id": "62:483971624174733117",
+          "name": "timeSpentInMilliSec",
+          "type": 6
+        },
+        {
+          "id": "63:8779733591989532956",
+          "name": "remainingTimeInSec",
+          "type": 6
+        },
+        {
+          "id": "64:1489154457695345515",
+          "name": "timeSpentInFormat",
+          "type": 9
+        },
+        {
+          "id": "65:8756218968049166053",
+          "name": "remainingTimeInFormat",
+          "type": 9
+        },
+        {
+          "id": "66:7660478435419886693",
+          "name": "statusInfo",
+          "type": 9
+        },
+        {
+          "id": "67:8425131320062225290",
+          "name": "executionCommand",
+          "type": 9
+        },
+        {
+          "id": "68:6757481410342018012",
+          "name": "mediaFilePlaybackDuration",
+          "type": 9
+        },
+        {
+          "id": "69:5719833993768012258",
+          "name": "isSyncToCloudBackup",
+          "type": 1
+        },
+        {
+          "id": "70:682849658308711800",
+          "name": "hasUserOpenedTheFile",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "10:6838358189535358868",
+      "lastPropertyId": "11:8672041066779567174",
+      "name": "YouTubeVideoDataModel",
+      "properties": [
+        {
+          "id": "1:8375853071423476050",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3517757545138201308",
+          "name": "lastModifiedTimeDate",
+          "type": 6
+        },
+        {
+          "id": "3:5638802806325626976",
+          "name": "videoUrl",
+          "type": 9
+        },
+        {
+          "id": "4:4170941643236412871",
+          "name": "videoTitle",
+          "type": 9
+        },
+        {
+          "id": "5:6321446307543515651",
+          "name": "videoThumbnailUrl",
+          "type": 9
+        },
+        {
+          "id": "6:4779388278817929234",
+          "name": "videoDescription",
+          "type": 9
+        },
+        {
+          "id": "7:2950712118188484874",
+          "name": "videoDuration",
+          "type": 9
+        },
+        {
+          "id": "8:7393874060737283409",
+          "name": "videoViewsCount",
+          "type": 9
+        },
+        {
+          "id": "10:5204249818957308379",
+          "name": "videoChannelName",
+          "type": 9
+        },
+        {
+          "id": "11:8672041066779567174",
+          "name": "videoChannelThumbnail",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "12:7569874744703568408",
+      "lastPropertyId": "16:7690956402719196767",
+      "name": "AIOUserProfile",
+      "properties": [
+        {
+          "id": "1:5810255168624433874",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:4616574885519616574",
+          "name": "uniqueUserServerId",
+          "type": 9
+        },
+        {
+          "id": "3:4137017737296739071",
+          "name": "isUserCurrentlyLoggedIn",
+          "type": 1
+        },
+        {
+          "id": "4:3795839604334166632",
+          "name": "userFullName",
+          "type": 9
+        },
+        {
+          "id": "5:3563065494806848623",
+          "name": "userEmailAddress",
+          "type": 9
+        },
+        {
+          "id": "6:610325315094884096",
+          "name": "userPhoneNumber",
+          "type": 9
+        },
+        {
+          "id": "7:6505796429524232157",
+          "name": "isUserAccountVerified",
+          "type": 1
+        },
+        {
+          "id": "8:1361445947770021632",
+          "name": "isEmailVerified",
+          "type": 1
+        },
+        {
+          "id": "9:3592428143098118184",
+          "name": "emailVerifiedAt",
+          "type": 9
+        },
+        {
+          "id": "10:3095313346512344774",
+          "name": "isPhoneVerified",
+          "type": 1
+        },
+        {
+          "id": "11:4961409331198779666",
+          "name": "phoneVerifiedAt",
+          "type": 9
+        },
+        {
+          "id": "12:8194214540968974585",
+          "name": "supabaseAccountCreatedAt",
+          "type": 9
+        },
+        {
+          "id": "13:8089050123081261533",
+          "name": "lastSupabaseLoginAt",
+          "type": 9
+        },
+        {
+          "id": "14:5946847702171891331",
+          "name": "isSupabaseLinked",
+          "type": 1
+        },
+        {
+          "id": "15:5946861213634220957",
+          "name": "supabaseUserMetadata",
+          "type": 9
+        },
+        {
+          "id": "16:7690956402719196767",
+          "name": "supabaseAppMetadata",
+          "type": 9
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "12:7569874744703568408",
+  "lastIndexId": "0:0",
+  "lastRelationId": "1:8496475234812365537",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [
+    20975917045098968
+  ],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [
+    6998681376410707544,
+    2995981621749460171,
+    720351275970656264,
+    2728132546519396816,
+    2878173129867797327,
+    9019781913617655866,
+    178972667968884868,
+    8763911908649575557,
+    4624010957096845038,
+    8448751441554402215,
+    6548612220169475477,
+    1328303030505046394,
+    3300727228893496431
+  ],
+  "retiredRelationUids": [],
+  "version": 1
+}

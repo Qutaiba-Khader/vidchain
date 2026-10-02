@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-8"?><!-- Main browser layout with action bar, URL editing, and webview container -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@color/transparent"
+	android:orientation="vertical"
+	tools:ignore="UseCompatTextViewDrawableXml,UseAppTint">
+
+	<!-- Top action bar section (visible by default) -->
+	<RelativeLayout
+		android:id="@+id/top_actionbar_section"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:background="@color/transparent"
+		android:orientation="vertical">
+
+		<!-- Action bar card with rounded corners -->
+		<androidx.cardview.widget.CardView
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_50"
+			android:layout_alignParentTop="true"
+			android:layout_marginStart="@dimen/_10"
+			android:layout_marginTop="@dimen/_10"
+			android:layout_marginEnd="@dimen/_10"
+			android:layout_marginBottom="@dimen/_5"
+			app:cardBackgroundColor="@color/color_actionbar_title_bg"
+			app:cardCornerRadius="@dimen/_10">
+
+			<RelativeLayout
+				android:layout_width="match_parent"
+				android:layout_height="match_parent">
+
+				<!-- Navigation menu button (hamburger icon) -->
+				<RelativeLayout
+					android:id="@+id/btn_open_navigation"
+					android:layout_width="@dimen/_50"
+					android:layout_height="match_parent"
+					android:layout_marginEnd="@dimen/_3"
+					android:background="@drawable/ic_button_negative_selector"
+					android:clickable="true"
+					tools:ignore="SpeakableTextPresentCheck">
+
+					<ImageView
+						android:layout_width="@dimen/_30"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:adjustViewBounds="true"
+						android:importantForAccessibility="no"
+						android:src="@drawable/ic_button_actionbar_menu_v2"
+						android:tint="@color/color_secondary"
+						tools:ignore="ImageContrastCheck" />
+				</RelativeLayout>
+
+				<!-- URL/search container with favicon and reload button -->
+				<RelativeLayout
+					android:id="@+id/container_edit_browser_url"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_centerInParent="true"
+					android:layout_toStartOf="@+id/btn_browser_options"
+					android:layout_toEndOf="@+id/btn_open_navigation"
+					android:background="@drawable/ic_button_selector_secondary"
+					android:elevation="@dimen/_2"
+					android:orientation="horizontal">
+
+					<!-- Container website favicon indicator -->
+					<androidx.cardview.widget.CardView
+						android:id="@+id/container_img_browser_favicon"
+						android:layout_width="@dimen/_20"
+						android:layout_height="@dimen/_20"
+						android:layout_alignParentStart="true"
+						android:layout_centerVertical="true"
+						android:layout_marginStart="@dimen/_8"
+						android:layout_marginEnd="@dimen/_5"
+						app:cardBackgroundColor="@color/transparent"
+						app:cardCornerRadius="@dimen/_10"
+						app:cardElevation="@dimen/_0">
+
+						<!-- Website favicon indicator -->
+						<ImageView
+							android:id="@+id/img_browser_favicon"
+							android:layout_width="match_parent"
+							android:layout_height="match_parent"
+							android:adjustViewBounds="true"
+							android:importantForAccessibility="no"
+							android:src="@drawable/ic_image_anim_favicon"
+							android:visibility="visible"
+							tools:ignore="ImageContrastCheck" />
+					</androidx.cardview.widget.CardView>
+
+					<!-- URL/search text display with marquee scrolling -->
+					<TextView
+						android:id="@+id/edit_search_suggestion"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:layout_centerVertical="true"
+						android:layout_marginStart="@dimen/_5"
+						android:layout_marginEnd="@dimen/_5"
+						android:layout_toStartOf="@+id/btn_browser_reload"
+						android:layout_toEndOf="@+id/container_img_browser_favicon"
+						android:ellipsize="marquee"
+						android:focusable="true"
+						android:focusableInTouchMode="true"
+						android:fontFamily="@font/application_font_family"
+						android:hint="@string/title_search_or_enter_url"
+						android:marqueeRepeatLimit="marquee_forever"
+						android:maxLines="1"
+						android:scrollHorizontally="true"
+						android:singleLine="true"
+						android:textColor="@color/color_on_secondary"
+						android:textColorHint="@color/transparent_white"
+						android:textFontWeight="600"
+						android:textIsSelectable="false"
+						android:textSize="@dimen/normal_text_size_small"
+						tools:ignore="TextContrastCheck" />
+
+					<!-- Reload/refresh button -->
+					<ImageView
+						android:id="@+id/btn_browser_reload"
+						android:layout_width="@dimen/_26"
+						android:layout_height="wrap_content"
+						android:layout_alignParentEnd="true"
+						android:layout_centerVertical="true"
+						android:layout_margin="@dimen/_5"
+						android:adjustViewBounds="true"
+						android:background="@drawable/ic_button_negative_selector_v2"
+						android:clickable="true"
+						android:importantForAccessibility="no"
+						android:src="@drawable/ic_button_restart_v2"
+						android:tint="@color/color_on_secondary"
+						android:visibility="visible"
+						tools:ignore="ImageContrastCheck,TouchTargetSizeCheck" />
+				</RelativeLayout>
+
+				<!-- Browser options/menu button -->
+				<RelativeLayout
+					android:id="@+id/btn_browser_options"
+					android:layout_width="@dimen/_50"
+					android:layout_height="match_parent"
+					android:layout_alignParentEnd="true"
+					android:layout_marginStart="@dimen/_3"
+					android:background="@drawable/ic_button_negative_selector"
+					android:clickable="true"
+					tools:ignore="SpeakableTextPresentCheck">
+
+					<ImageView
+						android:id="@+id/btn_right_actionbar_img"
+						android:layout_width="@dimen/_30"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:adjustViewBounds="true"
+						android:importantForAccessibility="no"
+						android:src="@drawable/ic_button_actionbar_options"
+						android:tint="@color/color_secondary"
+						tools:ignore="ImageContrastCheck" />
+				</RelativeLayout>
+			</RelativeLayout>
+		</androidx.cardview.widget.CardView>
+	</RelativeLayout>
+
+	<!-- URL editing section (hidden by default, shown when editing URL) -->
+	<RelativeLayout
+		android:id="@+id/top_url_edit_section"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:background="@color/transparent"
+		android:orientation="vertical"
+		android:visibility="gone">
+
+		<!-- URL edit card with rounded corners -->
+		<androidx.cardview.widget.CardView
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_50"
+			android:layout_alignParentTop="true"
+			android:layout_marginStart="@dimen/_10"
+			android:layout_marginTop="@dimen/_10"
+			android:layout_marginEnd="@dimen/_10"
+			android:layout_marginBottom="@dimen/_5"
+			app:cardBackgroundColor="@color/color_actionbar_title_bg"
+			app:cardCornerRadius="@dimen/_10">
+
+			<RelativeLayout
+				android:id="@+id/container_actionbar_top"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent">
+
+				<!-- Back button to return to main action bar -->
+				<RelativeLayout
+					android:id="@+id/btn_actionbar_back"
+					android:layout_width="@dimen/_40"
+					android:layout_height="match_parent"
+					android:layout_marginStart="@dimen/_5"
+					android:layout_marginTop="@dimen/_5"
+					android:layout_marginEnd="@dimen/_5"
+					android:layout_marginBottom="@dimen/_5"
+					android:background="@drawable/ic_button_negative_selector"
+					android:clickable="true">
+
+					<ImageView
+						android:id="@+id/btn_left_actionbar_img"
+						android:layout_width="@dimen/_30"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:adjustViewBounds="true"
+						android:importantForAccessibility="no"
+						android:src="@drawable/ic_button_actionbar_back"
+						android:tint="@color/color_secondary" />
+				</RelativeLayout>
+
+				<!-- URL input field container -->
+				<RelativeLayout
+					android:id="@+id/edit_field_url_container"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_centerVertical="true"
+					android:layout_marginStart="@dimen/_2"
+					android:layout_marginTop="@dimen/_5"
+					android:layout_marginEnd="@dimen/_2"
+					android:layout_marginBottom="@dimen/_2"
+					android:layout_toStartOf="@+id/btn_clear_url_edit_field"
+					android:layout_toEndOf="@+id/btn_actionbar_back"
+					android:background="@drawable/rounded_background_color"
+					android:elevation="@dimen/_5"
+					android:orientation="vertical">
+
+					<!-- URL input text field -->
+					<EditText
+						android:id="@+id/edit_field_url"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:layout_centerVertical="true"
+						android:layout_gravity="center_vertical"
+						android:layout_marginStart="@dimen/_8"
+						android:layout_marginTop="@dimen/_5"
+						android:layout_marginEnd="@dimen/_5"
+						android:layout_marginBottom="@dimen/_8"
+						android:background="@color/transparent"
+						android:ellipsize="end"
+						android:fontFamily="@font/application_font_family"
+						android:hint="@string/title_search_or_enter_url"
+						android:importantForAutofill="no"
+						android:inputType="textUri"
+						android:maxLines="1"
+						android:singleLine="true"
+						android:textColor="@color/color_text_primary"
+						android:textFontWeight="600"
+						android:textIsSelectable="true"
+						android:textSize="@dimen/normal_text_size" />
+				</RelativeLayout>
+
+				<!-- Clear URL input button -->
+				<RelativeLayout
+					android:id="@+id/btn_clear_url_edit_field"
+					android:layout_width="@dimen/_40"
+					android:layout_height="match_parent"
+					android:layout_centerVertical="true"
+					android:layout_marginStart="@dimen/_5"
+					android:layout_marginTop="@dimen/_5"
+					android:layout_marginEnd="@dimen/_0"
+					android:layout_marginBottom="@dimen/_5"
+					android:layout_toStartOf="@id/btn_load_url_to_browser"
+					android:background="@drawable/ic_button_negative_selector"
+					android:clickable="true">
+
+					<ImageView
+						android:id="@+id/actionbar_img_clear_button"
+						android:layout_width="@dimen/_30"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:adjustViewBounds="true"
+						android:importantForAccessibility="no"
+						android:src="@drawable/ic_button_clear"
+						android:tint="@color/color_secondary" />
+				</RelativeLayout>
+
+				<!-- Load/enter URL button -->
+				<RelativeLayout
+					android:id="@+id/btn_load_url_to_browser"
+					android:layout_width="@dimen/_40"
+					android:layout_height="match_parent"
+					android:layout_alignParentEnd="true"
+					android:layout_marginStart="@dimen/_0"
+					android:layout_marginTop="@dimen/_5"
+					android:layout_marginEnd="@dimen/_5"
+					android:layout_marginBottom="@dimen/_5"
+					android:background="@drawable/ic_button_negative_selector"
+					android:clickable="true">
+
+					<ImageView
+						android:id="@+id/actionbar_img_enter_browser"
+						android:layout_width="@dimen/_30"
+						android:layout_height="wrap_content"
+						android:layout_centerInParent="true"
+						android:adjustViewBounds="true"
+						android:importantForAccessibility="no"
+						android:src="@drawable/ic_button_actionbar_send"
+						android:tint="@color/color_secondary" />
+				</RelativeLayout>
+			</RelativeLayout>
+		</androidx.cardview.widget.CardView>
+	</RelativeLayout>
+
+	<!-- Main webview container with progress bar and floating action button -->
+	<androidx.cardview.widget.CardView
+		android:id="@+id/webview_container_layout"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:layout_below="@+id/top_actionbar_section"
+		android:layout_marginStart="@dimen/_10"
+		android:layout_marginTop="@dimen/_3"
+		android:layout_marginEnd="@dimen/_10"
+		android:layout_marginBottom="@dimen/_5"
+		app:cardBackgroundColor="@color/color_background"
+		app:cardCornerRadius="@dimen/_10">
+
+		<!-- Container for the WebView -->
+		<LinearLayout
+			android:id="@+id/browser_webview_container"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:orientation="vertical" />
+
+		<!-- WebView loading progress bar -->
+		<ProgressBar
+			android:id="@+id/webview_progress_bar"
+			style="@style/style_webview_loading"
+			android:layout_width="fill_parent"
+			android:layout_height="@dimen/_3"
+			android:layout_below="@+id/top_actionbar_section"
+			android:alpha="1"
+			android:progress="20" />
+
+		<!-- Quick info/status text at bottom of webview -->
+		<TextView
+			android:id="@+id/txt_browser_quick_info"
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_30"
+			android:layout_gravity="bottom"
+			android:layout_marginStart="@dimen/_10"
+			android:layout_marginTop="@dimen/_10"
+			android:layout_marginEnd="@dimen/_10"
+			android:layout_marginBottom="@dimen/_10"
+			android:alpha="1"
+			android:background="@drawable/rounded_secondary_color"
+			android:elevation="@dimen/_2"
+			android:ellipsize="marquee"
+			android:fontFamily="@font/application_font_family"
+			android:gravity="center"
+			android:maxLines="1"
+			android:shadowColor="@color/color_primary_dark"
+			android:shadowDx="0.1"
+			android:shadowDy="0.1"
+			android:shadowRadius="0.5"
+			android:singleLine="true"
+			android:text="@string/title__"
+			android:textColor="@color/color_on_primary"
+			android:textSize="@dimen/normal_text_size"
+			android:visibility="visible"
+			tools:ignore="TextContrastCheck,TextSizeCheck" />
+
+		<!-- Floating action button for video grabbing/downloading -->
+		<com.airbnb.lottie.LottieAnimationView
+			android:id="@+id/btn_video_grabber"
+			android:layout_width="@dimen/_50"
+			android:layout_height="wrap_content"
+			android:layout_gravity="bottom|right"
+			android:layout_marginStart="@dimen/_0"
+			android:layout_marginEnd="@dimen/_10"
+			android:layout_marginBottom="@dimen/_25"
+			android:adjustViewBounds="true"
+			android:background="@drawable/ic_button_selector_background"
+			android:clickable="true"
+			android:elevation="@dimen/_5"
+			android:hardwareAccelerated="true"
+			android:importantForAccessibility="no"
+			android:layerType="hardware"
+			app:lottie_autoPlay="true"
+			app:lottie_enableMergePathsForKitKatAndAbove="true"
+			app:lottie_loop="true"
+			app:lottie_rawRes="@raw/animation_waiting_loading"
+			tools:ignore="TouchTargetSizeCheck" />
+	</androidx.cardview.widget.CardView>
+</RelativeLayout>
