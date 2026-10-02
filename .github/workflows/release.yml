@@ -1,0 +1,289 @@
+name: Release
+
+# Release by merge (owner decision Q11): when CI is green on main and release-contract.json names a version
+# that has no tag yet, build -> sign (protected `release` environment, no Gradle) -> emulator traffic test ->
+# draft -> checks -> publish. Manual run with dry_run=true proves the whole chain and removes the draft.
+on:
+  workflow_run:  # zizmor: ignore[dangerous-triggers] only push runs on main are accepted (job `plan`); no PR code is ever checked out here
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Prove the release chain, then delete the draft and its tag (nothing is published)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  ORIGINAL_APP_X86_64: https://github.com/shibaFoss/AIO-Video-Downloader/releases/download/v2026.09.18/app-x86_64-release.apk
+
+jobs:
+  plan:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      dry: ${{ steps.plan.outputs.dry }}
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - id: sha
+        env:
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: echo "sha=${RUN_SHA:-$GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          persist-credentials: false
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          EXISTING_TAGS=$(gh api "repos/$GITHUB_REPOSITORY/tags?per_page=100" --jq '.[].name' | tr '\n' ' ')
+          export EXISTING_TAGS
+          python3 tools/release/plan.py
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: true
+      - name: Build release APKs (throwaway key; the sign job re-signs with the release key)
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/ci.jks" -storetype PKCS12 -storepass ci-only -keypass ci-only \
+            -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=VidChain CI throwaway" >/dev/null 2>&1
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease -x lintVitalRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/ci.jks" \
+            -Pandroid.injected.signing.store.password=ci-only \
+            -Pandroid.injected.signing.key.alias=ci \
+            -Pandroid.injected.signing.key.password=ci-only
+          rm -f "$RUNNER_TEMP/ci.jks"
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: apk-built
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 3
+          if-no-files-found: error
+
+  sign:
+    needs: [plan, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: apk-built
+          path: built
+      - name: zipalign (16 KB) + sign with the VidChain key + certificate pin
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_B64 }}
+          STORE_PW: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PW: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          KEYSTORE="$RUNNER_TEMP/release.jks" bash tools/release/sign.sh built signed
+          rm -f "$RUNNER_TEMP/release.jks"
+      - name: APK gate (package, version, certificate, deny-list, stub sentinel) + size budget
+        env:
+          CERT_SHA256: ${{ vars.CERT_SHA256 }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          tools/apk_check.sh signed
+          python3 tools/size_budget.py signed
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: apk-signed
+          path: signed/*.apk
+          retention-days: 7
+          if-no-files-found: error
+
+  emulator:
+    needs: [plan, sign]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: apk-signed
+          path: signed
+      - name: Original app for the side-by-side install check (public official release)
+        run: curl -fsSL -o "$RUNNER_TEMP/original-x86_64.apk" "$ORIGINAL_APP_X86_64"
+      - name: Enable KVM, install tshark
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq tshark >/dev/null
+      - name: Start VidChain in an emulator, capturing all traffic (capture stays on the runner)
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -tcpdump ${{ runner.temp }}/emu.pcap
+          script: bash tools/release/runtime_test.sh signed ${{ runner.temp }}/original-x86_64.apk
+      - name: Traffic verdict (canaries, no developer/tracker host, no ad host while the app ran)
+        run: bash tools/release/analyse_traffic.sh "$RUNNER_TEMP/emu.pcap"
+      - name: Delete the capture
+        if: always()
+        run: rm -f "$RUNNER_TEMP/emu.pcap"
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: runtime-evidence
+          path: runtime-evidence/
+          retention-days: 14
+
+  publish:
+    needs: [plan, sign, emulator]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: release
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.plan.outputs.tag }}
+      SHA: ${{ needs.plan.outputs.sha }}
+      DRY: ${{ needs.plan.outputs.dry }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: apk-signed
+          path: dist
+      - name: Tag the release commit (only the release deploy key may create v* tags)
+        env:
+          DEPLOY_KEY: ${{ secrets.RELEASE_DEPLOY_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/deploy_key"
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          git tag "$TAG" "$SHA"
+          git push "git@github.com:${GITHUB_REPOSITORY}.git" "refs/tags/$TAG"
+      - name: Complete corresponding source + bill of lading
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          bash tools/release/sources_bundle.sh "$TAG" "$SHA" dist
+          python3 tools/release/bill_of_lading.py dist "$TAG" "$SHA" "$RUN_URL" > dist/bill-of-lading.json
+          cat dist/bill-of-lading.json
+      - name: Create the release as a draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          cert=$(grep -v '^#' signing/cert-sha256.txt | tr -d '[:space:]')
+          {
+            echo "VidChain ${VERSION} - an Android video downloader based on [AIO Video Downloader](https://github.com/shibaFoss/AIO-Video-Downloader) by shibaFoss (independent, non-commercial, not official)."
+            echo
+            echo "**Phones: install \`vidchain-arm64-v8a.apk\`**, or add VidChain to Obtainium with the link in the README."
+            echo
+            echo "No ads, no tracking, no self-updater, no remote kill switch, no developer cloud sync. Checked before publishing: no ad SDK, no tracker SDK and no developer server in the APKs; VidChain started in an Android emulator with all its traffic recorded and contacted no developer server, no IP-location service and no ad network."
+            echo
+            echo "Signing certificate SHA-256: \`${cert}\`. Complete source: \`SOURCES-${TAG}.tar.zst\`. Contents and checksums: \`bill-of-lading.json\`."
+          } > notes.md
+          gh release create "$TAG" dist/* --draft --verify-tag --title "VidChain ${VERSION}" --notes-file notes.md
+      - name: Check the draft - files download, Obtainium entry, README links
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/release/check_links.py README.md --tag "$TAG"
+      - name: Dry run - remove the verified draft and its tag
+        if: needs.plan.outputs.dry == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "$TAG" --yes
+          GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/deploy_key -o IdentitiesOnly=yes" git push "git@github.com:${GITHUB_REPOSITORY}.git" ":refs/tags/$TAG"
+          echo "dry run complete: draft $TAG was built, signed, tested and verified, then removed"
+      - name: Publish
+        if: needs.plan.outputs.dry != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$TAG" --draft=false --latest
+      - name: Check the published release (latest, downloads, re-verified APK)
+        if: needs.plan.outputs.dry != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CERT_SHA256: ${{ vars.CERT_SHA256 }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" -q .tag_name)
+          echo "latest release: $latest"; [ "$latest" = "$TAG" ]
+          python3 tools/release/check_links.py README.md
+          mkdir -p "$RUNNER_TEMP/published"
+          gh release download "$TAG" -p 'vidchain-*.apk' -D "$RUNNER_TEMP/published"
+          tools/apk_check.sh "$RUNNER_TEMP/published"
+      - name: Keep the newest releases (release-contract.json keep_releases)
+        if: needs.plan.outputs.dry != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          keep=$(python3 -c "import json;print(json.load(open('release-contract.json'))['keep_releases'])")
+          gh release list -L 100 --exclude-drafts --json tagName,publishedAt -q "sort_by(.publishedAt) | reverse | .[${keep}:] | .[].tagName" |
+            while read -r old; do
+              gh release delete "$old" --yes
+              GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/deploy_key -o IdentitiesOnly=yes" git push "git@github.com:${GITHUB_REPOSITORY}.git" ":refs/tags/$old"
+              echo "removed old release $old"
+            done
+      - name: Remove the draft and tag if a check failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state=$(gh release view "$TAG" --json isDraft -q 'if .isDraft then "draft" else "published" end' 2>/dev/null || echo none)
+          if [ "$state" = published ]; then
+            echo "::error::$TAG is already published and a post-publish check failed - left in place for inspection"
+            exit 1
+          fi
+          if [ "$state" = draft ]; then gh release delete "$TAG" --yes; fi
+          if [ -f "$RUNNER_TEMP/deploy_key" ] && git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/deploy_key -o IdentitiesOnly=yes" git push "git@github.com:${GITHUB_REPOSITORY}.git" ":refs/tags/$TAG" || true
+          fi
+          echo "nothing was published"
+      - name: Remove the deploy key file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key"

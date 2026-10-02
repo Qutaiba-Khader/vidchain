@@ -1,0 +1,29 @@
+{
+  "_note": "Release contract (T0.6). release.yml publishes `release.version` once: when CI is green on main and the tag v<version> does not exist yet, and only if app/build.gradle carries the same versionName/versionCode. null = nothing to release. Asset names stay version-free so README links to releases/latest work; the tag carries the version.",
+  "release": {
+    "version": null,
+    "version_code": null
+  },
+  "package": "org.websnake.vidchain",
+  "assets": {
+    "arm64-v8a": "vidchain-arm64-v8a.apk",
+    "armeabi-v7a": "vidchain-armeabi-v7a.apk",
+    "x86": "vidchain-x86.apk",
+    "x86_64": "vidchain-x86_64.apk",
+    "universal": "vidchain-universal.apk"
+  },
+  "obtainium": {
+    "autoApkFilterByArch": true,
+    "includePrereleases": false,
+    "sortMethodChoice": "date"
+  },
+  "keep_releases": 10,
+  "methods_per_abi": {
+    "_note": "Fallback methods available per ABI; filled as methods land (P2-P5).",
+    "arm64-v8a": [],
+    "armeabi-v7a": [],
+    "x86": [],
+    "x86_64": [],
+    "universal": []
+  }
+}
