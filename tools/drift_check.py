@@ -4,6 +4,7 @@
 Every path that differs from upstream/ (modified, added inside the upstream layout, or
 deleted) must be declared in one of the change ledgers:
   BUILD-FIXES.md  files needed to compile the public code (author's git-ignored files)
+  BRANDING.md     the new app identity (package, name, icon, links)
   REMOVED.md      removals of ads, tracking, self-updater, kill switch, developer sync
   seams.lock      one-line FALLBACK-SEAM calls into upstream-origin files
 Each ledger declares paths in a fenced block that starts with ```paths, one per line:
@@ -19,13 +20,14 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 UP = ROOT / "upstream"
-LEDGERS = ["BUILD-FIXES.md", "REMOVED.md", "seams.lock"]
+LEDGERS = ["BUILD-FIXES.md", "BRANDING.md", "REMOVED.md", "seams.lock"]
 # Our own areas and files (never compared, even if upstream has a file of the same name);
 # everything else is compared with upstream/.
 OURS_TOP = {".git", "upstream", "tools", "fallback-core", "engines", "natives", "python", "ci",
             ".github", "docs", "signing", "VENDORED_FROM", "NOTICE", "THIRD_PARTY_NOTICES.md",
             "ATTRIBUTION.md", "PROVENANCE.md", "BUILD-FIXES.md", "REMOVED.md", "seams.lock",
-            "natives.lock", "release-contract.json", ".gitleaks.toml", "README.md"}
+            "natives.lock", "release-contract.json", ".gitleaks.toml", "README.md",
+            "BRANDING.md", "PRIVACY.md"}
 # Build output and local machine files never count as drift.
 IGNORE = re.compile(r"(^|/)(build|\.gradle|\.idea|\.kotlin|captures)(/|$)|(^|/)local\.properties$|\.iml$")
 

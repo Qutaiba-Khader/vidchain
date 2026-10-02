@@ -500,7 +500,7 @@ class VideoResolutionPicker(
 				"${videoFormat.formatVcodec}_" +
 				"${getBaseDomain(videoInfo.videoUrl)}_" +
 				"Downloaded_From_${extractHostUrl(videoInfo.videoUrl)}_" +
-				"By_AIO_Version_${versionName}"
+				"By_VidChain_Version_${versionName}"
 
 		logger.d("Generated title from selected format: $madeUpTitle")
 		return madeUpTitle

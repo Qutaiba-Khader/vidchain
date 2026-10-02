@@ -1,0 +1,7 @@
+# Classified "com.aio" uses that stay (owner decision Q19 = A: keep the Kotlin namespace).
+# One rule per line: <category> <python regex matched against the source line>.
+# Anything matching "com.aio" and no rule below fails tools/rename_audit.py.
+keep-namespace      ^\s*namespace\s+"com\.aio"\s*$
+keep-import         ^\s*import\s+com\.aio\.(R|BuildConfig|\*)(\.[A-Za-z_]+)*\s*$
+keep-r-reference    com\.aio\.R(\.[a-z]+)?\b
+keep-buildconfig    com\.aio\.BuildConfig\b

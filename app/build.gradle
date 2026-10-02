@@ -47,7 +47,7 @@ android {
 	defaultConfig {
 
 		// Unique app identifier on the device and Google Play.
-		applicationId "com.aio.video_downloader"
+		applicationId "org.websnake.vidchain"
 
 		// Minimum Android version required to install the app.
 		minSdk 28

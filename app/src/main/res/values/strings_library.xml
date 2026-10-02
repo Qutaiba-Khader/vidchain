@@ -1,24 +1,24 @@
 <resources>
-	<string name="title_app_name" translatable="false">AIO</string>
-	<string name="title_aio_video_downloader" translatable="false">AIO Video Downloader</string>
-	<string name="title_default_application_folder" translatable="false">AIO Downloads</string>
-	<string name="title_aio_images" translatable="false">AIO Images</string>
-	<string name="title_aio_videos" translatable="false">AIO Videos</string>
-	<string name="title_aio_sounds" translatable="false">AIO Sounds</string>
-	<string name="title_aio_documents" translatable="false">AIO Documents</string>
-	<string name="title_aio_programs" translatable="false">AIO Programs</string>
-	<string name="title_aio_archives" translatable="false">AIO Archives</string>
-	<string name="title_aio_others" translatable="false">AIO Others</string>
+	<string name="title_app_name" translatable="false">VidChain</string>
+	<string name="title_aio_video_downloader" translatable="false">VidChain</string>
+	<string name="title_default_application_folder" translatable="false">VidChain Downloads</string>
+	<string name="title_aio_images" translatable="false">VidChain Images</string>
+	<string name="title_aio_videos" translatable="false">VidChain Videos</string>
+	<string name="title_aio_sounds" translatable="false">VidChain Sounds</string>
+	<string name="title_aio_documents" translatable="false">VidChain Documents</string>
+	<string name="title_aio_programs" translatable="false">VidChain Programs</string>
+	<string name="title_aio_archives" translatable="false">VidChain Archives</string>
+	<string name="title_aio_others" translatable="false">VidChain Others</string>
 	
 	<string name="text_sample_google_domain" translatable="false">https://www.google.com</string>
-	<string name="text_aio_official_page_url" translatable="false">https://github.com/shibaFoss/AIO-Video-Downloader</string>
-	<string name="text_aio_official_privacy_policy_url" translatable="false">https://github.com/shibaFoss/AIO-Video-Downloader/blob/master/PRIVACY_POLICY.md</string>
-	<string name="text_aio_official_terms_conditions_url" translatable="false">https://github.com/shibaFoss/AIO-Video-Downloader/blob/master/TERMS_CONDITIONS.md</string>
+	<string name="text_aio_official_page_url" translatable="false">https://github.com/Qutaiba-Khader/vidchain</string>
+	<string name="text_aio_official_privacy_policy_url" translatable="false">https://github.com/Qutaiba-Khader/vidchain/blob/main/PRIVACY.md</string>
+	<string name="text_aio_official_terms_conditions_url" translatable="false">https://github.com/Qutaiba-Khader/vidchain/blob/main/LICENSE.md</string>
 	<string name="text_https_google_com" translatable="false">https://google.com/</string>
 	<string name="text_whatsapp_status_file_dir" translatable="false">/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/.Statuses/</string>
 	<string name="text_downloads_default_http_user_agent" translatable="false">Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36</string>
 	<string name="text_browser_default_mobile_http_user_agent" translatable="false">Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Mobile Safari/537.36</string>
-	<string name="text_default_aio_download_folder_path" translatable="false">/storage/emulated/0/Download/AIO Downloads</string>
+	<string name="text_default_aio_download_folder_path" translatable="false">/storage/emulated/0/Download/VidChain Downloads</string>
 	
 	<string name="text_delete_browsing_history_confirmation">Deleting history is permanent and cannot be undone. <b>Are you sure you want to proceed?</b></string>
 	<string name="text_warning_not_enough_space_msg">Your device doesn\'t have enough storage space to complete the download. <b>Please free up some space.</b></string>
@@ -54,14 +54,14 @@
 	<string name="text_no_discovery_during_streaming"><b>This feature is designed for downloaded videos only</b> and not possible for streaming.</string>
 	<string name="text_failed_to_load_media_info"><b>Opps! Something went wrong.</b> Failed to load the media file information.</string>
 	<string name="text_special_support_thank_you">This app was brought to life thanks to the support and encouragement of many amazing people.</string>
-	<string name="text_not_visible_in_system_gallery">Not visible in system gallery, secure and private.\n<b>Default folder:</b> <u>/data/app/com.aio/files/</u></string>
-	<string name="text_visible_in_system_gallery">Visible in system gallery, easy but not private.\n<b>Default folder:</b> <u>/Downloads/AIO Downloads/</u></string>
+	<string name="text_not_visible_in_system_gallery">Not visible in system gallery, secure and private.\n<b>Default folder:</b> <u>/data/data/org.websnake.vidchain/files/</u></string>
+	<string name="text_visible_in_system_gallery">Visible in system gallery, easy but not private.\n<b>Default folder:</b> <u>/Downloads/VidChain Downloads/</u></string>
 	<string name="text_bookmark_update_msg"><b>Update bookmarks when URLs change</b>, or names need clearer meaning.</string>
 	<string name="text_history_update_msg"><b>Update history entry when URLs change</b>, or names need clearer meaning.</string>
-	<string name="text_connect_with_aio_cloud"><b>Connect with AIO Cloud</b> to effortlessly sync your settings, bookmarks, history, and subscriptions.</string>
+	<string name="text_connect_with_aio_cloud"><b>Connect with VidChain Cloud</b> to effortlessly sync your settings, bookmarks, history, and subscriptions.</string>
 	<string name="text_msg_of_fixing_unseekable_mp4_files">This is an advanced and potentially risky operation that may <b>corrupt the video file altogether.</b></string>
 	<string name="text_restart_if_somethings_off">If the app isn’t behaving as expected, try restarting it. This simple step often resolves the issue.</string>
-	<string name="text_app_dont_have_write_permission_msg">AIO need permission to access the system gallery. <b>Please enable it in the settings.</b></string>
+	<string name="text_app_dont_have_write_permission_msg">VidChain need permission to access the system gallery. <b>Please enable it in the settings.</b></string>
 	<string name="text_reset_browser_settings">Reset your browser settings to their original defaults. <b>All custom configurations will be removed.</b></string>
 	<string name="text_sharing_app_msg">"\n\t\t\t Hey! I've been using %1$s and thought you'd love it too! 🌟 Get it here: %2$s\n\t\t "</string>
 	<string name="text_login_to_download_private_videos"><b>Please log in to your account on the website</b> to download restricted content.</string>
@@ -74,16 +74,16 @@
 	
 	<string name="text_fb_how_to_guide_1">Tap the <b>Share 📤</b> button below the video or reel, then <b>Copy link 🔗</b> to copy its address.</string>
 	<string name="text_yt_how_to_guide_1">Tap the <b>Share 📤</b> button below the video, then <b>scroll ↔️</b> to find the <b>More...</b> option.</string>
-	<string name="text_fb_how_to_guide_2"><b>Return to AIO 🔄</b>, paste the copied link into <b>the search box 🔍</b>, then press <b>Download ⬇️</b>.</string>
-	<string name="text_yt_how_to_guide_2">Scroll left ↩️ to see more options. <b>Tap More...</b> to open AIO 📲 and other apps.</string>
+	<string name="text_fb_how_to_guide_2"><b>Return to VidChain 🔄</b>, paste the copied link into <b>the search box 🔍</b>, then press <b>Download ⬇️</b>.</string>
+	<string name="text_yt_how_to_guide_2">Scroll left ↩️ to see more options. <b>Tap More...</b> to open VidChain 📲 and other apps.</string>
 	<string name="text_fb_how_to_guide_3"><b>After pasting the link 🔗</b>, tap the <b>Download icon ⬇️</b> to see available video resolutions.</string>
-	<string name="text_yt_how_to_guide_3">When the <b>app list 📋</b> appears, find <b>AIO Video Downloader 📲</b> and select it.</string>
+	<string name="text_yt_how_to_guide_3">When the <b>app list 📋</b> appears, find <b>VidChain 📲</b> and select it.</string>
 	<string name="text_fb_how_to_guide_4">Tap the <b>Download ⬇️</b> button to save the video or reel to <b>your phone 💾</b> for offline viewing.</string>
 	<string name="text_yt_how_to_guide_4">Tap the <b>Download ⬇️</b> button to save the YouTube video to <b>your phone 💾</b>.</string>
 	
 	<string name="text_inst_how_to_guide_1"><b>Open the Instagram reel 🎬</b>, then tap the <b>Share 📤</b> icon to see sharing options.</string>
 	<string name="text_inst_how_to_guide_2"><b>Tap Share 📤 again</b> to see options to <b>share or copy the reel link 🔗</b>.</string>
-	<string name="text_inst_how_to_guide_3">Choose <b>AIO 📲</b> from the share options to open the app and <b>download the video instantly ⬇️</b>.</string>
+	<string name="text_inst_how_to_guide_3">Choose <b>VidChain 📲</b> from the share options to open the app and <b>download the video instantly ⬇️</b>.</string>
 	<string name="text_inst_how_to_guide_4">Tap <b>Download ⬇️</b> to save the Instagram video or reel to <b>your phone 💾</b> for offline viewing.</string>
 	
 	<string name="text_web_how_to_guide_1">First, <b>play the video ▶️</b>. Then click the <b>Video Grabber 🎯</b> icon to see detected links.</string>
@@ -150,7 +150,7 @@
 	<string name="title_okay">Okay</string>
 	<string name="title_mobile_user_agent">Mobile User Agent</string>
 	<string name="title_zoomed_in">Zoomed In</string>
-	<string name="title_aio_video_player">AIO Video Player</string>
+	<string name="title_aio_video_player">VidChain Video Player</string>
 	<string name="title_select_file">Select File</string>
 	<string name="title_media_options">Media Options</string>
 	<string name="title_share_with_others">Share With Others</string>
@@ -264,7 +264,7 @@
 	<string name="title_successful">Successful</string>
 	<string name="title_no_app_found_to_open_this_file">No App Found To Open This File</string>
 	<string name="title_analyzing_url_please_wait">Analyzing URL, Please Wait…</string>
-	<string name="title_wait_till_apps_loads_up">Loading AIO Into Memory, Please Wait…</string>
+	<string name="title_wait_till_apps_loads_up">Loading VidChain Into Memory, Please Wait…</string>
 	<string name="title_download_now">Download Now</string>
 	<string name="title_failed_open_the_video">Failed To Open The Video</string>
 	<string name="title_allow_now">Allow Now</string>
@@ -307,7 +307,7 @@
 	<string name="title_load_more_browser_bookmarks">Load More Bookmarks</string>
 	<string name="title_your_bookmark_collection_empty">Your Bookmarks Collection Is Empty</string>
 	<string name="title_bookmarks">Bookmarks</string>
-	<string name="title_aio_system_service">AIO System Service</string>
+	<string name="title_aio_system_service">VidChain System Service</string>
 	<string name="title_no_sound">No Sound On Downloaded Videos</string>
 	<string name="title_incomplete_video">Incomplete Downloaded Video</string>
 	<string name="title_app_crashed">App Crashed Unexpectedly</string>
@@ -636,7 +636,7 @@
 	<string name="title_featured_videos">Featured Videos</string>
 	<string name="title_trending_videos">Trending Videos</string>
 	<string name="title_sample_views_count">4.1M Views</string>
-	<string name="title_sample_featured_vid_metainfo">AIO Films / 8 Months Ago</string>
+	<string name="title_sample_featured_vid_metainfo">VidChain Films / 8 Months Ago</string>
 	<string name="title_your_full_name">Enter Your Full Name</string>
 	<string name="title_enter_your_secret_password">Enter Your Secret Password</string>
 	<string name="title_forget_password_question"><u>Forgot Password?</u></string>
@@ -653,7 +653,7 @@
 	<string name="title_enter_your_phone_number">Enter Your Phone Number</string>
 	<string name="title_register_account">Register Account</string>
 	<string name="title_register_your_account">Register Your Account</string>
-	<string name="title_registering_account_is_free_safe">Registering With AIO Is Completely Free &amp; Safe</string>
+	<string name="title_registering_account_is_free_safe">Registering With VidChain Is Completely Free &amp; Safe</string>
 	<string name="title_enter_your_secret_otp">Enter Your Secret OTP</string>
 	<string name="title_login_with_phone_number">Login With Phone Number</string>
 	<string name="title_verify_phone_number">Verify Phone Number</string>
@@ -667,7 +667,7 @@
 	<string name="title_failed_to_send_otp">Failed To Send Verification Code</string>
 	<string name="text_feature_only_available_in_india"><b>This feature is currently available only in India.</b> We’ll be rolling it out to other countries soon. Thanks for your understanding.</string>
 	<string name="title_already_logged_in">User Has Already Logged In</string>
-	<string name="title_sign_out">Sign Out From AIO Cloud</string>
+	<string name="title_sign_out">Sign Out From VidChain Cloud</string>
 	<string name="title_minutes">Minutes</string>
 	<string name="title_account_details">Account Details</string>
 

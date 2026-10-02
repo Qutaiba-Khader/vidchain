@@ -616,7 +616,7 @@ class M3U8VideoDownloader(
 				"${videoFormat.formatVcodec}_" +
 				"$baseDomain" +
 				"_From_${siteReferrer}" +
-				"_Downloaded_By_AIO_v${versionName}_"
+				"_Downloaded_By_VidChain_v${versionName}_"
 
 		logger.d("Generated fallback title: $madeUpTitle")
 		return madeUpTitle

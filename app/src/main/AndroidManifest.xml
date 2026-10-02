@@ -150,7 +150,7 @@
 			android:exported="false"
 			android:hardwareAccelerated="true"
 			android:launchMode="singleTop"
-			android:taskAffinity="com.aio.mother"
+			android:taskAffinity="${applicationId}.mother"
 			android:theme="@style/style.application"
 			android:windowSoftInputMode="adjustPan" />
 		

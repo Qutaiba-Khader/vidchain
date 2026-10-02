@@ -247,7 +247,7 @@ class FinishedTasksViewHolder(layout: View) {
 		val metaInfoDetail = safeLayoutRef?.context?.getString(
 			R.string.title_b_b_b_date_b,
 			getText(R.string.title_info),
-			category.removePrefix("AIO"),
+			category.removePrefix("VidChain"),
 			fileSize, playbackTime, modifyDate
 		)?.let { fromHtmlStringToSpanned(it) }
 		

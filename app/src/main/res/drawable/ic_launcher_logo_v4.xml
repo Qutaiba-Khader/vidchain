@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification small icon (same resource name as the upstream PNG it replaces, so no code changes):
+     the VidChain mark as a white silhouette. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+	android:width="24dp"
+	android:height="24dp"
+	android:viewportWidth="60"
+	android:viewportHeight="60">
+	<group android:translateX="-24" android:translateY="-24">
+		<path android:fillColor="#FFFFFF" android:pathData="M50,28h8v28h10l-14,16l-14,-16h10z" />
+		<path android:fillColor="#FFFFFF" android:pathData="M38,78L70,78L70,82L38,82Z" />
+		<path android:fillColor="#FFFFFF" android:pathData="M32,80a6,6 0,1 0,12 0a6,6 0,1 0,-12 0z" />
+		<path android:fillColor="#FFFFFF" android:pathData="M48,80a6,6 0,1 0,12 0a6,6 0,1 0,-12 0z" />
+		<path android:fillColor="#FFFFFF" android:pathData="M64,80a6,6 0,1 0,12 0a6,6 0,1 0,-12 0z" />
+	</group>
+</vector>

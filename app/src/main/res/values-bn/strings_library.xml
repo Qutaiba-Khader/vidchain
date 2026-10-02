@@ -33,14 +33,14 @@
 	<string name="text_no_discovery_during_streaming"><b>এই ফিচারটি শুধুমাত্র ডাউনলোড করা ভিডিওর জন্য</b> এবং স্ট্রিমিংয়ে সম্ভব নয়।</string>
 	<string name="text_failed_to_load_media_info"><b>উফ! কিছু একটা সমস্যা হয়েছে।</b> মিডিয়া ফাইলের তথ্য লোড করা যায়নি।</string>
 	<string name="text_special_support_thank_you">অনেক অসাধারণ মানুষের সমর্থন ও উৎসাহে এই অ্যাপটি বাস্তবায়িত হয়েছে।</string>
-	<string name="text_not_visible_in_system_gallery">সিস্টেম গ্যালারিতে দৃশ্যমান নয়, নিরাপদ এবং ব্যক্তিগত।\n<b>ডিফল্ট ফোল্ডার:</b> <u>/data/app/com.aio/files/</u></string>
-	<string name="text_visible_in_system_gallery">সিস্টেম গ্যালারিতে দৃশ্যমান, সুবিধাজনক কিন্তু ব্যক্তিগত নয়।\n<b>ডিফল্ট ফোল্ডার:</b> <u>/Downloads/AIO Downloads/</u></string>
+	<string name="text_not_visible_in_system_gallery">সিস্টেম গ্যালারিতে দৃশ্যমান নয়, নিরাপদ এবং ব্যক্তিগত।\n<b>ডিফল্ট ফোল্ডার:</b> <u>/data/data/org.websnake.vidchain/files/</u></string>
+	<string name="text_visible_in_system_gallery">সিস্টেম গ্যালারিতে দৃশ্যমান, সুবিধাজনক কিন্তু ব্যক্তিগত নয়।\n<b>ডিফল্ট ফোল্ডার:</b> <u>/Downloads/VidChain Downloads/</u></string>
 	<string name="text_bookmark_update_msg"><b>URL পরিবর্তন হলে বুকমার্ক আপডেট করুন</b>, অথবা নামগুলো পরিষ্কার অর্থ দেওয়ার জন্য ঠিক করুন।</string>
 	<string name="text_history_update_msg"><b>URL পরিবর্তন হলে হিস্টরি এন্ট্রি আপডেট করুন</b>, অথবা নামগুলো পরিষ্কার অর্থ দেওয়ার জন্য ঠিক করুন।</string>
-	<string name="text_connect_with_aio_cloud"><b>AIO Cloud-এ যুক্ত হন</b> সহজে সেটিংস, বুকমার্ক, হিস্টরি এবং সাবস্ক্রিপশন সিঙ্ক করার জন্য।</string>
+	<string name="text_connect_with_aio_cloud"><b>VidChain Cloud-এ যুক্ত হন</b> সহজে সেটিংস, বুকমার্ক, হিস্টরি এবং সাবস্ক্রিপশন সিঙ্ক করার জন্য।</string>
 	<string name="text_msg_of_fixing_unseekable_mp4_files">এটি একটি উন্নত এবং সম্ভাব্য ঝুঁকিপূর্ণ প্রক্রিয়া যা <b>ভিডিও ফাইল পুরোপুরি ক্ষতিগ্রস্ত করতে পারে।</b></string>
 	<string name="text_restart_if_somethings_off">যদি অ্যাপ প্রত্যাশামতো কাজ না করে, একবার রিস্টার্ট করে দেখুন। এটি অনেক সময় সমস্যার সমাধান করে।</string>
-	<string name="text_app_dont_have_write_permission_msg">AIO-এর সিস্টেম গ্যালারিতে অ্যাক্সেসের অনুমতি দরকার। <b>অনুগ্রহ করে সেটিংসে এটি সক্রিয় করুন।</b></string>
+	<string name="text_app_dont_have_write_permission_msg">VidChain-এর সিস্টেম গ্যালারিতে অ্যাক্সেসের অনুমতি দরকার। <b>অনুগ্রহ করে সেটিংসে এটি সক্রিয় করুন।</b></string>
 	<string name="text_reset_browser_settings">আপনার ব্রাউজারের সেটিংস ডিফল্ট অবস্থায় ফিরিয়ে দিন। <b>সমস্ত কাস্টম কনফিগারেশন মুছে যাবে।</b></string>
 	<string name="text_sharing_app_msg">"\n\t\t\t হেই! আমি %1$s ব্যবহার করছি এবং মনে হলো আপনি পছন্দ করবেন! 🌟 এটি পান এখানে: %2$s\n\t\t "</string>
 	<string name="text_login_to_download_private_videos"><b>নিয়ন্ত্রিত কন্টেন্ট ডাউনলোড করতে</b> অনুগ্রহ করে ওয়েবসাইটে আপনার অ্যাকাউন্টে লগ ইন করুন।</string>
@@ -53,16 +53,16 @@
 	
 	<string name="text_fb_how_to_guide_1">ভিডিও বা রিলের নিচে থাকা <b>Share 📤</b> বোতামে চাপুন, তারপর <b>Copy link 🔗</b> চাপুন ঠিকানা কপি করতে।</string>
 	<string name="text_yt_how_to_guide_1">ভিডিওর নিচে থাকা <b>Share 📤</b> বোতামে চাপুন, তারপর <b>স্ক্রল ↔️</b> করে <b>More...</b> অপশনটি খুঁজুন।</string>
-	<string name="text_fb_how_to_guide_2"><b>AIO-তে ফিরে আসুন 🔄</b>, কপি করা লিঙ্কটি <b>সার্চ বক্সে 🔍</b> পেস্ট করুন, তারপর <b>Download ⬇️</b> চাপুন।</string>
-	<string name="text_yt_how_to_guide_2">আরো অপশন দেখতে বামে স্ক্রল করুন ↩️। <b>More...</b> চাপলে AIO 📲 এবং অন্যান্য অ্যাপ দেখা যাবে।</string>
+	<string name="text_fb_how_to_guide_2"><b>VidChain-তে ফিরে আসুন 🔄</b>, কপি করা লিঙ্কটি <b>সার্চ বক্সে 🔍</b> পেস্ট করুন, তারপর <b>Download ⬇️</b> চাপুন।</string>
+	<string name="text_yt_how_to_guide_2">আরো অপশন দেখতে বামে স্ক্রল করুন ↩️। <b>More...</b> চাপলে VidChain 📲 এবং অন্যান্য অ্যাপ দেখা যাবে।</string>
 	<string name="text_fb_how_to_guide_3"><b>লিঙ্ক পেস্ট করার পর 🔗</b> <b>Download icon ⬇️</b> চাপুন উপলভ্য ভিডিও রেজোলিউশন দেখার জন্য।</string>
-	<string name="text_yt_how_to_guide_3">যখন <b>অ্যাপ লিস্ট 📋</b> দেখা যাবে, সেখানে <b>AIO Video Downloader 📲</b> খুঁজে নির্বাচন করুন।</string>
+	<string name="text_yt_how_to_guide_3">যখন <b>অ্যাপ লিস্ট 📋</b> দেখা যাবে, সেখানে <b>VidChain 📲</b> খুঁজে নির্বাচন করুন।</string>
 	<string name="text_fb_how_to_guide_4"><b>Download ⬇️</b> চাপুন ভিডিও বা রিল <b>আপনার ফোনে 💾</b> সেভ করতে।</string>
 	<string name="text_yt_how_to_guide_4"><b>Download ⬇️</b> চাপুন ইউটিউব ভিডিওটি <b>আপনার ফোনে 💾</b> সেভ করতে।</string>
 	
 	<string name="text_inst_how_to_guide_1"><b>Instagram রিলটি খুলুন 🎬</b>, তারপর <b>Share 📤</b> আইকনে চাপুন শেয়ার অপশন দেখার জন্য।</string>
 	<string name="text_inst_how_to_guide_2"><b>আবার Share 📤</b> চাপুন রিলের লিঙ্ক <b>শেয়ার বা কপি 🔗</b> করার অপশন দেখতে।</string>
-	<string name="text_inst_how_to_guide_3">শেয়ার অপশন থেকে <b>AIO 📲</b> নির্বাচন করুন যাতে অ্যাপ খুলে <b>ভিডিওটি সাথে সাথে ডাউনলোড ⬇️</b> করা যায়।</string>
+	<string name="text_inst_how_to_guide_3">শেয়ার অপশন থেকে <b>VidChain 📲</b> নির্বাচন করুন যাতে অ্যাপ খুলে <b>ভিডিওটি সাথে সাথে ডাউনলোড ⬇️</b> করা যায়।</string>
 	<string name="text_inst_how_to_guide_4"><b>Download ⬇️</b> চাপুন Instagram ভিডিও বা রিল <b>আপনার ফোনে 💾</b> সেভ করতে।</string>
 	
 	<string name="text_web_how_to_guide_1">প্রথমে <b>ভিডিওটি চালান ▶️</b>। তারপর <b>Video Grabber 🎯</b> আইকনে ক্লিক করুন শনাক্ত করা লিঙ্কগুলো দেখতে।</string>
@@ -127,7 +127,7 @@
 	<string name="title_okay">Okay</string>
 	<string name="title_mobile_user_agent">Mobile User Agent</string>
 	<string name="title_zoomed_in">Zoomed In</string>
-	<string name="title_aio_video_player">AIO Video Player</string>
+	<string name="title_aio_video_player">VidChain Video Player</string>
 	<string name="title_select_file">Select File</string>
 	<string name="title_media_options">Media Options</string>
 	<string name="title_share_with_others">Share With Others</string>
@@ -241,7 +241,7 @@
 	<string name="title_successful">Successful</string>
 	<string name="title_no_app_found_to_open_this_file">No App Found To Open This File</string>
 	<string name="title_analyzing_url_please_wait">Analyzing URL, Please Wait…</string>
-	<string name="title_wait_till_apps_loads_up">Loading AIO Into Memory, Please Wait…</string>
+	<string name="title_wait_till_apps_loads_up">Loading VidChain Into Memory, Please Wait…</string>
 	<string name="title_download_now">Download Now</string>
 	<string name="title_failed_open_the_video">Failed To Open The Video</string>
 	<string name="title_allow_now">Allow Now</string>
@@ -284,7 +284,7 @@
 	<string name="title_load_more_browser_bookmarks">Load More Bookmarks</string>
 	<string name="title_your_bookmark_collection_empty">Your Bookmarks Collection Is Empty</string>
 	<string name="title_bookmarks">Bookmarks</string>
-	<string name="title_aio_system_service">AIO System Service</string>
+	<string name="title_aio_system_service">VidChain System Service</string>
 	<string name="title_no_sound">No Sound On Downloaded Videos</string>
 	<string name="title_incomplete_video">Incomplete Downloaded Video</string>
 	<string name="title_app_crashed">App Crashed Unexpectedly</string>
@@ -613,7 +613,7 @@
 	<string name="title_featured_videos">Featured Videos</string>
 	<string name="title_trending_videos">Trending Videos</string>
 	<string name="title_sample_views_count">4.1M Views</string>
-	<string name="title_sample_featured_vid_metainfo">AIO Films / 8 Months Ago</string>
+	<string name="title_sample_featured_vid_metainfo">VidChain Films / 8 Months Ago</string>
 	<string name="title_your_full_name">Enter Your Full Name</string>
 	<string name="title_enter_your_secret_password">Enter Your Secret Password</string>
 	<string name="title_forget_password_question"><u>Forgot Password?</u></string>
