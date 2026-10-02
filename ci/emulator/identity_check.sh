@@ -10,9 +10,13 @@ NEW_APK=$1 OLD_APK=$2
 PKG=org.websnake.vidchain OLD_PKG=com.aio.video_downloader
 adb install -r -g "$OLD_APK"
 adb install -r -g "$NEW_APK"
-adb shell pm list packages | tr -d '\r' | grep -qx "package:$OLD_PKG" || { echo "FAIL: original app not installed"; exit 1; }
-adb shell pm list packages | tr -d '\r' | grep -qx "package:$PKG" || { echo "FAIL: VidChain not installed"; exit 1; }
-adb shell dumpsys package "$PKG" | tr -d '\r' | grep -q "$PKG.provider" || { echo "FAIL: FileProvider $PKG.provider not registered"; exit 1; }
+# whole outputs captured first: grep -q closing a pipe early would SIGPIPE the writer and, under
+# pipefail, turn a match into a failure
+pkgs=$(adb shell pm list packages | tr -d '\r')
+grep -qx "package:$OLD_PKG" <<<"$pkgs" || { echo "FAIL: original app not installed (installed: $(grep -iE "aio|vidchain" <<<"$pkgs" | tr "\n" " "))"; exit 1; }
+grep -qx "package:$PKG" <<<"$pkgs" || { echo "FAIL: VidChain not installed"; exit 1; }
+dump=$(adb shell dumpsys package "$PKG" | tr -d '\r')
+grep -q "$PKG.provider" <<<"$dump" || { echo "FAIL: FileProvider $PKG.provider not registered"; exit 1; }
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
 sleep 8
 adb shell pidof "$PKG" >/dev/null || { echo "FAIL: VidChain not running after launch"; exit 1; }
