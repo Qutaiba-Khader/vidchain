@@ -1,0 +1,120 @@
+name: CI
+
+# Pull requests and pushes to main. No secrets: nothing here can sign, tag or publish.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GITLEAKS_VERSION: 8.30.1
+  ACTIONLINT_VERSION: 1.7.12
+  ZIZMOR_VERSION: 1.30.1
+
+jobs:
+  gates:
+    name: Source gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: upstream/ snapshot matches VENDORED_FROM
+        run: tools/vendor.sh
+
+      - name: Drift check (every change versus upstream/ is declared)
+        run: python3 tools/drift_check.py
+
+      - name: Rename audit (VidChain identity)
+        run: python3 tools/rename_audit.py
+
+      - name: Removed-features gate (ads, tracking, updater, kill switch, cloud sync)
+        run: python3 tools/removed_check.py
+
+      - name: Leak gate (project-specific forbidden tokens)
+        run: python3 tools/leak_gate.py
+
+      - name: gitleaks (whole history)
+        run: |
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git --no-banner --redact .
+
+      - name: Workflow policy, actionlint, zizmor
+        run: |
+          python3 tools/workflow_policy.py
+          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" | tar -xz -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+          pipx run "zizmor==${ZIZMOR_VERSION}" --offline --min-severity medium .github/workflows
+
+      - name: Gate self-test (every gate must fail on a seeded violation)
+        run: tools/gate_selftest.sh
+
+  build:
+    name: Build (unsigned for release) + APK gates
+    needs: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Build release APKs (throwaway CI key, never published)
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/ci.jks" -storetype PKCS12 -storepass ci-only -keypass ci-only \
+            -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=VidChain CI throwaway" >/dev/null 2>&1
+          chmod +x gradlew
+          # -x lintVitalRelease: upstream ships a lint error in its own layout (BUILD-FIXES.md)
+          ./gradlew --no-daemon assembleRelease testReleaseUnitTest -x lintVitalRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/ci.jks" \
+            -Pandroid.injected.signing.store.password=ci-only \
+            -Pandroid.injected.signing.key.alias=ci \
+            -Pandroid.injected.signing.key.password=ci-only
+          rm -f "$RUNNER_TEMP/ci.jks"
+
+      - name: APK gate (package, deny-list, stub sentinel)
+        run: tools/apk_check.sh app/build/outputs/apk/release
+
+      - name: APK gate negative control (a planted developer host must be caught)
+        run: |
+          mkdir -p "$RUNNER_TEMP/neg"
+          cp app/build/outputs/apk/release/app-arm64-v8a-release.apk "$RUNNER_TEMP/neg/"
+          printf 'https://cloud.%s.com/\n' tubeaio > "$RUNNER_TEMP/planted.txt"
+          (cd "$RUNNER_TEMP" && zip -q neg/app-arm64-v8a-release.apk planted.txt)
+          if tools/apk_check.sh "$RUNNER_TEMP/neg"; then echo "::error::APK gate missed a planted host"; exit 1; fi
+          echo "caught: planted developer host"
+
+      - name: Size budget per ABI
+        run: python3 tools/size_budget.py app/build/outputs/apk/release
+
+      - name: Keep the x86_64 and arm64 APKs for the emulator jobs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: apk-ci
+          path: |
+            app/build/outputs/apk/release/app-x86_64-release.apk
+            app/build/outputs/apk/release/app-arm64-v8a-release.apk
+          retention-days: 7
+          if-no-files-found: error
