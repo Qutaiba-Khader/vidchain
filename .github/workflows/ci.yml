@@ -18,6 +18,7 @@ env:
   GITLEAKS_VERSION: 8.30.1
   ACTIONLINT_VERSION: 1.7.12
   ZIZMOR_VERSION: 1.30.1
+  MITMPROXY_VERSION: 12.2.3
 
 jobs:
   gates:
@@ -118,3 +119,53 @@ jobs:
             app/build/outputs/apk/release/app-arm64-v8a-release.apk
           retention-days: 7
           if-no-files-found: error
+
+  fixture-world:
+    name: Fixture world (hermetic mitmproxy, CA trust for OkHttp, WebView, yt-dlp)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: apk-ci
+          path: apk
+
+      - name: Enable KVM, start the hermetic fixture proxy
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          pipx install "mitmproxy==${MITMPROXY_VERSION}"
+          FIXTURE_FLOW_LOG="$RUNNER_TEMP/flows.jsonl" nohup mitmdump --listen-host 127.0.0.1 -p 8080 \
+            -s ci/fixtures/spike/addon.py --set connection_strategy=lazy > "$RUNNER_TEMP/mitm.log" 2>&1 &
+          for _ in $(seq 1 30); do [ -f ~/.mitmproxy/mitmproxy-ca-cert.pem ] && break; sleep 1; done
+          cp ~/.mitmproxy/mitmproxy-ca-cert.pem "$RUNNER_TEMP/fixture-ca.pem"
+
+      - name: Run the unmodified release APK in the fixture world
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 33
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -writable-system -http-proxy http://127.0.0.1:8080
+          script: bash ci/fixtures/spike/run_spike.sh apk/app-x86_64-release.apk ${{ runner.temp }}/fixture-ca.pem
+
+      - name: Verdict - decrypted traffic from all three HTTP stacks
+        run: python3 ci/fixtures/spike/verdict.py "$RUNNER_TEMP/flows.jsonl"
+
+      - name: Keep the evidence (request metadata only)
+        if: always()
+        run: cp "$RUNNER_TEMP/flows.jsonl" "$RUNNER_TEMP/mitm.log" fixture-evidence/ 2>/dev/null || true
+
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: fixture-evidence
+          path: fixture-evidence/
+          retention-days: 14
