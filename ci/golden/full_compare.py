@@ -25,6 +25,11 @@ def files(rec):
     return [(f["name"], f["bytes"]) for f in rec["outcome"]["files"]]
 
 
+def crash(raw):
+    t = " ".join(" / ".join(raw.get("crash_texts", [])).split())
+    return (t[:400] or "(no text captured)").replace("|", "/")
+
+
 def judge(raw, rec, base, want):
     """what happened, in the vocabulary of fallback-expect.json"""
     chain = raw.get("chain")
@@ -83,7 +88,7 @@ for sid, g in sorted(golden.items()):
     if want == "untouched" and not set(g["request_set_intersection"]) <= set(o["request_set"]):
         probs.append("current method lost requests " + ", ".join(sorted(set(g["request_set_intersection"]) - set(o["request_set"]))))
     if o["outcome"]["crash_logs"] > g["outcome"]["crash_logs"]:          # the unchanged app's own crashes are inherited
-        probs.append(f"{o['outcome']['crash_logs']} crash log(s), golden {g['outcome']['crash_logs']}")
+        probs.append(f"{o['outcome']['crash_logs']} crash log(s), golden {g['outcome']['crash_logs']}: " + crash(raw))
     ok, got, tried = judge(raw, o, g, want)
     if want == "untouched" and files(o) != files(g):
         probs.append(f"files {files(o)} != golden {files(g)}")
@@ -103,7 +108,7 @@ for sid, want in sorted(expect["faults"].items()):
     if added:
         probs.append(f"VidChain saved {added} although the fault persists")
     if o["outcome"]["crash_logs"] > fm["outcome"]["crash_logs"]:
-        probs.append(f"{o['outcome']['crash_logs']} crash log(s), fault matrix {fm['outcome']['crash_logs']}")
+        probs.append(f"{o['outcome']['crash_logs']} crash log(s), fault matrix {fm['outcome']['crash_logs']}: " + crash(raw))
     ok, got, tried = judge(raw, o, fm, want)
     if not ok:
         probs.append(f"chain {got}, expected {want}")

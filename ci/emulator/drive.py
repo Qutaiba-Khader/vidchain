@@ -68,6 +68,19 @@ def front():
     return m.group(1) if m else ""
 
 
+SIZE = re.compile(r"[\d.]+\s*[KMGT]?i?B|Not Available|unknown", re.I)
+
+
+def picker_option(texts):
+    """the first format row of a resolution picker: between the link line and the folder line, not a size"""
+    try:
+        a = next(i for i, t in enumerate(texts) if t.startswith("http"))
+        b = texts.index("Download The File To Private Folder")
+    except (StopIteration, ValueError):
+        return None
+    return next((t for t in texts[a + 1:b] if len(t) <= 24 and not SIZE.fullmatch(t)), None)
+
+
 def set_fallbacks(on):
     """the owner's master switch (FallbackSettings "vidchain_fallback" / fallbacks_enabled), written as root while the app is stopped"""
     sh(f"am force-stop {PKG}")
@@ -126,6 +139,7 @@ for sc in scenarios:
     sh(f"am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT '{url}' -p {PKG}")
     seen, actions, stable = [], [], 0
     last = {}
+    last_tap = 0.0
     deadline = t0 + wait
     while time.time() < deadline:
         time.sleep(3)
@@ -140,18 +154,24 @@ for sc in scenarios:
         tap = None
         picker = "Download The File To Private Folder" in texts or "Pick Video Resolution To Generate File Name" in texts
         quality = next((t for t in texts if re.fullmatch(r"\d{3,4}p.*", t)), None) or ("unknown" if picker and "unknown" in texts else None)
+        if QUALITY_FIRST and picker and not quality:
+            quality = picker_option(texts)           # a format without a resolution ("0", a format id): still an option
         if "Not Now" in texts and "Not Now" not in actions:
             tap = "Not Now"                          # e.g. battery-optimisation prompt: decline, continue
         elif QUALITY_FIRST and picker and quality and "quality" not in actions:
             tap = quality                            # a resolution picker: choose, then confirm (what a user does)
         elif "Download Now" in texts and ("Download Now" not in actions or (QUALITY_FIRST and actions[-1] == "quality")):
             tap = "Download Now"
+        elif QUALITY_FIRST and "Download Available" in texts and "Download Now" in texts and actions.count("Download Now") < 3 and \
+                time.time() - last_tap > 6:
+            tap = "Download Now"                     # the browser's prompt is still there: the tap did not register
         elif not QUALITY_FIRST and quality and "quality" not in actions and ("Download Now" in actions or not quality == "unknown"):
             tap = quality                            # the golden's recorded order (T1.3): confirm first, then a quality
         if tap:
             x, y = next((x, y) for t, x, y in nodes if t == tap)
             sh(f"input tap {x} {y}")
-            actions.append("quality" if re.fullmatch(r"\d{3,4}p.*", tap) or tap == "unknown" else tap)
+            actions.append("quality" if tap == quality and tap != "Download Now" else tap)
+            last_tap = time.time()
             if tap == "Download Now":
                 deadline = max(deadline, time.time() + 40)    # let the download finish
             continue
@@ -186,7 +206,8 @@ for sc in scenarios:
         if 0 < size < 20_000_000:
             hashes[f] = (sh(f"sha256sum '{f}'").split() or [""])[0]
     adb("shell", "screencap", "-p", "/sdcard/s.png"); adb("pull", "/sdcard/s.png", str(OUT / f"{sid}.png"))
-    rec = {"id": sid, "url": url, "faults": sc.get("faults", {}), "t_start": round(t0, 3), "t_end": round(t2, 3), "t_current_end": round(t1, 3),
+    crashes = {f: sh(f"head -c 4000 '{f}'") for f in new if "crash_log" in f}
+    rec = {"id": sid, "url": url, "crash_texts": list(crashes.values()), "faults": sc.get("faults", {}), "t_start": round(t0, 3), "t_end": round(t2, 3), "t_current_end": round(t1, 3),
            "fallbacks": FALLBACKS, "chain": state, "trace": lines[-200:],
            "current_files": sorted(f.replace("/storage/emulated/0/Download", "<Download>").replace(f"/data/data/{PKG}/files", "<private>") for f in current_files),
            "front_activity": front(), "actions": actions, "texts_seen": seen[:60],
