@@ -108,6 +108,12 @@ jobs:
       - name: APK gate (package, deny-list, stub sentinel)
         run: tools/apk_check.sh app/build/outputs/apk/release
 
+      - name: ELF gate (ABI, PIE, linker, 16 KB alignment; new violations only)
+        run: python3 tools/elf_gate.py app/build/outputs/apk/release
+
+      - name: Host-ABI manifest matches the library AAR
+        run: python3 tools/natives_manifest.py --check
+
       - name: APK gate negative control (a planted developer host must be caught)
         run: |
           mkdir -p "$RUNNER_TEMP/neg"

@@ -1,0 +1,18 @@
+# Inherited ELF findings (T5.1), frozen: the gate fails only on NEW violations.
+# Format: <abi> <archive-or-lib>[!<member>] <check>
+#
+# youtubedl-android 0.18.1 ships libwebp* aligned to 4 KB inside libffmpeg.zip.so; libavcodec needs libwebp and
+# libwebpmux, so on a phone running 16 KB memory pages the bundled ffmpeg (used by the app itself and by methods
+# F, P, M) would fail to load. Phones with 4 KB pages (all current Samsung models) are not affected. Fix path:
+# replace these five libraries with 16 KB-aligned rebuilds through the natives lane (natives.yml), or a newer
+# library release. Recorded in STATUS.md for the owner.
+arm64-v8a libffmpeg.zip.so!usr/lib/libsharpyuv.so align
+arm64-v8a libffmpeg.zip.so!usr/lib/libwebp.so align
+arm64-v8a libffmpeg.zip.so!usr/lib/libwebpdecoder.so align
+arm64-v8a libffmpeg.zip.so!usr/lib/libwebpdemux.so align
+arm64-v8a libffmpeg.zip.so!usr/lib/libwebpmux.so align
+x86_64 libffmpeg.zip.so!usr/lib/libsharpyuv.so align
+x86_64 libffmpeg.zip.so!usr/lib/libwebp.so align
+x86_64 libffmpeg.zip.so!usr/lib/libwebpdecoder.so align
+x86_64 libffmpeg.zip.so!usr/lib/libwebpdemux.so align
+x86_64 libffmpeg.zip.so!usr/lib/libwebpmux.so align

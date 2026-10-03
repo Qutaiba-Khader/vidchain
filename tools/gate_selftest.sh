@@ -17,7 +17,7 @@ expect_fail() {  # $1 = label, rest = command that must exit non-zero
   if "$@" >"$work/out.txt" 2>&1; then
     echo "MISSED: $label - the gate passed on a seeded violation"; missed=1
   else
-    echo "caught: $label ($(grep -m1 -E 'FAIL|UNDECLARED|OLD BRAND|forbidden|not pinned|pull_request_target|applicationId|limit|SEAM' "$work/out.txt" | cut -c1-90))"
+    echo "caught: $label ($(grep -m1 -E 'FAIL|UNDECLARED|OLD BRAND|forbidden|not pinned|pull_request_target|applicationId|limit|SEAM|ELF' "$work/out.txt" | cut -c1-90))"
   fi
 }
 
@@ -32,6 +32,9 @@ expect_fail "seam gate: upstream line changed in a seamed file" python3 "$d/tool
 
 d=$(fresh seamstray); echo "// FALLBACK-SEAM:stray" >> "$d/app/src/main/java/app/core/engines/downloader/DownloadSystem.kt"
 expect_fail "seam gate: seam in an undeclared upstream file" python3 "$d/tools/seam_check.py"
+
+mkdir -p "$work/elf/lib/arm64-v8a"; python3 -c "import sys; sys.path.insert(0, '$ROOT/tools'); import elf; open('$work/elf/lib/arm64-v8a/libseed.so','wb').write(elf.make_seed(0x1000))"
+expect_fail "ELF gate: a 4 KB aligned library" python3 "$ROOT/tools/elf_gate.py" "$work/elf"
 
 d=$(fresh rename);  sed -i 's/applicationId "org.websnake.vidchain"/applicationId "com.aio.video_downloader"/' "$d/app/build.gradle"
 expect_fail "rename audit: old applicationId" python3 "$d/tools/rename_audit.py"

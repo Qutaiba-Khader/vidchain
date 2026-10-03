@@ -1,0 +1,8 @@
+{
+  "_note": "Natives lock (T5.1): every native VidChain builds itself is listed here with its source, pinned build container and outputs; natives.yml builds them, tools/elf_gate.py checks the outputs (needed allow-list applies to these). Updated only by reviewed lock commits.",
+  "containers": {
+    "golang": "docker.io/library/golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437",
+    "android-ndk": "r28c"
+  },
+  "natives": []
+}
