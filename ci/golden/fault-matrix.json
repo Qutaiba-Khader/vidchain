@@ -1,0 +1,407 @@
+{
+ "direct-mp4~403@2": {
+  "faults": {
+   "direct-mp4": "403@2"
+  },
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 0,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "clip.mp4",
+     "sha256": ""
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "clip.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB",
+    "Download Now",
+    "https://files.vidchain.test/media/clip.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture fault 403"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "webview GET files.vidchain.test/media/clip.mp4"
+  ],
+  "requests": [
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "media GET files.vidchain.test/media/clip.mp4 x10"
+  ],
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "direct-mp4~404@2": {
+  "faults": {
+   "direct-mp4": "404@2"
+  },
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://files.vidchain.test/media/clip.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture fault 404"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "webview GET files.vidchain.test/media/clip.mp4"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "media GET files.vidchain.test/media/clip.mp4 x11"
+  ],
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "direct-mp4~429@2": {
+  "faults": {
+   "direct-mp4": "429@2"
+  },
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://files.vidchain.test/media/clip.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture fault 429"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "webview GET files.vidchain.test/media/clip.mp4"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "media GET files.vidchain.test/media/clip.mp4 x11"
+  ],
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "direct-mp4~500": {
+  "faults": {
+   "direct-mp4": "500"
+  },
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://files.vidchain.test/media/clip.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture fault 500"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "webview GET files.vidchain.test/media/clip.mp4"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "media GET files.vidchain.test/media/clip.mp4 x11"
+  ],
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "direct-mp4~500@2": {
+  "faults": {
+   "direct-mp4": "500@2"
+  },
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://files.vidchain.test/media/clip.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture fault 500"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "webview GET files.vidchain.test/media/clip.mp4"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.mp4 x2",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "media GET files.vidchain.test/media/clip.mp4 x11"
+  ],
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "direct-mp4~hang@2": {
+  "faults": {
+   "direct-mp4": "hang@2"
+  },
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://files.vidchain.test/media/clip.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture world: hung on purpose"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "webview GET files.vidchain.test/media/clip.mp4"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "media GET files.vidchain.test/media/clip.mp4"
+  ],
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "direct-mp4~html@2": {
+  "faults": {
+   "direct-mp4": "html@2"
+  },
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 36,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "clip.mp4",
+     "sha256": "ac309e3c1866bb06e36570633f73ecf851203b2512317c815e451fdbd9b0df34"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "clip.mp4&#10;&#10;-----------------------&#10;File Size: 36 B",
+    "Download Now"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "webview GET files.vidchain.test/media/clip.mp4"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/favicon.ico",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]"
+  ],
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "direct-mp4~reset@2": {
+  "faults": {
+   "direct-mp4": "reset@2"
+  },
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Webpage not available",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "x+AAAAAElFTkSuQmCC",
+    "net::ERR_HTTP2_PROTOCOL_ERROR"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x3",
+   "media GET files.vidchain.test/media/clip.mp4 x11"
+  ],
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "hls-plain~404@2": {
+  "faults": {
+   "hls-plain": "404@2"
+  },
+  "outcome": {
+   "actions": [],
+   "crash_logs": 2,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://hls.vidchain.test/plain/master.m3u8",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture fault 404"
+   ]
+  },
+  "request_set": [
+   "other GET hls.vidchain.test/plain/master.m3u8",
+   "webview GET hls.vidchain.test/favicon.ico",
+   "webview GET hls.vidchain.test/plain/master.m3u8"
+  ],
+  "requests": [
+   "other GET hls.vidchain.test/plain/master.m3u8",
+   "webview GET hls.vidchain.test/plain/master.m3u8",
+   "other GET hls.vidchain.test/plain/master.m3u8 x2",
+   "webview GET hls.vidchain.test/favicon.ico",
+   "other GET hls.vidchain.test/plain/master.m3u8 x20+"
+  ],
+  "url": "https://hls.vidchain.test/plain/master.m3u8"
+ },
+ "listed-vimeo~no-route": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://vimeo.com/76979871",
+    "fixture world: no route",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings"
+   ]
+  },
+  "request_set": [
+   "other GET vimeo.com/76979871",
+   "webview GET vimeo.com/76979871",
+   "webview GET vimeo.com/favicon.ico",
+   "yt-dlp GET vimeo.com/76979871"
+  ],
+  "requests": [
+   "yt-dlp GET vimeo.com/76979871",
+   "other GET vimeo.com/76979871 x2",
+   "webview GET vimeo.com/76979871",
+   "other GET vimeo.com/76979871 x2",
+   "webview GET vimeo.com/favicon.ico",
+   "other GET vimeo.com/76979871 x20+"
+  ],
+  "url": "https://vimeo.com/76979871"
+ },
+ "og-video~500": {
+  "faults": {
+   "og-video": "500"
+  },
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://www.vidchain.test/watch/og",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture fault 500"
+   ]
+  },
+  "request_set": [
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/og"
+  ],
+  "requests": [
+   "webview GET www.vidchain.test/watch/og",
+   "webview GET www.vidchain.test/favicon.ico"
+  ],
+  "url": "https://www.vidchain.test/watch/og"
+ }
+}

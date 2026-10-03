@@ -1,0 +1,1267 @@
+{
+ "audio-only": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 36413,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Sounds",
+     "name": "audio-only.m4a",
+     "sha256": "bb27b83791f3aabdcf6a16263451c273c23c72e132a0998308882b6df770b17a"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "video-only.mp4&#10;&#10;-----------------------&#10;File Size: 383.0 KB",
+    "Download Now",
+    "audio-only.m4a&#10;&#10;-----------------------&#10;File Size: 35.6 KB"
+   ]
+  },
+  "request_set": [
+   "okhttp HEAD files.vidchain.test/media/audio-only.m4a",
+   "other GET files.vidchain.test/media/audio-only.m4a [range]",
+   "urlconnection GET files.vidchain.test/media/audio-only.m4a",
+   "webview GET files.vidchain.test/media/audio-only.m4a",
+   "webview GET files.vidchain.test/media/audio-only.m4a [range]"
+  ],
+  "request_set_intersection": [
+   "okhttp HEAD files.vidchain.test/media/audio-only.m4a",
+   "other GET files.vidchain.test/media/audio-only.m4a [range]",
+   "urlconnection GET files.vidchain.test/media/audio-only.m4a",
+   "webview GET files.vidchain.test/media/audio-only.m4a",
+   "webview GET files.vidchain.test/media/audio-only.m4a [range]"
+  ],
+  "request_set_union": [
+   "okhttp HEAD files.vidchain.test/media/audio-only.m4a",
+   "other GET files.vidchain.test/media/audio-only.m4a [range]",
+   "urlconnection GET files.vidchain.test/media/audio-only.m4a",
+   "webview GET files.vidchain.test/media/audio-only.m4a",
+   "webview GET files.vidchain.test/media/audio-only.m4a [range]"
+  ],
+  "requests": [
+   "okhttp HEAD files.vidchain.test/media/audio-only.m4a",
+   "webview GET files.vidchain.test/media/audio-only.m4a",
+   "webview GET files.vidchain.test/media/audio-only.m4a [range]",
+   "okhttp HEAD files.vidchain.test/media/audio-only.m4a x2",
+   "urlconnection GET files.vidchain.test/media/audio-only.m4a",
+   "other GET files.vidchain.test/media/audio-only.m4a [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/media/audio-only.m4a"
+ },
+ "cookie-gated": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://members.vidchain.test/video.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture world: cookie required"
+   ]
+  },
+  "request_set": [
+   "media GET members.vidchain.test/video.mp4",
+   "okhttp HEAD members.vidchain.test/video.mp4",
+   "webview GET members.vidchain.test/favicon.ico",
+   "webview GET members.vidchain.test/video.mp4"
+  ],
+  "request_set_intersection": [
+   "media GET members.vidchain.test/video.mp4",
+   "okhttp HEAD members.vidchain.test/video.mp4",
+   "webview GET members.vidchain.test/favicon.ico",
+   "webview GET members.vidchain.test/video.mp4"
+  ],
+  "request_set_union": [
+   "media GET members.vidchain.test/video.mp4",
+   "okhttp HEAD members.vidchain.test/video.mp4",
+   "webview GET members.vidchain.test/favicon.ico",
+   "webview GET members.vidchain.test/video.mp4"
+  ],
+  "requests": [
+   "media GET members.vidchain.test/video.mp4",
+   "okhttp HEAD members.vidchain.test/video.mp4",
+   "webview GET members.vidchain.test/video.mp4",
+   "webview GET members.vidchain.test/favicon.ico",
+   "okhttp HEAD members.vidchain.test/video.mp4 x2",
+   "media GET members.vidchain.test/video.mp4 x11"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://members.vidchain.test/video.mp4"
+ },
+ "dash-split": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://dash.vidchain.test/manifest.mpd",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings"
+   ]
+  },
+  "request_set": [
+   "media GET dash.vidchain.test/manifest.mpd",
+   "webview GET dash.vidchain.test/manifest.mpd"
+  ],
+  "request_set_intersection": [
+   "media GET dash.vidchain.test/manifest.mpd",
+   "webview GET dash.vidchain.test/manifest.mpd"
+  ],
+  "request_set_union": [
+   "media GET dash.vidchain.test/manifest.mpd",
+   "webview GET dash.vidchain.test/manifest.mpd"
+  ],
+  "requests": [
+   "media GET dash.vidchain.test/manifest.mpd",
+   "webview GET dash.vidchain.test/manifest.mpd"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://dash.vidchain.test/manifest.mpd"
+ },
+ "direct-mp4": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 429760,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "clip.mp4",
+     "sha256": "27c5f53573915a342c67ca9931c6ac35893dc973044eeaa429ecadf89399884d"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "clip.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB",
+    "Download Now"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "media GET files.vidchain.test/media/clip.mp4 x2",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/media/clip.mp4"
+ },
+ "direct-webm": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 162503,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "clip.webm",
+     "sha256": "f3e5bb3bf2b8ced3cc15f46731b74d58b8f1f156c8edeae96d4f5c57c5e981c6"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "clip.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB",
+    "Download Now",
+    "clip.webm&#10;&#10;-----------------------&#10;File Size: 158.7 KB"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.webm",
+   "okhttp HEAD files.vidchain.test/media/clip.webm",
+   "other GET files.vidchain.test/media/clip.webm [range]",
+   "urlconnection GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm [range]"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/media/clip.webm",
+   "okhttp HEAD files.vidchain.test/media/clip.webm",
+   "other GET files.vidchain.test/media/clip.webm [range]",
+   "urlconnection GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm [range]"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/media/clip.webm",
+   "okhttp HEAD files.vidchain.test/media/clip.webm",
+   "other GET files.vidchain.test/media/clip.webm [range]",
+   "urlconnection GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm [range]"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/clip.webm x2",
+   "okhttp HEAD files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm",
+   "media GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm [range]",
+   "media GET files.vidchain.test/media/clip.webm",
+   "okhttp HEAD files.vidchain.test/media/clip.webm x2",
+   "urlconnection GET files.vidchain.test/media/clip.webm",
+   "other GET files.vidchain.test/media/clip.webm [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/media/clip.webm"
+ },
+ "drive-interstitial": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Virus scan warning",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "File is too large for a virus scan.",
+    "Download anyway"
+   ]
+  },
+  "request_set": [
+   "webview GET drive.vidchain.test/favicon.ico",
+   "webview GET drive.vidchain.test/uc"
+  ],
+  "request_set_intersection": [
+   "webview GET drive.vidchain.test/favicon.ico",
+   "webview GET drive.vidchain.test/uc"
+  ],
+  "request_set_union": [
+   "webview GET drive.vidchain.test/favicon.ico",
+   "webview GET drive.vidchain.test/uc"
+  ],
+  "requests": [
+   "webview GET drive.vidchain.test/uc",
+   "webview GET drive.vidchain.test/favicon.ico"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://drive.vidchain.test/uc?id=abc"
+ },
+ "extensionless": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 429760,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "clip.mp4",
+     "sha256": "27c5f53573915a342c67ca9931c6ac35893dc973044eeaa429ecadf89399884d"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "clip.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB",
+    "Download Now",
+    "https://files.vidchain.test/dl?id=42",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings"
+   ]
+  },
+  "request_set": [
+   "other GET files.vidchain.test/dl [range]",
+   "urlconnection GET files.vidchain.test/dl",
+   "webview GET files.vidchain.test/dl"
+  ],
+  "request_set_intersection": [
+   "other GET files.vidchain.test/dl [range]",
+   "urlconnection GET files.vidchain.test/dl",
+   "webview GET files.vidchain.test/dl"
+  ],
+  "request_set_union": [
+   "other GET files.vidchain.test/dl [range]",
+   "urlconnection GET files.vidchain.test/dl",
+   "webview GET files.vidchain.test/dl"
+  ],
+  "requests": [
+   "webview GET files.vidchain.test/dl",
+   "urlconnection GET files.vidchain.test/dl",
+   "other GET files.vidchain.test/dl [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/dl?id=42"
+ },
+ "hls-aes": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.others.information.IntentInterceptActivity",
+   "texts": [
+    "Analyzing URL, Please Wait\u2026",
+    "Cancel",
+    "Pick Video Resolution To Generate File Name",
+    "https://hls.vidchain.test/aes/index.m3u8",
+    "0",
+    "Not Available",
+    "Download The File To Private Folder",
+    "Download Now",
+    "Monitor The Download Progress In The Tasks Tab"
+   ]
+  },
+  "request_set": [
+   "other GET hls.vidchain.test/aes/index.m3u8",
+   "yt-dlp GET hls.vidchain.test/aes/index.m3u8"
+  ],
+  "request_set_intersection": [
+   "other GET hls.vidchain.test/aes/index.m3u8",
+   "yt-dlp GET hls.vidchain.test/aes/index.m3u8"
+  ],
+  "request_set_union": [
+   "other GET hls.vidchain.test/aes/index.m3u8",
+   "yt-dlp GET hls.vidchain.test/aes/index.m3u8"
+  ],
+  "requests": [
+   "yt-dlp GET hls.vidchain.test/aes/index.m3u8 x3",
+   "other GET hls.vidchain.test/aes/index.m3u8 x2"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://hls.vidchain.test/aes/index.m3u8"
+ },
+ "hls-plain": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now",
+    "quality"
+   ],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.others.information.IntentInterceptActivity",
+   "texts": [
+    "Analyzing URL, Please Wait\u2026",
+    "Cancel",
+    "Pick Video Resolution To Generate File Name",
+    "https://hls.vidchain.test/plain/master.m3u8",
+    "360p",
+    "585.94KiB",
+    "720p",
+    "1.43MiB",
+    "Download The File To Private Folder",
+    "Download Now",
+    "Monitor The Download Progress In The Tasks Tab"
+   ]
+  },
+  "request_set": [
+   "other GET hls.vidchain.test/plain/master.m3u8",
+   "yt-dlp GET hls.vidchain.test/plain/master.m3u8",
+   "yt-dlp GET hls.vidchain.test/plain/v360/index.m3u8"
+  ],
+  "request_set_intersection": [
+   "other GET hls.vidchain.test/plain/master.m3u8",
+   "yt-dlp GET hls.vidchain.test/plain/master.m3u8",
+   "yt-dlp GET hls.vidchain.test/plain/v360/index.m3u8"
+  ],
+  "request_set_union": [
+   "other GET hls.vidchain.test/plain/master.m3u8",
+   "yt-dlp GET hls.vidchain.test/plain/master.m3u8",
+   "yt-dlp GET hls.vidchain.test/plain/v360/index.m3u8"
+  ],
+  "requests": [
+   "yt-dlp GET hls.vidchain.test/plain/master.m3u8 x2",
+   "yt-dlp GET hls.vidchain.test/plain/v360/index.m3u8",
+   "other GET hls.vidchain.test/plain/master.m3u8 x2"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://hls.vidchain.test/plain/master.m3u8"
+ },
+ "html5-video": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "jsonld fixture",
+    "page",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "html5 fixture",
+    "play",
+    "mute",
+    "enter full screen",
+    "show more media controls",
+    "elapsed time: 0:00, video time scrubber"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm [range]",
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/html5"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm [range]",
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/html5"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/media/clip.webm",
+   "webview GET files.vidchain.test/media/clip.webm [range]",
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/html5"
+  ],
+  "requests": [
+   "webview GET www.vidchain.test/watch/html5",
+   "webview GET files.vidchain.test/media/clip.webm [range]",
+   "media GET files.vidchain.test/media/clip.webm x2",
+   "webview GET www.vidchain.test/favicon.ico"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://www.vidchain.test/watch/html5"
+ },
+ "js-injected": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "js fixture",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/js"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/js"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/js"
+  ],
+  "requests": [
+   "webview GET www.vidchain.test/watch/js",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "media GET files.vidchain.test/media/clip.mp4 x2",
+   "webview GET www.vidchain.test/favicon.ico"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://www.vidchain.test/watch/js"
+ },
+ "json-ld": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "jsonld fixture",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "page"
+   ]
+  },
+  "request_set": [
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/jsonld"
+  ],
+  "request_set_intersection": [
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/jsonld"
+  ],
+  "request_set_union": [
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/jsonld"
+  ],
+  "requests": [
+   "webview GET www.vidchain.test/watch/jsonld",
+   "webview GET www.vidchain.test/favicon.ico"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://www.vidchain.test/watch/jsonld"
+ },
+ "meta-refresh": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 429760,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "clip.mp4",
+     "sha256": "27c5f53573915a342c67ca9931c6ac35893dc973044eeaa429ecadf89399884d"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "clip.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB",
+    "Download Now"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET short.vidchain.test/favicon.ico",
+   "webview GET short.vidchain.test/meta"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET short.vidchain.test/favicon.ico",
+   "webview GET short.vidchain.test/meta"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET short.vidchain.test/favicon.ico",
+   "webview GET short.vidchain.test/meta"
+  ],
+  "requests": [
+   "webview GET short.vidchain.test/meta",
+   "webview GET short.vidchain.test/favicon.ico",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "media GET files.vidchain.test/media/clip.mp4 x2",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://short.vidchain.test/meta"
+ },
+ "moov-at-end": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 429760,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "clip-moov-end.mp4",
+     "sha256": "4df6c82886ea09eed683495fd3c13aa0f32d9ab749522e559fdaa7428639afaa"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "clip.webm&#10;&#10;-----------------------&#10;File Size: 158.7 KB",
+    "Download Now",
+    "clip-moov-end.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip-moov-end.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip-moov-end.mp4",
+   "other GET files.vidchain.test/media/clip-moov-end.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip-moov-end.mp4",
+   "webview GET files.vidchain.test/media/clip-moov-end.mp4",
+   "webview GET files.vidchain.test/media/clip-moov-end.mp4 [range]"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/media/clip-moov-end.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip-moov-end.mp4",
+   "other GET files.vidchain.test/media/clip-moov-end.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip-moov-end.mp4",
+   "webview GET files.vidchain.test/media/clip-moov-end.mp4",
+   "webview GET files.vidchain.test/media/clip-moov-end.mp4 [range]"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/media/clip-moov-end.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip-moov-end.mp4",
+   "other GET files.vidchain.test/media/clip-moov-end.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip-moov-end.mp4",
+   "webview GET files.vidchain.test/media/clip-moov-end.mp4",
+   "webview GET files.vidchain.test/media/clip-moov-end.mp4 [range]"
+  ],
+  "requests": [
+   "okhttp HEAD files.vidchain.test/media/clip-moov-end.mp4",
+   "media GET files.vidchain.test/media/clip-moov-end.mp4 x2",
+   "webview GET files.vidchain.test/media/clip-moov-end.mp4",
+   "media GET files.vidchain.test/media/clip-moov-end.mp4",
+   "webview GET files.vidchain.test/media/clip-moov-end.mp4 [range]",
+   "okhttp HEAD files.vidchain.test/media/clip-moov-end.mp4 x2",
+   "media GET files.vidchain.test/media/clip-moov-end.mp4",
+   "urlconnection GET files.vidchain.test/media/clip-moov-end.mp4",
+   "other GET files.vidchain.test/media/clip-moov-end.mp4 [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/media/clip-moov-end.mp4"
+ },
+ "no-head": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "audio-only.m4a&#10;&#10;-----------------------&#10;File Size: 35.6 KB",
+    "Download Now",
+    "https://files.vidchain.test/nohead/clip.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "play",
+    "mute",
+    "enter full screen",
+    "show more media controls",
+    "elapsed time: 0:00, video time scrubber"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/nohead/clip.mp4",
+   "okhttp HEAD files.vidchain.test/nohead/clip.mp4",
+   "webview GET files.vidchain.test/nohead/clip.mp4",
+   "webview GET files.vidchain.test/nohead/clip.mp4 [range]"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/nohead/clip.mp4",
+   "okhttp HEAD files.vidchain.test/nohead/clip.mp4",
+   "webview GET files.vidchain.test/nohead/clip.mp4",
+   "webview GET files.vidchain.test/nohead/clip.mp4 [range]"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/nohead/clip.mp4",
+   "okhttp HEAD files.vidchain.test/nohead/clip.mp4",
+   "webview GET files.vidchain.test/nohead/clip.mp4",
+   "webview GET files.vidchain.test/nohead/clip.mp4 [range]"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/nohead/clip.mp4",
+   "okhttp HEAD files.vidchain.test/nohead/clip.mp4",
+   "media GET files.vidchain.test/nohead/clip.mp4",
+   "webview GET files.vidchain.test/nohead/clip.mp4",
+   "okhttp HEAD files.vidchain.test/nohead/clip.mp4 x2",
+   "webview GET files.vidchain.test/nohead/clip.mp4 [range]",
+   "media GET files.vidchain.test/nohead/clip.mp4 x2"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/nohead/clip.mp4"
+ },
+ "og-video": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "og fixture",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "page"
+   ]
+  },
+  "request_set": [
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/og"
+  ],
+  "request_set_intersection": [
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/og"
+  ],
+  "request_set_union": [
+   "webview GET www.vidchain.test/favicon.ico",
+   "webview GET www.vidchain.test/watch/og"
+  ],
+  "requests": [
+   "webview GET www.vidchain.test/watch/og",
+   "webview GET www.vidchain.test/favicon.ico"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://www.vidchain.test/watch/og"
+ },
+ "redirect-chain": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 429760,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "clip.mp4",
+     "sha256": "27c5f53573915a342c67ca9931c6ac35893dc973044eeaa429ecadf89399884d"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://files.vidchain.test/dl?id=42",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "Download Available",
+    "clip.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB",
+    "Download Now"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET short.vidchain.test/r1",
+   "webview GET short.vidchain.test/r2",
+   "webview GET short.vidchain.test/r3"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET short.vidchain.test/r1",
+   "webview GET short.vidchain.test/r2",
+   "webview GET short.vidchain.test/r3"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "webview GET short.vidchain.test/r1",
+   "webview GET short.vidchain.test/r2",
+   "webview GET short.vidchain.test/r3"
+  ],
+  "requests": [
+   "webview GET short.vidchain.test/r3",
+   "webview GET short.vidchain.test/r2",
+   "webview GET short.vidchain.test/r1",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4",
+   "webview GET files.vidchain.test/media/clip.mp4 [range]",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "okhttp HEAD files.vidchain.test/media/clip.mp4 x2",
+   "media GET files.vidchain.test/media/clip.mp4",
+   "urlconnection GET files.vidchain.test/media/clip.mp4",
+   "other GET files.vidchain.test/media/clip.mp4 [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://short.vidchain.test/r3"
+ },
+ "referer-gated": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://cdn.vidchain.test/protected.mp4",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "fixture world: referer required"
+   ]
+  },
+  "request_set": [
+   "media GET cdn.vidchain.test/protected.mp4",
+   "okhttp HEAD cdn.vidchain.test/protected.mp4",
+   "webview GET cdn.vidchain.test/favicon.ico",
+   "webview GET cdn.vidchain.test/protected.mp4"
+  ],
+  "request_set_intersection": [
+   "media GET cdn.vidchain.test/protected.mp4",
+   "okhttp HEAD cdn.vidchain.test/protected.mp4",
+   "webview GET cdn.vidchain.test/favicon.ico",
+   "webview GET cdn.vidchain.test/protected.mp4"
+  ],
+  "request_set_union": [
+   "media GET cdn.vidchain.test/protected.mp4",
+   "okhttp HEAD cdn.vidchain.test/protected.mp4",
+   "webview GET cdn.vidchain.test/favicon.ico",
+   "webview GET cdn.vidchain.test/protected.mp4"
+  ],
+  "requests": [
+   "okhttp HEAD cdn.vidchain.test/protected.mp4",
+   "media GET cdn.vidchain.test/protected.mp4",
+   "webview GET cdn.vidchain.test/protected.mp4",
+   "webview GET cdn.vidchain.test/favicon.ico",
+   "okhttp HEAD cdn.vidchain.test/protected.mp4 x2",
+   "media GET cdn.vidchain.test/protected.mp4 x11"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://cdn.vidchain.test/protected.mp4"
+ },
+ "trap-html-as-mp4": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 55,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "fake.mp4",
+     "sha256": "32e5eb45b199ce36854d171cced55cf01262088738602497ab243f94f5334f81"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://dash.vidchain.test/manifest.mpd",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "Download Available",
+    "fake.mp4&#10;&#10;-----------------------&#10;File Size: 55 B",
+    "Download Now"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/trap/fake.mp4",
+   "okhttp HEAD files.vidchain.test/trap/fake.mp4",
+   "other GET files.vidchain.test/trap/fake.mp4 [range]",
+   "urlconnection GET files.vidchain.test/trap/fake.mp4",
+   "webview GET files.vidchain.test/trap/fake.mp4",
+   "webview GET files.vidchain.test/trap/fake.mp4 [range]"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/trap/fake.mp4",
+   "okhttp HEAD files.vidchain.test/trap/fake.mp4",
+   "other GET files.vidchain.test/trap/fake.mp4 [range]",
+   "urlconnection GET files.vidchain.test/trap/fake.mp4",
+   "webview GET files.vidchain.test/trap/fake.mp4",
+   "webview GET files.vidchain.test/trap/fake.mp4 [range]"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/trap/fake.mp4",
+   "okhttp HEAD files.vidchain.test/trap/fake.mp4",
+   "other GET files.vidchain.test/trap/fake.mp4 [range]",
+   "urlconnection GET files.vidchain.test/trap/fake.mp4",
+   "webview GET files.vidchain.test/trap/fake.mp4",
+   "webview GET files.vidchain.test/trap/fake.mp4 [range]"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/trap/fake.mp4",
+   "okhttp HEAD files.vidchain.test/trap/fake.mp4",
+   "webview GET files.vidchain.test/trap/fake.mp4",
+   "okhttp HEAD files.vidchain.test/trap/fake.mp4",
+   "webview GET files.vidchain.test/trap/fake.mp4 [range]",
+   "okhttp HEAD files.vidchain.test/trap/fake.mp4",
+   "media GET files.vidchain.test/trap/fake.mp4",
+   "urlconnection GET files.vidchain.test/trap/fake.mp4",
+   "other GET files.vidchain.test/trap/fake.mp4 [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/trap/fake.mp4"
+ },
+ "trap-truncated": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 429760,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "truncated.mp4",
+     "sha256": "27c5f53573915a342c67ca9931c6ac35893dc973044eeaa429ecadf89399884d"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "fake.mp4&#10;&#10;-----------------------&#10;File Size: 55 B",
+    "Download Now",
+    "truncated.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/trap/truncated.mp4",
+   "okhttp HEAD files.vidchain.test/trap/truncated.mp4",
+   "other GET files.vidchain.test/trap/truncated.mp4 [range]",
+   "urlconnection GET files.vidchain.test/trap/truncated.mp4",
+   "webview GET files.vidchain.test/trap/truncated.mp4",
+   "webview GET files.vidchain.test/trap/truncated.mp4 [range]"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/trap/truncated.mp4",
+   "okhttp HEAD files.vidchain.test/trap/truncated.mp4",
+   "other GET files.vidchain.test/trap/truncated.mp4 [range]",
+   "urlconnection GET files.vidchain.test/trap/truncated.mp4",
+   "webview GET files.vidchain.test/trap/truncated.mp4",
+   "webview GET files.vidchain.test/trap/truncated.mp4 [range]"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/trap/truncated.mp4",
+   "okhttp HEAD files.vidchain.test/trap/truncated.mp4",
+   "other GET files.vidchain.test/trap/truncated.mp4 [range]",
+   "urlconnection GET files.vidchain.test/trap/truncated.mp4",
+   "webview GET files.vidchain.test/trap/truncated.mp4",
+   "webview GET files.vidchain.test/trap/truncated.mp4 [range]"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/trap/truncated.mp4",
+   "okhttp HEAD files.vidchain.test/trap/truncated.mp4",
+   "webview GET files.vidchain.test/trap/truncated.mp4",
+   "media GET files.vidchain.test/trap/truncated.mp4",
+   "webview GET files.vidchain.test/trap/truncated.mp4 [range]",
+   "media GET files.vidchain.test/trap/truncated.mp4 x2",
+   "okhttp HEAD files.vidchain.test/trap/truncated.mp4 x2",
+   "urlconnection GET files.vidchain.test/trap/truncated.mp4",
+   "other GET files.vidchain.test/trap/truncated.mp4 [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/trap/truncated.mp4"
+ },
+ "unknown-length": {
+  "faults": {},
+  "outcome": {
+   "actions": [],
+   "crash_logs": 0,
+   "download_records": 0,
+   "files": [],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "https://files.vidchain.test/nohead/clip.mp4",
+    "play",
+    "mute",
+    "enter full screen",
+    "show more media controls",
+    "elapsed time: 0:00, video time scrubber",
+    "Home",
+    "Browser",
+    "Tasks",
+    "Settings",
+    "https://files.vidchain.test/chunked/clip.mp4"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/chunked/clip.mp4",
+   "okhttp HEAD files.vidchain.test/chunked/clip.mp4",
+   "webview GET files.vidchain.test/chunked/clip.mp4",
+   "webview GET files.vidchain.test/chunked/clip.mp4 [range]"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/chunked/clip.mp4",
+   "okhttp HEAD files.vidchain.test/chunked/clip.mp4",
+   "webview GET files.vidchain.test/chunked/clip.mp4",
+   "webview GET files.vidchain.test/chunked/clip.mp4 [range]"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/chunked/clip.mp4",
+   "okhttp HEAD files.vidchain.test/chunked/clip.mp4",
+   "webview GET files.vidchain.test/chunked/clip.mp4",
+   "webview GET files.vidchain.test/chunked/clip.mp4 [range]"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/chunked/clip.mp4",
+   "okhttp HEAD files.vidchain.test/chunked/clip.mp4",
+   "media GET files.vidchain.test/chunked/clip.mp4",
+   "webview GET files.vidchain.test/chunked/clip.mp4",
+   "webview GET files.vidchain.test/chunked/clip.mp4 [range]",
+   "media GET files.vidchain.test/chunked/clip.mp4",
+   "okhttp HEAD files.vidchain.test/chunked/clip.mp4 x2",
+   "media GET files.vidchain.test/chunked/clip.mp4"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/chunked/clip.mp4"
+ },
+ "video-only": {
+  "faults": {},
+  "outcome": {
+   "actions": [
+    "Download Now"
+   ],
+   "crash_logs": 0,
+   "download_records": 1,
+   "files": [
+    {
+     "bytes": 392141,
+     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
+     "name": "video-only.mp4",
+     "sha256": "208623120ee1460e731df0f1fadcc05f4d57cee537bc7b4cd9901c7c02e67526"
+    }
+   ],
+   "front": "app.ui.main.MotherActivity",
+   "texts": [
+    "Download Available",
+    "clip-moov-end.mp4&#10;&#10;-----------------------&#10;File Size: 419.7 KB",
+    "Download Now",
+    "video-only.mp4&#10;&#10;-----------------------&#10;File Size: 383.0 KB"
+   ]
+  },
+  "request_set": [
+   "media GET files.vidchain.test/media/video-only.mp4",
+   "okhttp HEAD files.vidchain.test/media/video-only.mp4",
+   "other GET files.vidchain.test/media/video-only.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/video-only.mp4",
+   "webview GET files.vidchain.test/media/video-only.mp4",
+   "webview GET files.vidchain.test/media/video-only.mp4 [range]"
+  ],
+  "request_set_intersection": [
+   "media GET files.vidchain.test/media/video-only.mp4",
+   "okhttp HEAD files.vidchain.test/media/video-only.mp4",
+   "other GET files.vidchain.test/media/video-only.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/video-only.mp4",
+   "webview GET files.vidchain.test/media/video-only.mp4",
+   "webview GET files.vidchain.test/media/video-only.mp4 [range]"
+  ],
+  "request_set_union": [
+   "media GET files.vidchain.test/media/video-only.mp4",
+   "okhttp HEAD files.vidchain.test/media/video-only.mp4",
+   "other GET files.vidchain.test/media/video-only.mp4 [range]",
+   "urlconnection GET files.vidchain.test/media/video-only.mp4",
+   "webview GET files.vidchain.test/media/video-only.mp4",
+   "webview GET files.vidchain.test/media/video-only.mp4 [range]"
+  ],
+  "requests": [
+   "media GET files.vidchain.test/media/video-only.mp4 x2",
+   "okhttp HEAD files.vidchain.test/media/video-only.mp4",
+   "webview GET files.vidchain.test/media/video-only.mp4",
+   "webview GET files.vidchain.test/media/video-only.mp4 [range]",
+   "media GET files.vidchain.test/media/video-only.mp4",
+   "okhttp HEAD files.vidchain.test/media/video-only.mp4 x2",
+   "media GET files.vidchain.test/media/video-only.mp4",
+   "urlconnection GET files.vidchain.test/media/video-only.mp4",
+   "other GET files.vidchain.test/media/video-only.mp4 [range]"
+  ],
+  "stable": {
+   "actions": true,
+   "crash_logs": true,
+   "files": true,
+   "request_set": true
+  },
+  "url": "https://files.vidchain.test/media/video-only.mp4"
+ }
+}

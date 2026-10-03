@@ -1,0 +1,11 @@
+{
+ "recorded_by": "https://github.com/Qutaiba-Khader/vidchain/actions/runs/37089218000",
+ "app_commit": "e416d1c (app code identical to v0.0.1 c33d063: only CI files changed since)",
+ "apk": "CI release build (throwaway key) of that commit, x86_64",
+ "emulator": "API 33 google_apis x86_64, fixture world via -http-proxy",
+ "recorded": "2026-10-03",
+ "golden_passes": 2,
+ "golden_stable": "22/22 scenarios fully stable (request set, files, actions, crash logs)",
+ "fault_matrix_passes": 1,
+ "note": "golden.json = what the UNCHANGED current method does on every fixture; the fallback seam (T1.6) must leave it identical. fault-matrix.json = single pass, input for the TerminalClassifier truth table (T1.5)."
+}
