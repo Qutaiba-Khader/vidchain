@@ -74,3 +74,29 @@ tasks.withType(Test).configureEach {
 	dependsOn "buildPyZip"
 	systemProperty "vidchain.pyzip", pyzipFile.get().asFile.path
 }
+
+// Natives VidChain builds itself (T5.6): fetched by sha256 from natives.lock (published by natives.yml), never committed
+def nativesDir = layout.buildDirectory.dir("generated/natives/jniLibs")
+tasks.register("fetchNatives") {
+	def lockFile = rootProject.file("natives.lock")
+	inputs.file(lockFile)
+	outputs.dir(nativesDir)
+	doLast {
+		def lock = new groovy.json.JsonSlurper().parse(lockFile)
+		lock.natives.each { n ->
+			n.outputs.each { o ->
+				def dest = nativesDir.get().file("${o.abi}/${o.file}").asFile
+				dest.parentFile.mkdirs()
+				if (!dest.exists() || dest.bytes.digest("SHA-256") != o.sha256) {
+					def bytes = new URL(o.url).openStream().withCloseable { it.bytes }
+					def sum = bytes.digest("SHA-256")
+					if (sum != o.sha256) throw new GradleException("${o.file} (${o.abi}): sha256 ${sum} != natives.lock ${o.sha256}")
+					dest.bytes = bytes
+				}
+			}
+		}
+	}
+}
+android.sourceSets.main.jniLibs.srcDir(nativesDir)
+tasks.named("preBuild") { dependsOn "fetchNatives" }
+

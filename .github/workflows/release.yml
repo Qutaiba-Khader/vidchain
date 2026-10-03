@@ -275,7 +275,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           keep=$(python3 -c "import json;print(json.load(open('release-contract.json'))['keep_releases'])")
-          gh release list -L 100 --exclude-drafts --json tagName,publishedAt -q "sort_by(.publishedAt) | reverse | .[${keep}:] | .[].tagName" |
+          gh release list -L 100 --exclude-drafts --json tagName,publishedAt -q "map(select(.tagName | startswith(\"v\"))) | sort_by(.publishedAt) | reverse | .[${keep}:] | .[].tagName" |
             while read -r old; do
               gh release delete "$old" --yes
               GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/deploy_key -o IdentitiesOnly=yes" git push "git@github.com:${GITHUB_REPOSITORY}.git" ":refs/tags/$old"

@@ -37,7 +37,9 @@ def ours():
     lock = ROOT / "natives.lock"
     if not lock.exists():
         return set()
-    return {o for n in json.loads(lock.read_text()).get("natives", []) for o in n.get("outputs", [])}
+    natives = json.loads(lock.read_text()).get("natives", [])
+    # a native is ours by name (lib<name>.so) before natives.lock records its built outputs
+    return {f"lib{n['name']}.so" for n in natives} | {o["file"] if isinstance(o, dict) else o for n in natives for o in n.get("outputs", [])}
 
 
 def baseline():

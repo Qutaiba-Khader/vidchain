@@ -2,7 +2,22 @@
   "_note": "Natives lock (T5.1): every native VidChain builds itself is listed here with its source, pinned build container and outputs; natives.yml builds them, tools/elf_gate.py checks the outputs (needed allow-list applies to these). Updated only by reviewed lock commits.",
   "containers": {
     "golang": "docker.io/library/golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437",
-    "android-ndk": "r28c"
+    "android-ndk": "r28c (android-ndk-r28c-linux.zip, sha1 a7b54a5de87fecd125a17d54f73c446199e72a64 from Google's repository manifest)"
   },
-  "natives": []
+  "natives": [
+    {
+      "name": "lux",
+      "license": "MIT",
+      "abis": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "source": {
+        "repo": "https://github.com/iawia002/lux",
+        "commit": "dd00f6d258d80b6684a0b9402d7124e5c18ef42f"
+      },
+      "build": "natives/lux/build.sh in the golang container (natives.yml)",
+      "outputs": []
+    }
+  ]
 }

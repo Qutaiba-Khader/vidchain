@@ -1,0 +1,64 @@
+name: natives
+# Builds the natives listed in natives.lock in pinned containers, checks them with the ELF gate, and publishes them
+# as content-addressed assets on a prerelease (natives-<name>-<commit>); natives.lock then records their sha256.
+# Manual only. Never touches the app's releases (those are v* tags).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lux:
+    runs-on: ubuntu-24.04
+    container:
+      image: docker.io/library/golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Tools
+        run: apt-get update -q && apt-get install -y -q --no-install-recommends unzip python3
+      - name: Android NDK r28c (checksum from Google's repository manifest)
+        run: |
+          curl -fsSL -o /tmp/ndk.zip https://dl.google.com/android/repository/android-ndk-r28c-linux.zip
+          echo "a7b54a5de87fecd125a17d54f73c446199e72a64  /tmp/ndk.zip" | sha1sum -c -
+          unzip -q /tmp/ndk.zip -d /opt
+      - name: Build lux (pinned commit from natives.lock)
+        run: |
+          commit=$(python3 -c "import json;print(next(n for n in json.load(open('natives.lock'))['natives'] if n['name']=='lux')['source']['commit'])")
+          bash natives/lux/build.sh "$commit" /opt/android-ndk-r28c "$PWD/out/lib"
+      - name: ELF gate on the built natives
+        run: python3 tools/elf_gate.py out
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: lux
+          path: out/lib
+
+  publish:
+    needs: lux
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: lux
+          path: lib
+      - name: Publish as a prerelease (content-addressed file names)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          commit=$(python3 -c "import json;print(next(n for n in json.load(open('natives.lock'))['natives'] if n['name']=='lux')['source']['commit'][:12])")
+          mkdir assets
+          for abi in arm64-v8a x86_64; do
+            sum=$(sha256sum "lib/$abi/liblux.so" | cut -c1-64)
+            cp "lib/$abi/liblux.so" "assets/liblux-$abi-$sum.so"
+            echo "$abi $sum"
+          done
+          tag="natives-lux-$commit"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --prerelease --title "natives: lux $commit" --notes "lux (MIT) built by natives.yml for VidChain; not an app release." --target "$GITHUB_SHA"
+          gh release upload "$tag" assets/* --clobber
