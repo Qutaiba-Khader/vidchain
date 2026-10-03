@@ -63,6 +63,12 @@ def files():
     return res
 
 
+def records():
+    """how many download records the app has (it writes <id>_download.json the moment a download is added)"""
+    out = sh(f"ls /data/data/{PKG}/files 2>/dev/null")
+    return sum(1 for n in out.split() if n.endswith("_download.json"))
+
+
 def front():
     m = re.search(r"ResumedActivity: ActivityRecord\{\S+ \S+ (\S+)", sh("dumpsys activity activities | grep -E 'ResumedActivity'"))
     return m.group(1) if m else ""
@@ -140,6 +146,7 @@ for sc in scenarios:
     seen, actions, stable = [], [], 0
     last = {}
     last_tap = 0.0
+    records_at_tap = -1
     deadline = t0 + wait
     while time.time() < deadline:
         time.sleep(3)
@@ -163,8 +170,8 @@ for sc in scenarios:
         elif "Download Now" in texts and ("Download Now" not in actions or (QUALITY_FIRST and actions[-1] == "quality")):
             tap = "Download Now"
         elif QUALITY_FIRST and "Download Available" in texts and "Download Now" in texts and actions.count("Download Now") < 3 and \
-                time.time() - last_tap > 6:
-            tap = "Download Now"                     # the browser's prompt is still there: the tap did not register
+                time.time() - last_tap > 6 and records() == records_at_tap:
+            tap = "Download Now"                     # the prompt stays on screen either way: re-tap only when no download was added
         elif not QUALITY_FIRST and quality and "quality" not in actions and ("Download Now" in actions or not quality == "unknown"):
             tap = quality                            # the golden's recorded order (T1.3): confirm first, then a quality
         if tap:
@@ -172,6 +179,7 @@ for sc in scenarios:
             sh(f"input tap {x} {y}")
             actions.append("quality" if tap == quality and tap != "Download Now" else tap)
             last_tap = time.time()
+            records_at_tap = records()
             if tap == "Download Now":
                 deadline = max(deadline, time.time() + 40)    # let the download finish
             continue
