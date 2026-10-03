@@ -5,7 +5,9 @@ For each scenario: write the fault control file read by world.py, force-stop the
 VidChain (exactly like the YouTube app / Morphe do: ACTION_SEND text/plain), then act like a user who
 accepts the obvious: tap the app's own "Download Now" or the first quality offered. Record what the
 user saw (texts on screen), which activity ended in front, and which files landed in the download folder.
-usage: drive.py <scenarios.json> <out-dir> <faults-control-file>"""
+With fallbacks on (T6.2), after the current method's phase the driver also waits for VidChain's fallback chain to
+end (trace events "commit result=ok" or "chain.exhausted" in logcat tag VidChainTrace) and records the trace.
+usage: drive.py <scenarios.json> <out-dir> <faults-control-file> [--fallbacks on|off]"""
 import hashlib
 import json
 import pathlib
@@ -20,6 +22,9 @@ MARK = "/data/local/tmp/vidchain-scenario.mark"
 SCEN = json.loads(pathlib.Path(sys.argv[1]).read_text())
 OUT = pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 CONTROL = pathlib.Path(sys.argv[3])
+FALLBACKS = sys.argv[sys.argv.index("--fallbacks") + 1] if "--fallbacks" in sys.argv else "on"
+TRACE_TAG = "VidChainTrace"
+FALLBACK_WAIT = 300          # seconds a started chain may take (engines, WebView, ffmpeg) before the driver gives up
 
 
 def adb(*args, timeout=60):
@@ -59,6 +64,35 @@ def front():
     return m.group(1) if m else ""
 
 
+def set_fallbacks(on):
+    """the owner's master switch (FallbackSettings "vidchain_fallback" / fallbacks_enabled), written as root while the app is stopped"""
+    sh(f"am force-stop {PKG}")
+    d = f"/data/data/{PKG}/shared_prefs"
+    local = OUT / "vidchain_fallback.xml"
+    local.write_text("<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n"
+                     f"    <boolean name=\"fallbacks_enabled\" value=\"{'true' if on else 'false'}\" />\n</map>\n")
+    sh(f"mkdir -p {d}")
+    adb("push", str(local), f"{d}/vidchain_fallback.xml")
+    sh(f"chown $(stat -c %u:%g /data/data/{PKG}) {d} {d}/vidchain_fallback.xml && chmod 660 {d}/vidchain_fallback.xml && restorecon -R {d}")
+    print("fallbacks:", "on" if on else "off", "->", sh(f"cat {d}/vidchain_fallback.xml").strip().replace("\n", " "), flush=True)
+
+
+def trace():
+    return [l.split(f"{TRACE_TAG}: ", 1)[1] for l in adb("logcat", "-d", "-v", "brief", "-s", f"{TRACE_TAG}:I").splitlines() if f"{TRACE_TAG}: " in l]
+
+
+def chain_state(lines):
+    """None = no chain started; "running"; "delivered"; "exhausted" """
+    if any(" event=commit " in l and " result=ok" in l for l in lines):
+        return "delivered"
+    if any(" event=chain.exhausted" in l for l in lines):
+        return "exhausted"
+    if any(re.search(r" event=(failure|intent|attempt\.start)\b", l) for l in lines):
+        return "running"
+    return None
+
+
+set_fallbacks(FALLBACKS == "on")
 results = []
 scenarios = SCEN["scenarios"]
 if SCEN.get("warmup", True):
@@ -69,6 +103,7 @@ for sc in scenarios:
     CONTROL.write_text(json.dumps(sc.get("faults", {})))           # world.py re-reads it on change
     sh(f"am force-stop {PKG}")
     sh(f"touch {MARK}")
+    adb("logcat", "-c")
     time.sleep(1.1)
     before = {}
     t0 = time.time()
@@ -111,17 +146,36 @@ for sc in scenarios:
             stable = 0
         last = now
     t1 = time.time()
+    current_files = {k: v for k, v in files().items() if k not in before}
+    lines, state = trace(), None
+    if FALLBACKS == "on":
+        # the current method's phase is over; a chain it triggered gets its own time to finish
+        quiet_until, end = time.time() + 15, time.time() + FALLBACK_WAIT
+        while time.time() < end:
+            lines = trace(); state = chain_state(lines)
+            if state in ("delivered", "exhausted") or (state is None and time.time() > quiet_until):
+                break
+            for t, x, y in ui():
+                if t not in seen:
+                    seen.append(t)
+            time.sleep(3)
+        time.sleep(3 if state == "delivered" else 0)      # let the commit settle before listing files
+        lines = trace(); state = chain_state(lines)
+    t2 = time.time()
     new = {k: v for k, v in files().items() if k not in before}
     hashes = {}
     for f, size in new.items():
         if 0 < size < 20_000_000:
             hashes[f] = (sh(f"sha256sum '{f}'").split() or [""])[0]
     adb("shell", "screencap", "-p", "/sdcard/s.png"); adb("pull", "/sdcard/s.png", str(OUT / f"{sid}.png"))
-    rec = {"id": sid, "url": url, "faults": sc.get("faults", {}), "t_start": round(t0, 3), "t_end": round(t1, 3),
+    rec = {"id": sid, "url": url, "faults": sc.get("faults", {}), "t_start": round(t0, 3), "t_end": round(t2, 3), "t_current_end": round(t1, 3),
+           "fallbacks": FALLBACKS, "chain": state, "trace": lines[-200:],
+           "current_files": sorted(f.replace("/storage/emulated/0/Download", "<Download>").replace(f"/data/data/{PKG}/files", "<private>") for f in current_files),
            "front_activity": front(), "actions": actions, "texts_seen": seen[:60],
            "files": [{"path": f.replace("/storage/emulated/0/Download", "<Download>").replace(f"/data/data/{PKG}/files", "<private>"), "bytes": s, "sha256": hashes.get(f, "")} for f, s in sorted(new.items())]}
     if sid != "_warmup":
         results.append(rec)
-    print(f"{sid}: actions={actions} files={[(r['path'].split('/')[-1], r['bytes']) for r in rec['files']]} front={rec['front_activity'].split('/')[-1]}", flush=True)
+    tried = [m for l in lines for m in re.findall(r" event=attempt\.end .*?method=(\S+)", l)]
+    print(f"{sid}: chain={state} methods={tried} actions={actions} files={[(r['path'].split('/')[-1], r['bytes']) for r in rec['files']]} front={rec['front_activity'].split('/')[-1]}", flush=True)
 CONTROL.write_text("{}")
 (OUT / "outcomes.json").write_text(json.dumps({"scenarios": results}, indent=1))

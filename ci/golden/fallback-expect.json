@@ -1,0 +1,45 @@
+{
+  "_note": "What VidChain's fallbacks must do on every fixture and fault (T6.2), with fallbacks ON. 'untouched' = the current method succeeded in the golden, no chain may start and its files stay byte-identical; 'delivered' = a chain must end with a committed file; 'exhausted' = nothing can rescue it (no cookie / referer anywhere, or the fault persists), the chain must end cleanly without delivering anything; 'either' = delivered or exhausted are both acceptable (reason given). Every case: no more crash logs than the unchanged app had (golden / fault matrix), no chain still running after the driver's wait.",
+  "golden": {
+    "direct-mp4": "untouched",
+    "direct-webm": "untouched",
+    "moov-at-end": "untouched",
+    "video-only": "untouched",
+    "audio-only": "untouched",
+    "extensionless": "untouched",
+    "redirect-chain": "untouched",
+    "meta-refresh": "untouched",
+    "trap-html-as-mp4": "untouched",
+    "trap-truncated": "untouched",
+    "no-head": "delivered",
+    "unknown-length": "delivered",
+    "og-video": "delivered",
+    "json-ld": "delivered",
+    "html5-video": "delivered",
+    "js-injected": "delivered",
+    "hls-plain": "delivered",
+    "hls-aes": "delivered",
+    "dash-split": "delivered",
+    "cookie-gated": "exhausted",
+    "referer-gated": "exhausted",
+    "drive-interstitial": "either"
+  },
+  "reasons": {
+    "drive-interstitial": "an invented host: L only knows the real Google Drive; a page scraper may still follow the confirm link",
+    "cookie-gated": "the share carries no cookie and no browser session exists for the host",
+    "referer-gated": "the share carries no referer and the page that would supply it was never opened"
+  },
+  "faults": {
+    "direct-mp4~500@2": "exhausted",
+    "direct-mp4~404@2": "exhausted",
+    "direct-mp4~403@2": "exhausted",
+    "direct-mp4~429@2": "exhausted",
+    "direct-mp4~reset@2": "exhausted",
+    "direct-mp4~hang@2": "exhausted",
+    "direct-mp4~html@2": "exhausted",
+    "direct-mp4~500": "exhausted",
+    "hls-plain~404@2": "exhausted",
+    "og-video~500": "exhausted",
+    "listed-vimeo~no-route": "exhausted"
+  }
+}
