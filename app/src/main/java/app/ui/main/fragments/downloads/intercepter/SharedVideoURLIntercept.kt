@@ -105,6 +105,7 @@ class SharedVideoURLIntercept(
 			// Validate the provided URL before proceeding
 			if (!isValidURL(targetUrl)) {
 				logger.d("Invalid URL provided: $targetUrl")
+				if (org.websnake.vidchain.app.VidChainShareRescue.torrent(safeBaseActivityRef, targetUrl)) return // FALLBACK-SEAM:share-torrent
 				org.websnake.vidchain.app.VidChainShareRescue.extractUrl(targetUrl)?.let { interceptIntentURI(it, shouldOpenBrowserAsFallback); return } // FALLBACK-SEAM:share-text
 				return
 			}

@@ -17,6 +17,7 @@ class EngineLayout(val nativeLibDir: File, noBackupDir: File, val cacheDir: File
 	val aria2c = File(nativeLibDir, "libaria2c.so")
 	val quickJs = File(nativeLibDir, "libqjs.so")
 	val pythonHome = File(packages, "python/usr")
+	val aria2cHome = File(packages, "aria2c/usr")
 	val ytdlp = File(base, "yt-dlp/yt-dlp")
 	val certFile = File(pythonHome, "etc/tls/cert.pem")
 

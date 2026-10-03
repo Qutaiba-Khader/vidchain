@@ -271,12 +271,14 @@ class FallbackCoordinator(
 				is MethodOutcome.Delivered -> {
 					end("delivered", null)
 					val temp = File(outcome.path)
+					val extras = outcome.extras.map(::File).filter { it.isFile }
 					val r = verifier.verify(temp, Expectation(root.expectMedia, null, root.expectedDurationMs, root.fileName))
 					val state = record(root.id, no, next, r, "file")
 					if (state == AttemptState.FAILED) {
-						temp.delete()
+						temp.delete(); extras.forEach { it.delete() }
 					} else {
-						val dest = deliveredName(root.filePath?.let(::File) ?: File(temp.parentFile, root.fileName ?: temp.name), temp)
+						val planned = root.filePath?.let(::File) ?: File(temp.parentFile, root.fileName ?: temp.name)
+						val dest = if (root.keepNames) File(planned.parentFile, temp.name) else deliveredName(planned, temp)
 						val final = runCatching { DeliveryVerifier.commit(temp, dest) }.getOrNull()
 						Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = if (final != null) "ok" else "failed", reason = final?.name) }
 						if (final != null) {
@@ -285,6 +287,12 @@ class FallbackCoordinator(
 								ledger.update(root.id, no, state, listed, "verify ${r.check.name} ${r.kind.name}: ${r.reason}; saved as ${final.name}", clock())
 								TrailBoard.linkChild(listed, root.id, next)
 							}
+							// the other files of a multi-file torrent: next to the first one, each listed (pieces were hash-checked)
+							for (x in extras) {
+								val xf = runCatching { DeliveryVerifier.commit(x, File(final.parentFile, x.name)) }.getOrNull() ?: continue
+								try { withContext(hostContext) { host.registerDelivered(root, xf, next) } } catch (e: CancellationException) { throw e } catch (e: Exception) { }
+							}
+							if (extras.isNotEmpty()) Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = "extras", reason = "${extras.size} more file(s)") }
 						}
 						if (state == AttemptState.DELIVERED && final != null) return
 					}
@@ -322,6 +330,17 @@ class FallbackCoordinator(
 			val method = (delivered ?: best ?: last).method
 			TrailBoard.put(Trail(parentId, "?", rows.size, rows.size, method, state))
 		}
+	}
+
+	/**
+	 * Runs [root]'s chain for something the app has no download for (a shared magnet link). The root is not in the
+	 * upstream lists; delivered files are listed in the app's finished downloads. false = already running.
+	 */
+	suspend fun startStandalone(root: HostDownload): Boolean = lock.withLock {
+		if (running[root.id]?.isActive == true) return@withLock false
+		Trace.event { TraceEvent("decision", downloadId = root.id, chain = UrlClass.of(root.url).chain, result = "standalone") }
+		running[root.id] = scope.launch { runChain(root, "SHARED") }
+		true
 	}
 
 	enum class Manual { STARTED, BUSY, ALREADY_DELIVERED, NOTHING_LEFT, NOT_FOUND }

@@ -18,6 +18,7 @@ data class HostDownload(
 	val expectMedia: Boolean = true,       // false for downloads that are not audio / video (zip, apk, pdf, ...)
 	val preferredHeight: Int? = null,      // height of the format the user picked, when known
 	val audioOnly: Boolean = false,
+	val keepNames: Boolean = false,        // a shared torrent: delivered files keep their own names in filePath's folder
 )
 
 /** The app side (VidChainFallbackHost): reads the upstream download lists and queues child downloads. Calls run on the coordinator's host context (main thread in the app). */

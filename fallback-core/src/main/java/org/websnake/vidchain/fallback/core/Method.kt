@@ -32,7 +32,7 @@ sealed class MethodOutcome {
 	 * The method itself produced the file (executors): [path] is a temp file the method owns. The coordinator verifies it,
 	 * commits it next to the parent's destination on PASS / UNSURE (never overwriting) and deletes it on FAIL.
 	 */
-	data class Delivered(val path: String) : MethodOutcome()
+	data class Delivered(val path: String, val extras: List<String> = emptyList()) : MethodOutcome()   // extras: the other files of a multi-file torrent
 	/** [retryable]: the system stopped the method (OS kill), not the method failing: the coordinator runs it once more */
 	data class Failed(val reason: String, val retryable: Boolean = false) : MethodOutcome()
 	/** the download really lives at [url] (redirect, short link, wrapper): the chain continues there, in that URL's class */

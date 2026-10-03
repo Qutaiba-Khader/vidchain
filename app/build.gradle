@@ -32,6 +32,7 @@ android {
 
 	// Package namespace used for generated R, BuildConfig, and other classes.
 	namespace "com.aio"
+	packagingOptions { jniLibs { excludes += ["lib/armeabi-v7a/libaria2c.so", "lib/armeabi-v7a/libaria2c.zip.so", "lib/x86/libaria2c.so", "lib/x86/libaria2c.zip.so"] } }   // FALLBACK-SEAM:abi-natives new natives on 64-bit ABIs only (Q8 = A)
 
 	// VidChain (T1.4): inherited lint findings are frozen in lint-baseline-vidchain.xml; only NEW findings fail the build.
 	lint {

@@ -38,9 +38,35 @@ object VidChainShareRescue {
 	@JvmStatic
 	fun extractUrl(text: String?): String? = org.websnake.vidchain.fallback.context.ShareText.firstUrl(text)
 
+	/** a shared magnet link or torrent/metalink file: VidChain runs chain B6 (aria2c) for it; true = taken */
+	@JvmStatic
+	fun torrent(activity: BaseActivity?, uri: String?): Boolean {
+		try {
+			val u = uri?.trim() ?: return false
+			if (activity == null || UrlClass.of(u) != UrlClass.MAGNET_TORRENT) return false
+			if (!FallbackSettings.methodOn(activity, "A")) return false
+			val c = FallbackRuntime.coordinator ?: return false
+			val dir = app.core.engines.downloader.DownloadDataModel().fileDirectory.takeIf { it.isNotEmpty() } ?: return false
+			val root = org.websnake.vidchain.fallback.core.HostDownload(
+				id = "share-${System.currentTimeMillis()}", url = u, mediaUrl = u,
+				snapshot = org.websnake.vidchain.fallback.classifier.DownloadSnapshot(org.websnake.vidchain.fallback.classifier.Engine.REGULAR, org.websnake.vidchain.fallback.classifier.DownloadSnapshot.CLOSE),
+				filePath = File(dir, "torrent").path, expectMedia = false, keepNames = true,
+			)
+			val app = activity.applicationContext
+			scope.launch {
+				val started = withContext(Dispatchers.Default) { c.startStandalone(root) }
+				Toast.makeText(app, if (started) "VidChain: downloading with aria2c - the files appear in Finished downloads" else "VidChain: this torrent is already downloading", Toast.LENGTH_LONG).show()
+			}
+			return true
+		} catch (t: Throwable) {
+			return false
+		}
+	}
+
 	@JvmStatic
 	fun rescue(activity: BaseActivity?, url: String?, cookie: String?) {
 		try {
+			if (url != null && UrlClass.of(url) == UrlClass.MAGNET_TORRENT) { torrent(activity, url); return }
 			if (activity == null || url.isNullOrBlank() || !url.startsWith("http", ignoreCase = true)) return
 			if (UrlClass.of(url) == UrlClass.YOUTUBE) return                       // YouTube has its own methods (C, P)
 			if (!FallbackSettings.enabled(activity) || !FallbackSettings.methodOn(activity, "Y")) return

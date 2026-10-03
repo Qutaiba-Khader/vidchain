@@ -69,6 +69,8 @@ object FallbackRuntime {
 		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.Aria2Method({ engines?.let { org.websnake.vidchain.engine.aria2.Aria2Engine(it.runner, it.layout) } },
+			{ engines?.layout?.cacheDir?.let { java.io.File(it, "vidchain-dht.dat") } }),
 		org.websnake.vidchain.fallback.methods.NightlyYtDlpMethod(
 			{ engines?.let { k -> appContext?.let { c -> org.websnake.vidchain.ytdlp.nightly.NightlyToolStore(java.io.File(c.noBackupFilesDir, "vidchain-tools/yt-dlp-nightly"), http, k.store) } } },
 			{ file -> engines?.let { k -> org.websnake.vidchain.ytdlp.YtDlpEngine(k.runner, k.layout, ytdlp = file) } },
@@ -124,6 +126,8 @@ object FallbackRuntime {
 			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe))
 		ledger = l; coordinator = c; this.host = host; scope = s
 		engines = kit
+		// aria2c (method A) is unpacked by its module like the library's other runtimes; the app itself never does it
+		s.launch(Dispatchers.IO) { runCatching { com.yausername.aria2c.Aria2c.getInstance().init(app) } }
 		s.launch {
 			runCatching { c.restoreBoard() }
 			delay(TICK_MS)

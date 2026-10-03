@@ -26,6 +26,8 @@
 #   SharedVideoURLIntercept.kt share-text    a shared text that is not a link: re-enter with the first link in it
 #   SharedVideoURLIntercept.kt share-rejected link not on the app's list: VidChain asks yt-dlp (picker if found)
 #   SharedVideoURLIntercept.kt share-empty   the app's analysis found no formats: the same yt-dlp rescue
+#   SharedVideoURLIntercept.kt share-torrent a shared magnet / torrent / metalink link: VidChain runs chain B6 (aria2c)
+#   app/build.gradle           abi-natives   packaging: aria2c on 64-bit ABIs only (Q8 = A) (file declared in BRANDING.md)
 # The added adapter VidChainFallbackHost.kt (new file inside the upstream source tree) only reads the download
 # lists and adds child downloads through DownloadSystem.addDownload.
 ```paths

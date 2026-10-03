@@ -40,6 +40,7 @@ dependencies {
 	implementation libs.kotlin.coroutines.core
 	implementation libs.kotlin.coroutines.android
 	implementation libs.androidx.appcompat
+	implementation "io.github.junkfood02.youtubedl-android:aria2c:0.18.1"   // method A: same library family and version as yt-dlp/ffmpeg
 	implementation libs.newpipe.extractor   // method P reads the streams of the NewPipe instance the app already set up
 	testImplementation "junit:junit:4.13.2"
 	testImplementation "org.json:json:20250517"   // real org.json in JVM tests (android.jar only has stubs)
