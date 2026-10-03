@@ -162,7 +162,7 @@ object VidChainShareRescue {
 	}
 
 	/** how long the app's own path (browser sniffing, its picker) has before VidChain offers yt-dlp's formats */
-	private const val OWN_PATH_GRACE_MS = 12_000L
+	private const val OWN_PATH_GRACE_MS = 30_000L      // 12 s was too short: a slow phone's browser offered a redirected file later
 
 	private fun models() = AIOApp.downloadSystem.let { s -> ArrayList(s.activeDownloadDataModels) + ArrayList(s.finishedDownloadDataModels) }
 
