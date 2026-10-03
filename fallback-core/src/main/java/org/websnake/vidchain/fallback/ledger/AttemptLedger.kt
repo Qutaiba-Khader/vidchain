@@ -3,7 +3,7 @@ package org.websnake.vidchain.fallback.ledger
 import org.websnake.vidchain.fallback.classifier.UserIntent
 
 /** Where one fallback attempt stands. */
-enum class AttemptState { RUNNING, CHILD, DELIVERED, UNSURE, FAILED, UNSUPPORTED }
+enum class AttemptState { RUNNING, CHILD, DELIVERED, UNSURE, REDIRECTED, FAILED, UNSUPPORTED }
 
 data class AttemptRow(
 	val parentId: String,
@@ -38,6 +38,10 @@ interface AttemptLedger {
 
 	/** parents with at least one attempt, most recent first */
 	fun recentParents(limit: Int): List<String>
+
+	/** the URL a parent's chain works on after a redirect unwrap (null = the download's own URL) */
+	fun effectiveUrl(parentId: String): String?
+	fun setEffectiveUrl(parentId: String, url: String)
 
 	fun mapChild(childId: String, parentId: String)
 	fun parentOf(childId: String): String?

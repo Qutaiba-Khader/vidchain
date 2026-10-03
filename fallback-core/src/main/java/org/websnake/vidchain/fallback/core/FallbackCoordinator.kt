@@ -191,9 +191,10 @@ class FallbackCoordinator(
 		return state
 	}
 
-	private suspend fun runChain(root: HostDownload, failureClass: String) {
-		val urlClass = UrlClass.of(root.url)
-		val steps = ChainSpec.stepsFor(urlClass, config.includeStub)
+	private suspend fun runChain(original: HostDownload, failureClass: String) {
+		var root = withEffectiveUrl(original)
+		var urlClass = UrlClass.of(root.url)
+		var steps = ChainSpec.stepsFor(urlClass, config.includeStub)
 		// a RUNNING row found here belongs to a process that died mid-attempt
 		ledger.attempts(root.id).filter { it.state == AttemptState.RUNNING }.forEach {
 			ledger.update(root.id, it.attemptNo, AttemptState.FAILED, null, "interrupted (app restarted)", clock())
@@ -284,6 +285,16 @@ class FallbackCoordinator(
 					}
 				}
 				is MethodOutcome.Failed -> { ledger.update(root.id, no, AttemptState.FAILED, null, outcome.reason, clock()); end("failed", outcome.reason) }
+				is MethodOutcome.Redirected -> {
+					ledger.setEffectiveUrl(root.id, outcome.url)
+					val from = urlClass.chain
+					root = withEffectiveUrl(original)
+					urlClass = UrlClass.of(root.url)
+					steps = ChainSpec.stepsFor(urlClass, config.includeStub)
+					val note = "unwrapped${if (outcome.note.isNotEmpty()) " (${outcome.note})" else ""}; chain $from -> ${urlClass.chain}"
+					ledger.update(root.id, no, AttemptState.REDIRECTED, null, note, clock())
+					end("redirected", note)
+				}
 				is MethodOutcome.Unsupported -> { ledger.update(root.id, no, AttemptState.UNSUPPORTED, null, outcome.reason, clock()); end("unsupported", outcome.reason) }
 			}
 		}
@@ -322,7 +333,7 @@ class FallbackCoordinator(
 		if (running[rootId]?.isActive == true) return@withLock Manual.BUSY
 		val rows = ledger.attempts(rootId)
 		if (rows.any { it.state == AttemptState.DELIVERED }) return@withLock Manual.ALREADY_DELIVERED
-		val steps = ChainSpec.stepsFor(UrlClass.of(root.url), config.includeStub)
+		val steps = ChainSpec.stepsFor(UrlClass.of(withEffectiveUrl(root).url), config.includeStub)
 		if (ChainSpec.nextMethod(steps, rows.map { it.method }) { it in methods && config.methodOn(it) } == null) return@withLock Manual.NOTHING_LEFT
 		rows.filter { it.state == AttemptState.CHILD }.forEach {
 			ledger.update(rootId, it.attemptNo, AttemptState.FAILED, null, "user asked for another method", clock())
@@ -331,6 +342,9 @@ class FallbackCoordinator(
 		running[rootId] = scope.launch { runChain(root, "USER_REQUEST") }
 		Manual.STARTED
 	}
+
+	/** the download as the chain sees it: after a redirect unwrap, the unwrapped URL is both its source and its media URL */
+	private fun withEffectiveUrl(d: HostDownload): HostDownload = ledger.effectiveUrl(d.id)?.let { d.copy(url = it, mediaUrl = it) } ?: d
 
 	/** Wait until no chain is running (tests, shutdown). */
 	suspend fun drain() {

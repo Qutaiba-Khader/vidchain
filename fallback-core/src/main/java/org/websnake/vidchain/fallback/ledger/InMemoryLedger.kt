@@ -8,6 +8,7 @@ class InMemoryLedger : AttemptLedger {
 	private val handled = HashSet<Pair<String, String>>()
 	private val attempts = HashMap<Pair<String, Int>, AttemptRow>()
 	private val children = HashMap<String, String>()
+	private val effective = HashMap<String, String>()
 
 	@Synchronized override fun recordIntent(downloadId: String, intent: UserIntent, timeMs: Long): Long {
 		val seq = (intents[downloadId]?.second ?: 0L) + 1
@@ -37,6 +38,9 @@ class InMemoryLedger : AttemptLedger {
 
 	@Synchronized override fun recentParents(limit: Int) =
 		attempts.values.groupBy { it.parentId }.mapValues { (_, v) -> v.maxOf { it.startedMs } }.entries.sortedByDescending { it.value }.take(limit).map { it.key }
+
+	@Synchronized override fun effectiveUrl(parentId: String) = effective[parentId]
+	@Synchronized override fun setEffectiveUrl(parentId: String, url: String) { effective[parentId] = url }
 
 	@Synchronized override fun mapChild(childId: String, parentId: String) { children[childId] = parentId }
 	@Synchronized override fun parentOf(childId: String) = children[childId]

@@ -32,6 +32,8 @@ sealed class MethodOutcome {
 	 */
 	data class Delivered(val path: String) : MethodOutcome()
 	data class Failed(val reason: String) : MethodOutcome()
+	/** the download really lives at [url] (redirect, short link, wrapper): the chain continues there, in that URL's class */
+	data class Redirected(val url: String, val note: String = "") : MethodOutcome()
 	data class Unsupported(val reason: String) : MethodOutcome()
 }
 

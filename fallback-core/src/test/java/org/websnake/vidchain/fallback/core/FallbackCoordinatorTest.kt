@@ -303,6 +303,26 @@ class FallbackCoordinatorTest {
 		assertEquals(listOf("6", "5"), w.ledger.recentParents(10))
 	}
 
+	@Test fun redirectMovesTheChainToTheUnwrappedUrlsClass() = runBlocking {
+		val r = Counting("R") { MethodOutcome.Redirected("https://youtu.be/abc", "1 hop") }
+		val seen = ArrayList<FallbackContext>()
+		val y = object : FallbackMethod {
+			override val id = "Y"; override val kind = FallbackMethod.Kind.RESOLVER
+			override suspend fun attempt(ctx: FallbackContext): MethodOutcome { seen += ctx; return MethodOutcome.Failed("no formats") }
+		}
+		val w = World(this, listOf(r, y), stub = false)
+		w.host.set("1", running(), url = "https://t.co/xyz.mp4"); w.tick()          // B4 (looks like a file) -> R -> YouTube (B1)
+		w.host.set("1", failed()); w.tick()
+		val rows = w.ledger.attempts("1")
+		assertEquals(listOf("R", "Y"), rows.map { it.method })
+		assertEquals(AttemptState.REDIRECTED, rows[0].state)
+		assertTrue(rows[0].reason!!.contains("B4 -> B1"))
+		assertEquals("https://youtu.be/abc", seen.single().url)
+		assertEquals(UrlClass.YOUTUBE, seen.single().urlClass)
+		assertEquals("https://youtu.be/abc", w.ledger.effectiveUrl("1"))
+		assertEquals(1, r.calls.get())
+	}
+
 	@Test fun claimIsAtomicUnderConcurrency() {
 		val ledger = InMemoryLedger()
 		val pool = Executors.newFixedThreadPool(16)

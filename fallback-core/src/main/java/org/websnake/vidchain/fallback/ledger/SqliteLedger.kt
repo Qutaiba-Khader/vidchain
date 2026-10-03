@@ -22,9 +22,12 @@ class SqliteLedger(context: Context) : AttemptLedger {
 			db.execSQL("CREATE TABLE attempts (parent_id TEXT NOT NULL, attempt_no INTEGER NOT NULL, method TEXT NOT NULL, state TEXT NOT NULL, " +
 				"child_id TEXT, reason TEXT, started INTEGER NOT NULL, ended INTEGER, UNIQUE (parent_id, attempt_no))")
 			db.execSQL("CREATE TABLE children (child_id TEXT PRIMARY KEY, parent_id TEXT NOT NULL)")
+			onUpgrade(db, 1, DB_VERSION)
 		}
 
-		override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+		override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+			if (oldVersion < 2) db.execSQL("CREATE TABLE IF NOT EXISTS parents (parent_id TEXT PRIMARY KEY, effective_url TEXT)")
+		}
 	}
 
 	private val db: SQLiteDatabase get() = helper.writableDatabase
@@ -100,6 +103,13 @@ class SqliteLedger(context: Context) : AttemptLedger {
 			buildList { while (c.moveToNext()) add(c.getString(0)) }
 		}
 
+	override fun effectiveUrl(parentId: String): String? =
+		db.rawQuery("SELECT effective_url FROM parents WHERE parent_id = ?", arrayOf(parentId)).use { c -> if (c.moveToFirst()) c.getString(0) else null }
+
+	override fun setEffectiveUrl(parentId: String, url: String) {
+		db.insertWithOnConflict("parents", null, ContentValues().apply { put("parent_id", parentId); put("effective_url", url) }, SQLiteDatabase.CONFLICT_REPLACE)
+	}
+
 	override fun mapChild(childId: String, parentId: String) {
 		childCache[childId] = parentId
 		db.insertWithOnConflict("children", null, ContentValues().apply { put("child_id", childId); put("parent_id", parentId) },
@@ -110,6 +120,6 @@ class SqliteLedger(context: Context) : AttemptLedger {
 
 	companion object {
 		const val DB_NAME = "vidchain-fallback.db"
-		const val DB_VERSION = 1
+		const val DB_VERSION = 2
 	}
 }
