@@ -14,6 +14,7 @@ import org.websnake.vidchain.fallback.classifier.StatusKey
 import org.websnake.vidchain.fallback.classifier.UserIntent
 import org.websnake.vidchain.fallback.ledger.AttemptState
 import org.websnake.vidchain.fallback.ledger.InMemoryLedger
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -33,8 +34,8 @@ class FallbackCoordinatorTest {
 			list[id] = HostDownload(id, candidate.url, candidate.url, DownloadSnapshot(Engine.REGULAR, CLOSE))
 			return id
 		}
-		fun set(id: String, snap: DownloadSnapshot, bytes: Long = 0, url: String = list[id]?.url ?: "") {
-			list[id] = HostDownload(id, url, url, snap, bytes)
+		fun set(id: String, snap: DownloadSnapshot, bytes: Long = 0, url: String = list[id]?.url ?: "", path: String? = list[id]?.filePath) {
+			list[id] = HostDownload(id, url, url, snap, bytes, filePath = path)
 		}
 	}
 
@@ -57,6 +58,15 @@ class FallbackCoordinatorTest {
 	}
 
 	private val stub = StubAlwaysFailMethod
+	private val done = DownloadSnapshot(Engine.REGULAR, COMPLETE, isComplete = true)
+
+	/** a minimal valid MP4 (ftyp, moov, mdat) and an HTML error page saved as .mp4 */
+	private fun goodMp4(): String = File.createTempFile("good", ".mp4").apply {
+		deleteOnExit()
+		fun box(t: String, n: Int) = byteArrayOf(0, 0, ((8 + n) shr 8).toByte(), (8 + n).toByte()) + t.toByteArray() + ByteArray(n)
+		writeBytes(box("ftyp", 8) + box("moov", 200) + box("mdat", 3000))
+	}.path
+	private fun htmlAsMp4(): String = File.createTempFile("bad", ".mp4").apply { deleteOnExit(); writeText("<!doctype html><html><body>denied</body></html>") }.path
 
 	@Test fun stateFoundAtStartupNeverStartsAChain() = runBlocking {
 		val w = World(this, listOf(stub))
@@ -127,7 +137,7 @@ class FallbackCoordinatorTest {
 		assertEquals(AttemptState.FAILED, w.ledger.attempts("1")[1].state)
 		val child2 = w.ledger.attempts("1")[2].childId!!
 		w.host.set(child2, running()); w.tick()
-		w.host.set(child2, DownloadSnapshot(Engine.REGULAR, COMPLETE, isComplete = true)); w.tick(); w.tick()
+		w.host.set(child2, done, path = goodMp4()); w.tick(); w.tick()
 		assertEquals(AttemptState.DELIVERED, w.ledger.attempts("1")[2].state)
 		assertEquals(1, r.calls.get()); assertEquals(1, o.calls.get()); assertEquals(1, a.calls.get())
 		assertTrue(w.ledger.attempts(child).isEmpty())   // a child never starts a chain of its own
@@ -201,6 +211,49 @@ class FallbackCoordinatorTest {
 		val rows = w.ledger.attempts("1")
 		assertEquals(AttemptState.FAILED, rows[0].state)
 		assertEquals(ChainSpec.STUB, rows[1].method)
+	}
+
+	@Test fun childThatDeliversTrashFailsVerificationAndTheChainMovesOn() = runBlocking {
+		val o = Counting("O") { MethodOutcome.Resolved(Candidate("https://cdn.example/v.mp4")) }
+		val a = Counting("A") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(o, a), stub = false)
+		w.host.set("1", running(), url = fileUrl); w.tick()
+		w.host.set("1", failed()); w.tick()
+		val child = w.ledger.attempts("1")[0].childId!!
+		w.host.set(child, running()); w.tick()
+		w.host.set(child, done, path = htmlAsMp4()); w.tick(); w.tick()
+		val rows = w.ledger.attempts("1")
+		assertEquals(AttemptState.FAILED, rows[0].state)
+		assertTrue(rows[0].reason!!.contains("HTML"))
+		assertEquals(1, a.calls.get())
+	}
+
+	@Test fun unsureChildIsKeptAsBestSoFarWhileTheChainContinues() = runBlocking {
+		val o = Counting("O") { MethodOutcome.Resolved(Candidate("https://cdn.example/v.mp4")) }
+		val a = Counting("A") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(o, a), stub = false)
+		w.host.set("1", running(), url = fileUrl); w.tick()
+		w.host.set("1", failed()); w.tick()
+		val child = w.ledger.attempts("1")[0].childId!!
+		w.host.set(child, running()); w.tick()
+		w.host.set(child, done, path = null); w.tick(); w.tick()     // no file path: cannot verify
+		assertEquals(listOf(AttemptState.UNSURE, AttemptState.FAILED), w.ledger.attempts("1").map { it.state })
+	}
+
+	@Test fun executorFileIsVerified() = runBlocking {
+		val good = goodMp4(); val bad = htmlAsMp4()
+		val r = Counting("R") { MethodOutcome.Delivered(bad) }
+		val l = Counting("L") { MethodOutcome.Delivered(good) }
+		val s = Counting("S") { MethodOutcome.Failed("never reached") }
+		val w = World(this, listOf(r, l, s), stub = false)
+		val dest = File(File(good).parentFile, "vidchain-test-${System.nanoTime()}.mp4").apply { deleteOnExit() }
+		w.host.set("1", running(), url = fileUrl, path = dest.path); w.tick()
+		w.host.set("1", failed()); w.tick()
+		assertEquals(listOf(AttemptState.FAILED, AttemptState.DELIVERED), w.ledger.attempts("1").map { it.state })
+		assertEquals(0, s.calls.get())
+		assertTrue(!File(bad).exists())                      // FAIL: the method's temp file is removed
+		assertTrue(!File(good).exists())                     // PASS: moved to its final name
+		assertTrue(dest.isFile && dest.length() > 3000)
 	}
 
 	@Test fun claimIsAtomicUnderConcurrency() {

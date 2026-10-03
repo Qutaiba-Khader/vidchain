@@ -15,6 +15,8 @@ import org.websnake.vidchain.fallback.ledger.AttemptLedger
 import org.websnake.vidchain.fallback.ledger.SqliteLedger
 import org.websnake.vidchain.fallback.trace.Trace
 import org.websnake.vidchain.fallback.trace.TraceEvent
+import org.websnake.vidchain.fallback.verify.AndroidDurationProbe
+import org.websnake.vidchain.fallback.verify.DeliveryVerifier
 import java.util.concurrent.CopyOnWriteArrayList
 
 /** The running fallback system: one ledger, one coordinator, one observer loop. Started from the app seam. */
@@ -46,7 +48,7 @@ object FallbackRuntime {
 		})
 		val c = FallbackCoordinator(host, l, methods.toList(), s,
 			FallbackCoordinator.Config(INCLUDE_STUB, enabled = { FallbackSettings.enabled(app) }, methodOn = { FallbackSettings.methodOn(app, it) }),
-			hostContext = Dispatchers.Main)
+			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe))
 		ledger = l; coordinator = c; this.host = host; scope = s
 		s.launch {
 			delay(TICK_MS)

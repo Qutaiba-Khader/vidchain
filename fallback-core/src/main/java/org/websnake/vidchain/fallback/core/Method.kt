@@ -24,7 +24,10 @@ data class Candidate(
 sealed class MethodOutcome {
 	/** hand this source to the existing download queue as a child download */
 	data class Resolved(val candidate: Candidate) : MethodOutcome()
-	/** the method itself produced the file (executors) */
+	/**
+	 * The method itself produced the file (executors): [path] is a temp file the method owns. The coordinator verifies it,
+	 * commits it next to the parent's destination on PASS / UNSURE (never overwriting) and deletes it on FAIL.
+	 */
 	data class Delivered(val path: String) : MethodOutcome()
 	data class Failed(val reason: String) : MethodOutcome()
 	data class Unsupported(val reason: String) : MethodOutcome()

@@ -3,7 +3,7 @@ package org.websnake.vidchain.fallback.ledger
 import org.websnake.vidchain.fallback.classifier.UserIntent
 
 /** Where one fallback attempt stands. */
-enum class AttemptState { RUNNING, CHILD, DELIVERED, FAILED, UNSUPPORTED }
+enum class AttemptState { RUNNING, CHILD, DELIVERED, UNSURE, FAILED, UNSUPPORTED }
 
 data class AttemptRow(
 	val parentId: String,

@@ -17,6 +17,11 @@ import org.websnake.vidchain.fallback.ledger.AttemptLedger
 import org.websnake.vidchain.fallback.ledger.AttemptState
 import org.websnake.vidchain.fallback.trace.Trace
 import org.websnake.vidchain.fallback.trace.TraceEvent
+import org.websnake.vidchain.fallback.verify.Check
+import org.websnake.vidchain.fallback.verify.Delivery
+import org.websnake.vidchain.fallback.verify.DeliveryVerifier
+import org.websnake.vidchain.fallback.verify.Expectation
+import java.io.File
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -41,6 +46,7 @@ class FallbackCoordinator(
 	private val config: Config = Config(),
 	private val hostContext: CoroutineContext = EmptyCoroutineContext,
 	private val clock: () -> Long = System::currentTimeMillis,
+	private val verifier: DeliveryVerifier = DeliveryVerifier(),
 ) {
 	class Config(
 		val includeStub: Boolean = true,
@@ -98,7 +104,7 @@ class FallbackCoordinator(
 			is Verdict.UserStopped -> st.armed = false
 			Verdict.Success -> {
 				st.armed = false
-				if (!st.done) { st.done = true; onChildSuccess(d, now) }
+				if (!st.done) { st.done = true; onChildSuccess(d, list) }
 			}
 			is Verdict.Failure -> {
 				val trigger = st.armed || (prev == null && baselined && isExplicit(snap))
@@ -144,11 +150,35 @@ class FallbackCoordinator(
 		running[rootId] = scope.launch { runChain(root, v.cls.name) }
 	}
 
-	private fun onChildSuccess(d: HostDownload, now: Long) {
+	/** A child download finished: the DeliveryVerifier decides (off the observer, in [scope]); FAIL / UNSURE continue the chain. */
+	private fun onChildSuccess(d: HostDownload, list: List<HostDownload>) {
 		val parentId = ledger.parentOf(d.id) ?: return
 		val row = ledger.attempts(parentId).lastOrNull { it.childId == d.id && it.state == AttemptState.CHILD } ?: return
-		ledger.update(parentId, row.attemptNo, AttemptState.DELIVERED, null, "child download completed (verification: T1.8)", now)
-		Trace.event { TraceEvent("attempt.end", downloadId = parentId, method = row.method, result = "delivered", reason = "child ${d.id} completed") }
+		val root = list.firstOrNull { it.id == parentId }
+		val previous = running[parentId]
+		running[parentId] = scope.launch {
+			previous?.join()
+			val path = d.filePath
+			val result = if (path == null) Delivery(Check.UNSURE, org.websnake.vidchain.fallback.verify.FileKind.UNKNOWN, "child file path unknown")
+			else verifier.verify(File(path), expectationFor(d, root))
+			val state = record(parentId, row.attemptNo, row.method, result, "child ${d.id}")
+			if (state != AttemptState.DELIVERED && root != null && ledger.intentOf(parentId) !in REMOVAL) runChain(root, "DELIVERY_${result.check.name}")
+		}
+	}
+
+	private fun expectationFor(d: HostDownload, root: HostDownload?) = Expectation(
+		expectMedia = root?.expectMedia ?: d.expectMedia,
+		expectedBytes = d.expectedBytes,
+		expectedDurationMs = root?.expectedDurationMs,
+		fileName = d.fileName,
+	)
+
+	/** Write a verifier result into the ledger. PASS -> DELIVERED, FAIL -> FAILED, UNSURE -> UNSURE (best so far, the chain goes on). */
+	private fun record(parentId: String, attemptNo: Int, method: String, r: Delivery, what: String): AttemptState {
+		val state = when (r.check) { Check.PASS -> AttemptState.DELIVERED; Check.FAIL -> AttemptState.FAILED; Check.UNSURE -> AttemptState.UNSURE }
+		ledger.update(parentId, attemptNo, state, null, "verify ${r.check.name} ${r.kind.name}: ${r.reason}", clock())
+		Trace.event { TraceEvent("verify", downloadId = parentId, method = method, result = r.check.name.lowercase(), reason = "$what ${r.kind.name}: ${r.reason}", durationMs = r.durationMs) }
+		return state
 	}
 
 	private suspend fun runChain(root: HostDownload, failureClass: String) {
@@ -166,7 +196,9 @@ class FallbackCoordinator(
 			}
 			val next = ChainSpec.nextMethod(steps, done.map { it.method }) { it in methods && config.methodOn(it) }
 			if (next == null) {
-				Trace.event { TraceEvent("chain.exhausted", downloadId = root.id, chain = urlClass.chain, failureClass = failureClass, reason = "${done.size} attempts") }
+				val best = done.lastOrNull { it.state == AttemptState.UNSURE }
+				Trace.event { TraceEvent("chain.exhausted", downloadId = root.id, chain = urlClass.chain, failureClass = failureClass,
+					result = if (best != null) "best-so-far" else "nothing", reason = "${done.size} attempts" + (best?.let { ", keeping attempt ${it.attemptNo} (${it.method}, unsure)" } ?: "")) }
 				return
 			}
 			val no = (done.maxOfOrNull { it.attemptNo } ?: 0) + 1
@@ -212,9 +244,18 @@ class FallbackCoordinator(
 					end("failed", "could not queue the child download")
 				}
 				is MethodOutcome.Delivered -> {
-					ledger.update(root.id, no, AttemptState.DELIVERED, null, null, clock())
 					end("delivered", null)
-					return
+					val temp = File(outcome.path)
+					val r = verifier.verify(temp, Expectation(root.expectMedia, null, root.expectedDurationMs, root.fileName))
+					val state = record(root.id, no, next, r, "file")
+					if (state == AttemptState.FAILED) {
+						temp.delete()
+					} else {
+						val dest = root.filePath?.let(::File) ?: File(temp.parentFile, root.fileName ?: temp.name)
+						val final = runCatching { DeliveryVerifier.commit(temp, dest) }.getOrNull()
+						Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = if (final != null) "ok" else "failed", reason = final?.name) }
+						if (state == AttemptState.DELIVERED && final != null) return
+					}
 				}
 				is MethodOutcome.Failed -> { ledger.update(root.id, no, AttemptState.FAILED, null, outcome.reason, clock()); end("failed", outcome.reason) }
 				is MethodOutcome.Unsupported -> { ledger.update(root.id, no, AttemptState.UNSUPPORTED, null, outcome.reason, clock()); end("unsupported", outcome.reason) }

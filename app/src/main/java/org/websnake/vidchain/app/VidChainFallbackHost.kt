@@ -9,6 +9,7 @@ import org.websnake.vidchain.fallback.classifier.StatusKey
 import org.websnake.vidchain.fallback.core.Candidate
 import org.websnake.vidchain.fallback.core.FallbackHost
 import org.websnake.vidchain.fallback.core.HostDownload
+import java.io.File
 import java.net.URI
 import java.util.Locale
 
@@ -62,6 +63,11 @@ object VidChainFallbackHost : FallbackHost {
 			referer = m.siteReferrer.ifEmpty { null },
 			userAgent = m.globalSettings.downloadHttpUserAgent.ifEmpty { null },
 			fileName = m.fileName.ifEmpty { null },
+			// same path as DownloadDataModel.getDestinationFile(), built here so the observer does not trigger its log line
+			filePath = if (m.fileName.isNotEmpty()) File(m.fileDirectory, m.fileName).path else null,
+			expectedBytes = m.fileSize.takeIf { !m.isUnknownFileSize && it > 0 },
+			expectedDurationMs = m.videoInfo?.videoDuration?.takeIf { viaExtractor && it > 0 },
+			expectMedia = viaExtractor || isMediaName(m.fileName, m.fileMimeType),
 			snapshot = DownloadSnapshot(
 				engine = if (viaExtractor) Engine.M3U8 else Engine.REGULAR,
 				status = m.status,
@@ -122,6 +128,18 @@ object VidChainFallbackHost : FallbackHost {
 		cached = locale to keys
 		return keys
 	}
+
+	/** audio / video by MIME type or extension; a name that says nothing counts as media (the app is a video downloader) */
+	private fun isMediaName(name: String, mime: String): Boolean {
+		val m = mime.lowercase(Locale.ROOT)
+		if (m.startsWith("video/") || m.startsWith("audio/") || m == "application/vnd.apple.mpegurl" || m == "application/x-mpegurl") return true
+		val ext = name.substringAfterLast('.', "").lowercase(Locale.ROOT)
+		if (ext.isEmpty()) return m.isEmpty() || m == "application/octet-stream"
+		return ext in MEDIA_EXT
+	}
+
+	private val MEDIA_EXT = setOf("mp4", "m4v", "mkv", "webm", "mov", "avi", "flv", "3gp", "ts", "mts", "m2ts", "mpg", "mpeg", "wmv",
+		"mp3", "m4a", "aac", "ogg", "oga", "opus", "flac", "wav", "wma")
 
 	private fun childName(name: String, attemptNo: Int): String {
 		val base = name.ifEmpty { "download" }
