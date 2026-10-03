@@ -49,8 +49,9 @@ def main():
                 if native(n):
                     sys.exit(f"{e['file']}: native or mypyc file {n} - the bundled Python cannot load it")
                 files[n] = z.read(n)
-    for p in sorted((ROOT / "python" / "aio_engine").rglob("*.py")):
-        files["aio_engine/" + p.relative_to(ROOT / "python" / "aio_engine").as_posix()] = p.read_bytes()
+    for pkg in ("aio_engine", "dukpy"):                         # our launcher and the dukpy shim (T5.4)
+        for p in sorted((ROOT / "python" / pkg).rglob("*.py")):
+            files[f"{pkg}/" + p.relative_to(ROOT / "python" / pkg).as_posix()] = p.read_bytes()
     out = pathlib.Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     buf = io.BytesIO()

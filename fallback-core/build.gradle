@@ -60,6 +60,7 @@ def pyzipFile = pyzipDir.map { it.file("vidchain-py.zip") }
 tasks.register("buildPyZip", Exec) {
 	inputs.file(rootProject.file("python/requirements.lock"))
 	inputs.dir(rootProject.file("python/aio_engine"))
+	inputs.dir(rootProject.file("python/dukpy"))
 	inputs.file(rootProject.file("tools/build_pyzip.py"))
 	outputs.file(pyzipFile)
 	commandLine "python3", rootProject.file("tools/build_pyzip.py").path, "--out", pyzipFile.get().asFile.path

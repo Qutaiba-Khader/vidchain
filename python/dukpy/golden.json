@@ -1,0 +1,55 @@
+[
+ {
+  "name": "sig-2016-splice-reverse-swap",
+  "code": "var Xx={Ab:function(a,b){a.splice(0,b)},Cd:function(a){a.reverse()},Ef:function(a,b){var c=a[0];a[0]=a[b%a.length];a[b%a.length]=c}};function sig(a){a=a.split('');Xx.Ef(a,23);Xx.Cd(a,1);Xx.Ab(a,2);Xx.Ef(a,59);Xx.Cd(a,7);return a.join('')};sig('AOq0QJ8wRQIgXfj1Hm2WN7rZ0aB1c2d3e4f5g6h7i8j9k0lAIhAOdF9mXx')",
+  "kwargs": {},
+  "result": "ZOq0QJ8wRQIgXfj1Hm2WN7rA0aB1c2d3e4f5g6h7i8j9k0lAIhAOmF9d"
+ },
+ {
+  "name": "ncode-2021-array-closure",
+  "code": "var v1=function(f){return function(a){var b=a.split(''),c=[function(d,e){e=(e%d.length+d.length)%d.length;d.splice(0,1,d.splice(e,1,d[0])[0])},function(d){d.reverse()},function(d,e){d.push(e)},-1220,'abc',function(d,e){e=(e%d.length+d.length)%d.length;d.splice(-e).reverse().forEach(function(f){d.unshift(f)})}];c[0](b,3);c[1](b);c[5](b,c[3]);c[2](b,c[4]);c[0](b,17);return f(b.join(''))}};(v1(function(s){return s.toUpperCase()}))('qWerTy1234-_zXcVbN')",
+  "kwargs": {},
+  "result": "TEWRNBVCXZ_-4321YQABC"
+ },
+ {
+  "name": "ncode-2023-charcode-arithmetic",
+  "code": "(function(a){var b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';var r=[];for(var i=0;i<a.length;i++){var k=b.indexOf(a[i]);r.push(b[(k*7+i*3+11)%64])}return r.join('')})('Zm9vYmFyLWJhei1xdXV4XzEyMw')",
+  "kwargs": {},
+  "result": "6Y8d_kA-wAoTBgoPGfUMovpunm"
+ },
+ {
+  "name": "regex-and-objects",
+  "code": "var m='itag=22&url=https%3A%2F%2Fr1.example%2Fv&sp=sig'.split('&').map(function(p){var kv=p.split('=');return [kv[0],decodeURIComponent(kv[1])]});({count:m.length,keys:m.map(function(x){return x[0]}),host:/https?:\\/\\/([^\\/]+)/.exec(m[1][1])[1],ok:true,none:null,uni:'\\u00e9\\u4e2d'})",
+  "kwargs": {},
+  "result": {
+   "count": 3,
+   "keys": [
+    "itag",
+    "url",
+    "sp"
+   ],
+   "host": "r1.example",
+   "ok": true,
+   "none": null,
+   "uni": "é中"
+  }
+ },
+ {
+  "name": "numbers-and-kwargs",
+  "code": "[0.1+0.2, Math.pow(2,53), (255).toString(16), parseInt('0x1f'), Math.floor(-3.5), 1/0 === Infinity, dukpy['player'] + '-' + dukpy['n'] * 2, typeof undefinedThing]",
+  "kwargs": {
+   "player": "base.js",
+   "n": 21
+  },
+  "result": [
+   0.30000000000000004,
+   9007199254740992,
+   "ff",
+   31,
+   -4,
+   true,
+   "base.js-42",
+   "undefined"
+  ]
+ }
+]

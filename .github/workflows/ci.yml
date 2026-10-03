@@ -87,8 +87,8 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      - name: Install ffmpeg (real-ffmpeg JVM tests of method F)
-        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+      - name: Install ffmpeg and QuickJS (real-engine JVM tests of methods F, U)
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg quickjs
 
       - name: Build release APKs (throwaway CI key, never published)
         run: |

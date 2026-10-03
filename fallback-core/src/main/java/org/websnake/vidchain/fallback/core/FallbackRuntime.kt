@@ -69,6 +69,8 @@ object FallbackRuntime {
 		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.YouGetMethod({ engines?.let { org.websnake.vidchain.engine.python.PythonEngine(it.runner, it.layout) } },
+			{ appContext?.let { org.websnake.vidchain.fallback.methods.PyZip.installed(it) } }),
 		org.websnake.vidchain.fallback.methods.GalleryDlMethod({ engines?.let { org.websnake.vidchain.engine.python.PythonEngine(it.runner, it.layout) } },
 			{ appContext?.let { org.websnake.vidchain.fallback.methods.PyZip.installed(it) } }),
 		org.websnake.vidchain.fallback.methods.Aria2Method({ engines?.let { org.websnake.vidchain.engine.aria2.Aria2Engine(it.runner, it.layout) } },
