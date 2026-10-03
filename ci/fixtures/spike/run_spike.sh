@@ -30,6 +30,8 @@ adb shell ls -l "/system/etc/security/cacerts/$hash.0" | tee "$OUT/ca-installed.
 adb shell svc wifi disable; adb shell svc data enable
 
 adb install -r -g "$APK" || { log "FAIL: install"; exit 1; }
+# the app asks for "All files access" (MANAGE_EXTERNAL_STORAGE) before it handles links; grant it like a user would
+adb shell appops set "$PKG" MANAGE_EXTERNAL_STORAGE allow
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
 sleep 45                       # first start unpacks Python (youtubedl-android init) and runs start-up work
 PYCERT=$(adb shell "find /data/data/$PKG -path '*python/usr/etc/tls/cert.pem' 2>/dev/null" | tr -d '\r' | head -1)
@@ -44,7 +46,10 @@ share() { adb shell am start -a android.intent.action.SEND -t text/plain --es an
 log "share 1: unlisted page -> in-app browser (WebView)"
 share "https://fixture.vidchain.test/page.html" 30
 adb shell input keyevent KEYCODE_BACK; sleep 3
-log "share 2: listed site -> NewPipe/OkHttp + yt-dlp (Python)"
+log "share 2: listed site (vimeo) -> yt-dlp format listing (Python)"
+share "https://vimeo.com/76979871" 60
+adb shell input keyevent KEYCODE_BACK; sleep 3
+log "share 3: YouTube -> NewPipe metadata + yt-dlp"
 share "https://www.youtube.com/watch?v=aqz-KE-bpKQ" 60
 adb shell screencap -p /sdcard/s.png && adb pull /sdcard/s.png "$OUT/screen.png" >/dev/null
 adb logcat -d | grep -F "$PKG" | sed -E 's#https?://[^ ]+#<url>#g' | tail -400 > "$OUT/logcat-app.txt" || true
