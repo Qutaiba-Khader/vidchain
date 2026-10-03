@@ -17,7 +17,22 @@
         "commit": "dd00f6d258d80b6684a0b9402d7124e5c18ef42f"
       },
       "build": "natives/lux/build.sh in the golang container (natives.yml)",
-      "outputs": []
+      "outputs": [
+        {
+          "abi": "arm64-v8a",
+          "file": "liblux.so",
+          "sha256": "b9ae26db86538c9878b39104fda71d1040c4a89d656e3cf3e731c33888c55d77",
+          "url": "https://github.com/Qutaiba-Khader/vidchain/releases/download/natives-lux-dd00f6d258d8/liblux-arm64-v8a-b9ae26db86538c9878b39104fda71d1040c4a89d656e3cf3e731c33888c55d77.so",
+          "built_by": "natives.yml run 37118327903"
+        },
+        {
+          "abi": "x86_64",
+          "file": "liblux.so",
+          "sha256": "af6aa4c65afe3d8b25e07dc6e97e4b51f351734af9a776ee2f5a5bdf467a488d",
+          "url": "https://github.com/Qutaiba-Khader/vidchain/releases/download/natives-lux-dd00f6d258d8/liblux-x86_64-af6aa4c65afe3d8b25e07dc6e97e4b51f351734af9a776ee2f5a5bdf467a488d.so",
+          "built_by": "natives.yml run 37118327903"
+        }
+      ]
     }
   ]
 }

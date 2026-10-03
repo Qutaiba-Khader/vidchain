@@ -16,6 +16,7 @@ class EngineLayout(val nativeLibDir: File, noBackupDir: File, val cacheDir: File
 	val ffprobe = File(nativeLibDir, "libffprobe.so")
 	val aria2c = File(nativeLibDir, "libaria2c.so")
 	val quickJs = File(nativeLibDir, "libqjs.so")
+	val lux = File(nativeLibDir, "liblux.so")      // VidChain's own (natives.yml), arm64-v8a and x86_64 only
 	val pythonHome = File(packages, "python/usr")
 	val aria2cHome = File(packages, "aria2c/usr")
 	val ytdlp = File(base, "yt-dlp/yt-dlp")

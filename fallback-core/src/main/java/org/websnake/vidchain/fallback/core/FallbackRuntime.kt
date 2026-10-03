@@ -78,6 +78,7 @@ object FallbackRuntime {
 			{ appContext?.let { org.websnake.vidchain.fallback.methods.PyZip.installed(it) } }),
 		org.websnake.vidchain.fallback.methods.Aria2Method({ engines?.let { org.websnake.vidchain.engine.aria2.Aria2Engine(it.runner, it.layout) } },
 			{ engines?.layout?.cacheDir?.let { java.io.File(it, "vidchain-dht.dat") } }),
+		org.websnake.vidchain.fallback.methods.LuxMethod({ engines?.let { org.websnake.vidchain.engine.lux.LuxEngine(it.runner, it.layout) } }),
 		org.websnake.vidchain.fallback.methods.NightlyYtDlpMethod(
 			{ engines?.let { k -> appContext?.let { c -> org.websnake.vidchain.ytdlp.nightly.NightlyToolStore(java.io.File(c.noBackupFilesDir, "vidchain-tools/yt-dlp-nightly"), http, k.store) } } },
 			{ file -> engines?.let { k -> org.websnake.vidchain.ytdlp.YtDlpEngine(k.runner, k.layout, ytdlp = file) } },
