@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="org.websnake.vidchain.engine.ProcessEngineRunnerTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-03T06:44:00.101Z" hostname="code-cc" time="1.882">
+<testsuite name="org.websnake.vidchain.engine.ProcessEngineRunnerTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-03T08:57:15.569Z" hostname="code-cc" time="2.2">
   <properties/>
-  <testcase name="slotLimiterCapsConcurrentEngines" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.855"/>
-  <testcase name="timeoutKillsAndReportsTimedOut" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.514"/>
-  <testcase name="exitCodesAreClassified" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.011"/>
-  <testcase name="successStreamsLinesAndKeepsTails" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.005"/>
-  <testcase name="leftoverChildrenAreKilledAfterANormalExit" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.006"/>
-  <testcase name="probeIsCachedPerEngineVersionButNotWhenTransient" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.321"/>
-  <testcase name="wholeGroupKilledFromOutsideIsOsKilled" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.054"/>
-  <testcase name="crashIsCrashedNotOsKilled" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.004"/>
-  <testcase name="cancelKillsTheWholeProcessGroup" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.057"/>
-  <testcase name="killFromOutsideIsOsKilled" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.054"/>
+  <testcase name="slotLimiterCapsConcurrentEngines" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.926"/>
+  <testcase name="timeoutKillsAndReportsTimedOut" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.534"/>
+  <testcase name="exitCodesAreClassified" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.022"/>
+  <testcase name="successStreamsLinesAndKeepsTails" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.009"/>
+  <testcase name="leftoverChildrenAreKilledAfterANormalExit" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.03"/>
+  <testcase name="probeIsCachedPerEngineVersionButNotWhenTransient" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.381"/>
+  <testcase name="wholeGroupKilledFromOutsideIsOsKilled" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.068"/>
+  <testcase name="crashIsCrashedNotOsKilled" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.033"/>
+  <testcase name="cancelKillsTheWholeProcessGroup" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.107"/>
+  <testcase name="killFromOutsideIsOsKilled" classname="org.websnake.vidchain.engine.ProcessEngineRunnerTest" time="0.079"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

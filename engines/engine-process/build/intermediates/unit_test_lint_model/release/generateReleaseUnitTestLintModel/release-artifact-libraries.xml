@@ -1,9 +1,9 @@
 <libraries>
   <library
       name=":@@:engines:engine-process::release"
-      jars="/root/.gradle/caches/9.4.0-milestone-3/transforms/3acb1f5f978ab1f558e682cfdec5e2a5/transformed/out/jars/classes.jar:/root/.gradle/caches/9.4.0-milestone-3/transforms/3acb1f5f978ab1f558e682cfdec5e2a5/transformed/out/jars/libs/R.jar"
+      jars="/root/.gradle/caches/9.4.0-milestone-3/transforms/448e68833fc1b7d31fd37f0c9c5ec887/transformed/out/jars/classes.jar:/root/.gradle/caches/9.4.0-milestone-3/transforms/448e68833fc1b7d31fd37f0c9c5ec887/transformed/out/jars/libs/R.jar"
       resolved="AIO_VDM.engines:engine-process:unspecified"
-      folder="/root/.gradle/caches/9.4.0-milestone-3/transforms/3acb1f5f978ab1f558e682cfdec5e2a5/transformed/out"
+      folder="/root/.gradle/caches/9.4.0-milestone-3/transforms/448e68833fc1b7d31fd37f0c9c5ec887/transformed/out"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"

@@ -46,6 +46,22 @@ object FallbackRuntime {
 			override fun record(method: String, outcome: org.websnake.vidchain.engine.EngineOutcome?) { engines?.let { it.bench(it.layout.ytdlp).record(method, outcome) } }
 		})
 
+	/** the library's ffmpeg on the shared engine kit */
+	val ffmpeg: org.websnake.vidchain.engine.ffmpeg.FfmpegEngine? get() = engines?.let { org.websnake.vidchain.engine.ffmpeg.FfmpegEngine(it.runner, it.layout) }
+
+	@Volatile private var ffmpegCapsCache: Pair<String, org.websnake.vidchain.engine.ffmpeg.FfmpegEngine.Caps>? = null
+
+	/** what this ffmpeg build can read, dumped once per build (T3.4) */
+	private suspend fun ffmpegCaps(): org.websnake.vidchain.engine.ffmpeg.FfmpegEngine.Caps? {
+		val k = engines ?: return null
+		val hash = k.layout.engineHash(k.layout.ffmpeg)
+		ffmpegCapsCache?.takeIf { it.first == hash }?.let { return it.second }
+		val caps = ffmpeg?.capabilities() ?: return null
+		ffmpegCapsCache = hash to caps
+		Trace.event { TraceEvent("engine.caps", method = "F", reason = "protocols=" + caps.protocols.sorted().joinToString(",") + " demuxers=" + caps.demuxers.size) }
+		return caps
+	}
+
 	/** registered methods; P2-P5 add theirs here */
 	val methods: MutableList<FallbackMethod> = CopyOnWriteArrayList(listOf<FallbackMethod>(
 		org.websnake.vidchain.fallback.methods.YouTubeClientMethod({ ytdlp }, {
@@ -53,6 +69,7 @@ object FallbackRuntime {
 		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.FfmpegMethod({ ffmpeg }, ::ffmpegCaps),
 		org.websnake.vidchain.fallback.methods.WebCatcherMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
 			{ url, ua -> appContext?.let { org.websnake.vidchain.web.catcher.WebViewCatcher(it).catch(url, ua) } }, stream = { ctx, _ -> ytdlpMethod.run(ctx, null) }),
 		org.websnake.vidchain.fallback.methods.PageScrapeMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),

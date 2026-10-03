@@ -87,6 +87,9 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
+      - name: Install ffmpeg (real-ffmpeg JVM tests of method F)
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+
       - name: Build release APKs (throwaway CI key, never published)
         run: |
           # upstream gradle.properties caps the daemon at 2 GB; packaging the 241 MB universal APK + lint needs more
