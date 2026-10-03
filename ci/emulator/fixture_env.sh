@@ -24,6 +24,8 @@ adb shell svc wifi disable; adb shell svc data enable
 adb shell settings put global window_animation_scale 0; adb shell settings put global transition_animation_scale 0
 adb install -r -g "$APK" >/dev/null || { echo "FAIL: install"; exit 1; }
 adb shell appops set "$PKG" MANAGE_EXTERNAL_STORAGE allow
+# exempt from battery optimisation like a user who tapped "Disable Now" once (otherwise a dialog blocks links)
+adb shell dumpsys deviceidle whitelist +"$PKG" >/dev/null
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
 for _ in $(seq 1 60); do
   PYCERT=$(adb shell "find /data/data/$PKG -path '*python/usr/etc/tls/cert.pem' 2>/dev/null" | tr -d '\r' | head -1)

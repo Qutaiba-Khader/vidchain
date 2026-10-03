@@ -15,7 +15,8 @@ import sys
 import time
 
 PKG = "org.websnake.vidchain"
-DL_ROOT = "/storage/emulated/0/Download"
+DL_ROOTS = ["/storage/emulated/0/Download", f"/data/data/{PKG}/files", "/storage/emulated/0/Android/data"]
+MARK = "/data/local/tmp/vidchain-scenario.mark"
 SCEN = json.loads(pathlib.Path(sys.argv[1]).read_text())
 OUT = pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 CONTROL = pathlib.Path(sys.argv[3])
@@ -43,7 +44,9 @@ def ui():
 
 
 def files():
-    out = sh(f"find {DL_ROOT} -type f 2>/dev/null")
+    """media files written since the scenario marker, public Download and the app's private folder"""
+    roots = " ".join(DL_ROOTS)
+    out = sh(f"find {roots} -type f -newer {MARK} 2>/dev/null | grep -v -E '/(youtubedl-android|no_backup|cache|code_cache|objectbox|shared_prefs|app_webview|databases)/'")
     res = {}
     for f in filter(None, out.splitlines()):
         size = sh(f"stat -c %s '{f}'").strip()
@@ -52,7 +55,7 @@ def files():
 
 
 def front():
-    m = re.search(r"mResumedActivity: .*? ([\w.]+/[\w.$]+)", sh("dumpsys activity activities | grep mResumedActivity"))
+    m = re.search(r"ResumedActivity: ActivityRecord\{\S+ \S+ (\S+)", sh("dumpsys activity activities | grep -E 'ResumedActivity'"))
     return m.group(1) if m else ""
 
 
@@ -61,9 +64,9 @@ for sc in SCEN["scenarios"]:
     sid, url, wait = sc["id"], sc["url"], sc.get("wait", 50)
     CONTROL.write_text(json.dumps(sc.get("faults", {})))           # world.py re-reads it on change
     sh(f"am force-stop {PKG}")
-    sh(f"rm -rf '{DL_ROOT}'/* 2>/dev/null")
-    before = files()
-    time.sleep(1)
+    sh(f"touch {MARK}")
+    time.sleep(1.1)
+    before = {}
     t0 = time.time()
     sh(f"am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT '{url}' -p {PKG}")
     seen, actions, stable = [], [], 0
@@ -77,7 +80,9 @@ for sc in SCEN["scenarios"]:
                 seen.append(t)
         texts = [t for t, _, _ in nodes]
         tap = None
-        if "Download Now" in texts and "Download Now" not in actions:
+        if "Not Now" in texts and "Not Now" not in actions:
+            tap = "Not Now"                          # e.g. battery-optimisation prompt: decline, continue
+        elif "Download Now" in texts and "Download Now" not in actions:
             tap = "Download Now"
         else:
             quality = next((t for t in texts if re.fullmatch(r"\d{3,4}p.*", t)), None)
@@ -105,7 +110,7 @@ for sc in SCEN["scenarios"]:
     adb("shell", "screencap", "-p", "/sdcard/s.png"); adb("pull", "/sdcard/s.png", str(OUT / f"{sid}.png"))
     rec = {"id": sid, "url": url, "faults": sc.get("faults", {}), "t_start": round(t0, 3), "t_end": round(t1, 3),
            "front_activity": front(), "actions": actions, "texts_seen": seen[:60],
-           "files": [{"path": f.replace(DL_ROOT, "<Download>"), "bytes": s, "sha256": hashes.get(f, "")} for f, s in sorted(new.items())]}
+           "files": [{"path": f.replace("/storage/emulated/0/Download", "<Download>").replace(f"/data/data/{PKG}/files", "<private>"), "bytes": s, "sha256": hashes.get(f, "")} for f, s in sorted(new.items())]}
     results.append(rec)
     print(f"{sid}: actions={actions} files={[(r['path'].split('/')[-1], r['bytes']) for r in rec['files']]} front={rec['front_activity'].split('/')[-1]}", flush=True)
 CONTROL.write_text("{}")
