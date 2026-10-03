@@ -34,3 +34,11 @@ dependencies {
 	implementation libs.androidx.lifecycle.process
 	testImplementation "junit:junit:4.13.2"
 }
+
+// CI logs show why a test failed, not only where
+tasks.withType(Test).configureEach {
+	testLogging {
+		events "failed"
+		exceptionFormat "full"
+	}
+}

@@ -42,3 +42,11 @@ dependencies {
 	testImplementation "junit:junit:4.13.2"
 	testImplementation "org.json:json:20250517"   // real org.json in JVM tests (android.jar only has stubs)
 }
+
+// CI logs show why a test failed, not only where
+tasks.withType(Test).configureEach {
+	testLogging {
+		events "failed"
+		exceptionFormat "full"
+	}
+}

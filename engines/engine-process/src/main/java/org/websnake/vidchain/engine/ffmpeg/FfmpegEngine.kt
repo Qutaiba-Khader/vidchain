@@ -58,8 +58,9 @@ class FfmpegEngine(
 		})
 		if (r.outcome != EngineOutcome.Success) {
 			out.delete()
-			val err = r.stderrTail.lastOrNull { it.isNotBlank() } ?: r.outcome.toString()
-			return Result.Failed("ffmpeg ${r.outcome}: ${err.take(240)}", r.outcome)
+			// the last few error lines: builds differ in what they print last ("Conversion failed!", "Error opening output files")
+			val err = r.stderrTail.filter { it.isNotBlank() }.takeLast(4).joinToString(" | ").ifEmpty { r.outcome.toString() }
+			return Result.Failed("ffmpeg ${r.outcome}: ${err.takeLast(400)}", r.outcome)
 		}
 		return if (out.isFile && out.length() > 0) Result.Ok(out) else Result.Failed("ffmpeg wrote no file", r.outcome)
 	}
