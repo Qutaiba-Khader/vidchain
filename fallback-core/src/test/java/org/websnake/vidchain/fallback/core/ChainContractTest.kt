@@ -23,12 +23,11 @@ class ChainContractTest {
 		override fun enqueueChild(parent: HostDownload, candidate: Candidate, attemptNo: Int, method: String): String? = null
 	}
 
-	private fun order(url: String): List<String> = runBlocking {
+	private fun order(url: String, ids: List<String> = WAVE_1A): List<String> = runBlocking {
 		val log = ArrayList<String>()
-		val wave1a = listOf("C" to FallbackMethod.Kind.EXECUTOR, "S" to FallbackMethod.Kind.EXECUTOR, "Y" to FallbackMethod.Kind.EXECUTOR,
-			"R" to FallbackMethod.Kind.RESOLVER, "O" to FallbackMethod.Kind.EXECUTOR).map { (id, k) -> Fail(id, k, log) }
+		val methods = ids.map { Fail(it, if (it == "R") FallbackMethod.Kind.RESOLVER else FallbackMethod.Kind.EXECUTOR, log) }
 		val host = Host(url)
-		val c = FallbackCoordinator(host, InMemoryLedger(), wave1a, this, FallbackCoordinator.Config(includeStub = false))
+		val c = FallbackCoordinator(host, InMemoryLedger(), methods, this, FallbackCoordinator.Config(includeStub = false))
 		c.tick()
 		host.snap = DownloadSnapshot(Engine.REGULAR, DownloadSnapshot.CLOSE, statusKey = StatusKey.DOWNLOAD_FAILED)
 		c.tick(); c.drain()
@@ -42,12 +41,25 @@ class ChainContractTest {
 	@Test fun b5HlsDash() = assertEquals(listOf("S", "Y"), order("https://cdn.example.org/live/master.m3u8"))
 	@Test fun b6TorrentHasNothingYet() = assertEquals(emptyList<String>(), order("magnet:?xt=urn:btih:abc"))
 
+	// wave 1b (T3.8): L, H, W, F, P, M, D join; N, G, U, T, X and A are not built yet
+	@Test fun wave1bB1YouTube() = assertEquals(listOf("C", "S", "Y", "P", "F", "W"), order("https://www.youtube.com/watch?v=abc", WAVE_1B))
+	@Test fun wave1bB2ListedSite() = assertEquals(listOf("R", "S", "Y", "H", "W"), order("https://vimeo.com/123", WAVE_1B))
+	@Test fun wave1bB3UnlistedPage() = assertEquals(listOf("R", "L", "S", "Y", "P", "H", "W"), order("https://some-blog.example/post/1", WAVE_1B))
+	@Test fun wave1bB4DirectFile() = assertEquals(listOf("R", "L", "S", "O", "D"), order("https://cdn.example.org/v/clip.mp4", WAVE_1B))
+	@Test fun wave1bB5HlsDash() = assertEquals(listOf("S", "Y", "F", "M"), order("https://cdn.example.org/live/master.m3u8", WAVE_1B))
+	@Test fun wave1bB6Torrent() = assertEquals(emptyList<String>(), order("magnet:?xt=urn:btih:abc", WAVE_1B))
+
 	@Test fun everyChainIsAPrefixFreeOrderOfKnownMethods() {
 		val known = setOf("C", "S", "Y", "P", "F", "N", "W", "R", "H", "G", "U", "T", "X", "L", "O", "A", "D", "M")
 		for ((chain, steps) in ChainSpec.chains) {
 			assertEquals(chain, steps.size, steps.toSet().size)
 			assertEquals(chain, emptySet<String>(), steps.toSet() - known)
 		}
+	}
+
+	companion object {
+		val WAVE_1A = listOf("C", "S", "Y", "R", "O")
+		val WAVE_1B = WAVE_1A + listOf("L", "H", "W", "F", "P", "M", "D")
 	}
 
 	@Test fun theRuntimeRegistersTheBuiltMethodsWithTheRightKinds() {
