@@ -77,6 +77,8 @@ jobs:
           cache-read-only: true
       - name: Build release APKs (throwaway key; the sign job re-signs with the release key)
         run: |
+          # upstream gradle.properties caps the daemon at 2 GB; packaging the 241 MB universal APK + lint needs more
+          mkdir -p ~/.gradle && echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8' >> ~/.gradle/gradle.properties
           keytool -genkeypair -keystore "$RUNNER_TEMP/ci.jks" -storetype PKCS12 -storepass ci-only -keypass ci-only \
             -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=VidChain CI throwaway" >/dev/null 2>&1
           chmod +x gradlew
