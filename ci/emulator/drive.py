@@ -8,7 +8,7 @@ user saw (texts on screen), which activity ended in front, and which files lande
 With fallbacks on (T6.2), after the current method's phase the driver also waits for VidChain's fallback chain to
 end (trace events "commit result=ok" or "chain.exhausted" in the app's trace file) and records the trace.
 (The trace file, not logcat: a release build's Log.i lines did not reach logcat in the first run, 2026-10-03.)
-usage: drive.py <scenarios.json> <out-dir> <faults-control-file> [--fallbacks on|off]"""
+usage: drive.py <scenarios.json> <out-dir> <faults-control-file> [--fallbacks on|off] [--picker quality-first]"""
 import hashlib
 import json
 import pathlib
@@ -24,6 +24,9 @@ SCEN = json.loads(pathlib.Path(sys.argv[1]).read_text())
 OUT = pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 CONTROL = pathlib.Path(sys.argv[3])
 FALLBACKS = sys.argv[sys.argv.index("--fallbacks") + 1] if "--fallbacks" in sys.argv else "on"
+# The golden (T1.3) was recorded tapping "Download Now" before a quality, which never completes a resolution picker.
+# --picker quality-first taps like a user (quality, then Download Now); the OFF pass keeps the recorded order.
+QUALITY_FIRST = "--picker" in sys.argv and sys.argv[sys.argv.index("--picker") + 1] == "quality-first"
 TRACE_TAG = "VidChainTrace"
 FALLBACK_WAIT = 600          # seconds a started chain may take (engines, WebView, ffmpeg) before the driver gives up
 
@@ -135,14 +138,16 @@ for sc in scenarios:
             deadline = max(deadline, time.time() + 20)        # yt-dlp still working: give it time
             continue
         tap = None
+        picker = "Download The File To Private Folder" in texts or "Pick Video Resolution To Generate File Name" in texts
+        quality = next((t for t in texts if re.fullmatch(r"\d{3,4}p.*", t)), None) or ("unknown" if picker and "unknown" in texts else None)
         if "Not Now" in texts and "Not Now" not in actions:
             tap = "Not Now"                          # e.g. battery-optimisation prompt: decline, continue
-        elif "Download Now" in texts and "Download Now" not in actions:
+        elif QUALITY_FIRST and picker and quality and "quality" not in actions:
+            tap = quality                            # a resolution picker: choose, then confirm (what a user does)
+        elif "Download Now" in texts and ("Download Now" not in actions or (QUALITY_FIRST and actions[-1] == "quality")):
             tap = "Download Now"
-        else:
-            quality = next((t for t in texts if re.fullmatch(r"\d{3,4}p.*", t)), None) or ("unknown" if "Download Now" in actions and "unknown" in texts else None)
-            if quality and "quality" not in actions:
-                tap, actions_tag = quality, "quality"
+        elif not QUALITY_FIRST and quality and "quality" not in actions and ("Download Now" in actions or not quality == "unknown"):
+            tap = quality                            # the golden's recorded order (T1.3): confirm first, then a quality
         if tap:
             x, y = next((x, y) for t, x, y in nodes if t == tap)
             sh(f"input tap {x} {y}")
