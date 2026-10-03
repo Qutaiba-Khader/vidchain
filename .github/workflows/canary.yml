@@ -34,8 +34,8 @@ jobs:
       - name: Probes
         id: probe
         env:
-          SEED: ${{ inputs.seed_failure && '--seed-failure' || '' }}
-        run: python3 tools/canary/canary.py out $SEED
+          CANARY_SEED: ${{ inputs.seed_failure }}
+        run: python3 tools/canary/canary.py out
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: canary
@@ -89,7 +89,7 @@ jobs:
           if [ -z "$problems" ]; then echo "all PASS or BLOCKED"; exit 0; fi
           printf '%s' "$problems"
           gh label create canary --color B60205 --description "weekly canary found a failure" --force >/dev/null
-          body=$(printf 'Canary run %s\n\n%s\nDetails: the run summary and the `canary` artifact.' "$RUN" "$problems")
+          body=$(printf 'Canary run %s\n\n%s\nDetails: the run summary and the canary artifact.' "$RUN" "$problems")
           n=$(gh issue list --label canary --state open --json number -q '.[0].number')
           if [ -n "$n" ]; then gh issue comment "$n" --body "$body"; else gh issue create --title "Canary failure" --label canary --body "$body"; fi
           exit 1

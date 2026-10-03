@@ -2,7 +2,7 @@
 """Live canary (T6.1, Q12 = A): a few openly licensed or public probes from the runner's own network.
 Each probe ends PASS, BLOCKED (the site refused a datacenter IP: 403/429/bot check - not a failure) or FAIL.
 Writes canary-results.json and a step summary; prints fail=<n> to $GITHUB_OUTPUT. Never fails the job itself.
-usage: canary.py <out-dir> [--seed-failure]"""
+usage: canary.py <out-dir> [--seed-failure]   (or CANARY_SEED=true)"""
 import hashlib
 import json
 import os
@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 
 OUT = pathlib.Path(sys.argv[1]); OUT.mkdir(parents=True, exist_ok=True)
-SEED = "--seed-failure" in sys.argv
+SEED = "--seed-failure" in sys.argv or os.environ.get("CANARY_SEED") == "true"
 UA = "VidChain-canary/1 (+https://github.com/Qutaiba-Khader/vidchain)"
 BLOCK_TEXT = re.compile(r"Sign in to confirm|not a bot|captcha|HTTP Error 4(03|29|51)|rate.?limit|Too Many Requests", re.I)
 COMMONS_FILE = "File:Big_Buck_Bunny_4K.webm"                      # CC BY 3.0, Blender Foundation
