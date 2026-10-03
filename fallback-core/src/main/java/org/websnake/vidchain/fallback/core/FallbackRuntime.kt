@@ -69,6 +69,7 @@ object FallbackRuntime {
 		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.DownloadManagerMethod({ appContext?.let { org.websnake.vidchain.fallback.methods.AndroidSystemDownloads(it) } }),
 		org.websnake.vidchain.fallback.methods.Media3Method({ appContext?.let { org.websnake.vidchain.media3.Media3Downloader(it) } }, { ffmpeg }, { appContext?.cacheDir }),
 		org.websnake.vidchain.fallback.methods.NewPipeMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
 			{ url -> org.websnake.vidchain.fallback.methods.NewPipeMethod.newPipeSource(url) }, { ffmpeg }),

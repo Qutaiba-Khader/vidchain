@@ -2,7 +2,6 @@ package org.websnake.vidchain.fallback.verify
 
 import java.io.File
 import java.io.IOException
-import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
@@ -100,8 +99,12 @@ class DeliveryVerifier(private val probe: DurationProbe? = null) {
 			val target = unique(dest)
 			try {
 				Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE)
-			} catch (e: AtomicMoveNotSupportedException) {
-				if (!temp.renameTo(target)) throw IOException("could not move ${temp.name} to ${target.name}")
+			} catch (e: IOException) {
+				// AtomicMoveNotSupportedException or another mount: rename, else copy and delete
+				if (!temp.renameTo(target)) {
+					temp.copyTo(target, overwrite = false)
+					temp.delete()
+				}
 			}
 			return target
 		}
