@@ -36,10 +36,15 @@ def native(name):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
+    ap.add_argument("--all-plugins", action="store_true", help="every Streamlink plugin (the corpus run decides which ship)")
     a = ap.parse_args()
     lock = [json.loads(l) for l in (ROOT / "python" / "requirements.lock").read_text().splitlines() if l.strip() and not l.startswith("#")]
     files = {}
+    plugins = ROOT / "python" / "streamlink-plugins.json"
+    excluded = set(json.loads(plugins.read_text()).get("excluded_plugins", {})) if plugins.exists() and not a.all_plugins else set()
     for e in lock:
+        if e.get("tests_only"):
+            continue
         if not e["file"].endswith("-none-any.whl"):
             sys.exit(f"{e['file']}: only pure (none-any) wheels are allowed")
         with zipfile.ZipFile(io.BytesIO(wheel(e))) as z:
@@ -48,9 +53,11 @@ def main():
                     continue
                 if native(n):
                     sys.exit(f"{e['file']}: native or mypyc file {n} - the bundled Python cannot load it")
+                if n.startswith("streamlink/plugins/") and n.endswith(".py") and n[len("streamlink/plugins/"):-3] in excluded:
+                    continue                                     # not in the shipped plugin set (tools/streamlink_corpus.py)
                 files[n] = z.read(n)
-    for pkg in ("aio_engine", "dukpy"):                         # our launcher and the dukpy shim (T5.4)
-        for p in sorted((ROOT / "python" / pkg).rglob("*.py")):
+    for pkg in ("aio_engine", "dukpy", "lxml", "pycountry"):   # launcher, dukpy shim (T5.4), lxml + pycountry stand-ins (T5.5)
+        for p in sorted(x for x in (ROOT / "python" / pkg).rglob("*") if x.is_file() and "__pycache__" not in x.parts):
             files[f"{pkg}/" + p.relative_to(ROOT / "python" / pkg).as_posix()] = p.read_bytes()
     out = pathlib.Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)

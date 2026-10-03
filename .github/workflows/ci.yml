@@ -63,6 +63,9 @@ jobs:
       - name: Flow-tracing records (verdict ledger, frozen findings)
         run: python3 tools/ledger_check.py
 
+      - name: Streamlink corpus (its own tests against the lxml/pycountry stand-ins; shipped plugins still pass)
+        run: python3 tools/streamlink_corpus.py --check
+
       - name: Gate self-test (every gate must fail on a seeded violation)
         run: tools/gate_selftest.sh
 

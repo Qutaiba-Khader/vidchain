@@ -61,6 +61,9 @@ tasks.register("buildPyZip", Exec) {
 	inputs.file(rootProject.file("python/requirements.lock"))
 	inputs.dir(rootProject.file("python/aio_engine"))
 	inputs.dir(rootProject.file("python/dukpy"))
+	inputs.dir(rootProject.file("python/lxml"))
+	inputs.dir(rootProject.file("python/pycountry"))
+	inputs.file(rootProject.file("python/streamlink-plugins.json"))
 	inputs.file(rootProject.file("tools/build_pyzip.py"))
 	outputs.file(pyzipFile)
 	commandLine "python3", rootProject.file("tools/build_pyzip.py").path, "--out", pyzipFile.get().asFile.path

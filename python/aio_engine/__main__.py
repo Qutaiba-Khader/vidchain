@@ -14,7 +14,7 @@ def probe(_args):
     import platform
     import ssl
     mods = {}
-    for name in ("gallery_dl", "requests", "urllib3", "idna", "certifi", "charset_normalizer", "you_get", "dukpy"):
+    for name in ("gallery_dl", "requests", "urllib3", "idna", "certifi", "charset_normalizer", "you_get", "dukpy", "streamlink", "lxml.etree", "pycountry", "elementpath", "isodate"):
         try:
             m = __import__(name)
             mods[name] = getattr(m, "__version__", "?")
@@ -109,7 +109,67 @@ def youget(args):
     return OK if files else NO_MEDIA
 
 
-COMMANDS = {"probe": probe, "gallery-dl": gallery, "you-get": youget}
+def _height(name):
+    import re
+    m = re.match(r"^(\d{3,4})p", name)
+    return int(m.group(1)) if m else None
+
+
+def streamlink_cmd(args):
+    """streamlink [--ua UA] [--referer URL] [--height N] [--audio-only] -- <url>: resolve only, never downloads"""
+    import argparse
+    p = argparse.ArgumentParser(prog="aio_engine streamlink")
+    p.add_argument("url")
+    p.add_argument("--ua")
+    p.add_argument("--referer")
+    p.add_argument("--height", type=int)
+    p.add_argument("--audio-only", action="store_true")
+    a = p.parse_args(args)
+    from streamlink import Streamlink
+    from streamlink.exceptions import NoPluginError, PluginError
+    session = Streamlink()
+    headers = {}
+    if a.ua:
+        headers["User-Agent"] = a.ua
+    if a.referer:
+        headers["Referer"] = a.referer
+    if headers:
+        session.set_option("http-headers", headers)
+    try:
+        streams = session.streams(a.url)
+    except NoPluginError:
+        emit(event="error", reason="no Streamlink plugin for this URL")
+        return UNSUPPORTED
+    except PluginError as e:
+        emit(event="error", reason=str(e)[:300])
+        return UNAVAILABLE
+    if not streams:
+        emit(event="error", reason="no playable streams")
+        return NO_MEDIA
+    names = [n for n in streams if n not in ("best", "worst")]
+    if a.audio_only and "audio_only" in streams:
+        name = "audio_only"
+    else:
+        sized = sorted(((h, n) for n in names for h in [_height(n)] if h), reverse=True)
+        fit = [n for h, n in sized if a.height is None or h <= a.height]
+        name = fit[0] if fit else ("best" if "best" in streams else names[0])
+    st = streams[name]
+    kind = type(st).__name__
+    urls = []
+    if hasattr(st, "substreams"):                                   # MuxedStream: video + audio
+        urls = [getattr(s, "url", None) for s in st.substreams]
+    else:
+        urls = [getattr(st, "url", None) or getattr(st, "manifest", None)]
+    urls = [u for u in urls if isinstance(u, str) and u]
+    if not urls:
+        emit(event="error", reason="stream %s (%s) has no URL to hand over" % (name, kind))
+        return NO_MEDIA
+    h = dict(session.http.headers)
+    emit(event="stream", name=name, type=kind, urls=urls, headers={k: v for k, v in h.items() if k in ("User-Agent", "Referer", "Origin")})
+    return OK
+
+
+COMMANDS = {"probe": probe, "gallery-dl": gallery, "you-get": youget, "streamlink": streamlink_cmd}
 
 
 def main(argv):
