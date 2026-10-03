@@ -203,7 +203,7 @@ class PlainGetFetcher(
 }
 
 /** OkHttp call as a cancellable suspend function (cancelling the coroutine cancels the call) */
-internal suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
+suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
 	cont.invokeOnCancellation { runCatching { cancel() } }
 	enqueue(object : Callback {
 		override fun onResponse(call: Call, response: Response) = cont.resume(response) { _, _, _ -> response.close() }

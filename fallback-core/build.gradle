@@ -33,6 +33,7 @@ dependencies {
 	api project(':engines:engine-process')
 	api project(':engines:engine-http')
 	api project(':engines:engine-ytdlp')
+	api project(':engines:engine-hosts')
 	implementation libs.okhttp
 	implementation libs.kotlin.coroutines.core
 	implementation libs.kotlin.coroutines.android

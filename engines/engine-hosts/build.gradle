@@ -1,0 +1,37 @@
+// VidChain file-host resolvers (new code, not upstream): method L turns Dropbox, Pixeldrain, Google Drive,
+// MediaFire and OneDrive share links into direct file URLs (T3.1).
+plugins {
+	id 'com.android.library'
+	id 'org.jetbrains.kotlin.android'
+}
+
+android {
+	namespace "org.websnake.vidchain.hosts"
+	compileSdk 36
+	defaultConfig {
+		minSdk 28
+	}
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_17
+		targetCompatibility JavaVersion.VERSION_17
+	}
+	testOptions {
+		unitTests.returnDefaultValues = true
+	}
+	lint {
+		abortOnError true
+		disable "NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion"
+	}
+}
+
+kotlin {
+	jvmToolchain(17)
+}
+
+dependencies {
+	implementation libs.kotlin.coroutines.core
+	implementation libs.kotlin.coroutines.android
+	implementation libs.okhttp
+	api project(':engines:engine-http')
+	testImplementation "junit:junit:4.13.2"
+}

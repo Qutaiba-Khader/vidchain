@@ -50,10 +50,10 @@ class ChainContractTest {
 		}
 	}
 
-	@Test fun theRuntimeRegistersWave1aWithTheRightKinds() {
+	@Test fun theRuntimeRegistersTheBuiltMethodsWithTheRightKinds() {
 		val kinds = FallbackRuntime.methods.associate { it.id to it.kind }
-		assertEquals(setOf("C", "Y", "S", "R", "O"), kinds.keys)
+		assertEquals(setOf("C", "Y", "S", "R", "O", "L"), kinds.keys)                 // grows with every method task
 		assertEquals(FallbackMethod.Kind.RESOLVER, kinds["R"])
-		for (id in listOf("C", "Y", "S", "O")) assertEquals(id, FallbackMethod.Kind.EXECUTOR, kinds[id])
+		for (id in listOf("C", "Y", "S", "O", "L")) assertEquals(id, FallbackMethod.Kind.EXECUTOR, kinds[id])
 	}
 }
