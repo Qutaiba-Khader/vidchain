@@ -5,7 +5,10 @@ with consecutive repeats collapsed and long repeats counted, plus the outcome (f
 actions taken, files with size + sha256, a few on-screen texts).
 usage: canonicalise.py <outcomes.json> <flows.jsonl> <out.json>"""
 import json
+import re
 import sys
+
+STATE = re.compile(r"(^\d+_download\.(dat|json|jpg)$|^aio_.*\.(dat|json)$|^browsing_history\.|^user_profile\.|\.langcode$|^profileInstalled$)")
 import urllib.parse
 
 PKG = "org.websnake.vidchain"
@@ -42,9 +45,13 @@ for sc in outcomes:
     golden[sc["id"]] = {
         "url": sc["url"], "faults": sc["faults"],
         "requests": [k if n == 1 else (f"{k} x{n}" if n < 20 else f"{k} x20+") for k, n in seq],
-        "outcome": {"front": sc["front_activity"].split("/")[-1], "actions": sc["actions"],
-                    "files": [{"name": f["path"].split("/")[-1], "dir": "/".join(f["path"].split("/")[:-1]),
-                               "bytes": f["bytes"], "sha256": f["sha256"]} for f in sc["files"]],
+        "request_set": sorted({k for k, _ in seq}),
+        "outcome": {"front": sc["front_activity"].split("/")[-1].rstrip("}"), "actions": sc["actions"],
+                    "files": [{"name": re.sub(r"^\d+_", "", f["path"].split("/")[-1]), "dir": "/".join(f["path"].split("/")[:-1]),
+                               "bytes": f["bytes"], "sha256": f["sha256"]} for f in sc["files"]
+                              if not STATE.search(f["path"].split("/")[-1]) and "crash_log" not in f["path"]],
+                    "download_records": sum(1 for f in sc["files"] if re.search(r"/\d+_download\.json$", f["path"])),
+                    "crash_logs": sum(1 for f in sc["files"] if "crash_log" in f["path"]),
                     "texts": [t for t in sc["texts_seen"] if len(t) < 80][:25]},
     }
 json.dump(golden, open(sys.argv[3], "w"), indent=1, sort_keys=True)

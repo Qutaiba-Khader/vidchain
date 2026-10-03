@@ -60,7 +60,11 @@ def front():
 
 
 results = []
-for sc in SCEN["scenarios"]:
+scenarios = SCEN["scenarios"]
+if SCEN.get("warmup", True):
+    # the first share after a fresh install is slower (first start work); run one throw-away scenario first
+    scenarios = [{**scenarios[0], "id": "_warmup", "wait": 45}] + scenarios
+for sc in scenarios:
     sid, url, wait = sc["id"], sc["url"], sc.get("wait", 50)
     CONTROL.write_text(json.dumps(sc.get("faults", {})))           # world.py re-reads it on change
     sh(f"am force-stop {PKG}")
@@ -79,6 +83,9 @@ for sc in SCEN["scenarios"]:
             if t not in seen:
                 seen.append(t)
         texts = [t for t, _, _ in nodes]
+        if any(t.startswith("Analyzing URL") for t in texts):
+            deadline = max(deadline, time.time() + 20)        # yt-dlp still working: give it time
+            continue
         tap = None
         if "Not Now" in texts and "Not Now" not in actions:
             tap = "Not Now"                          # e.g. battery-optimisation prompt: decline, continue
@@ -92,6 +99,8 @@ for sc in SCEN["scenarios"]:
             x, y = next((x, y) for t, x, y in nodes if t == tap)
             sh(f"input tap {x} {y}")
             actions.append("quality" if re.fullmatch(r"\d{3,4}p.*", tap) else tap)
+            if tap == "Download Now":
+                deadline = max(deadline, time.time() + 40)    # let the download finish
             continue
         now = {k: v for k, v in files().items() if k not in before}
         if now and now == last and all(v > 0 for v in now.values()):
@@ -111,7 +120,8 @@ for sc in SCEN["scenarios"]:
     rec = {"id": sid, "url": url, "faults": sc.get("faults", {}), "t_start": round(t0, 3), "t_end": round(t1, 3),
            "front_activity": front(), "actions": actions, "texts_seen": seen[:60],
            "files": [{"path": f.replace("/storage/emulated/0/Download", "<Download>").replace(f"/data/data/{PKG}/files", "<private>"), "bytes": s, "sha256": hashes.get(f, "")} for f, s in sorted(new.items())]}
-    results.append(rec)
+    if sid != "_warmup":
+        results.append(rec)
     print(f"{sid}: actions={actions} files={[(r['path'].split('/')[-1], r['bytes']) for r in rec['files']]} front={rec['front_activity'].split('/')[-1]}", flush=True)
 CONTROL.write_text("{}")
 (OUT / "outcomes.json").write_text(json.dumps({"scenarios": results}, indent=1))

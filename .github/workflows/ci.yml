@@ -157,7 +157,7 @@ jobs:
     name: Golden twin + fault matrix (unchanged app in the fixture world)
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -193,12 +193,16 @@ jobs:
           script: |
             bash ci/emulator/fixture_env.sh apk/app-x86_64-release.apk ${{ runner.temp }}/fixture-ca.pem
             python3 ci/emulator/drive.py ci/golden/scenarios-golden.json golden-out ${{ runner.temp }}/faults.json
+            python3 ci/emulator/drive.py ci/golden/scenarios-golden.json golden-out2 ${{ runner.temp }}/faults.json
             python3 ci/emulator/drive.py ci/golden/scenarios-faults.json faults-out ${{ runner.temp }}/faults.json
 
       - name: Canonicalise
         run: |
-          python3 ci/golden/canonicalise.py golden-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" golden-out/golden.json
+          python3 ci/golden/canonicalise.py golden-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" golden-out/pass1.json
+          python3 ci/golden/canonicalise.py golden-out2/outcomes.json "$RUNNER_TEMP/flows.jsonl" golden-out/pass2.json
+          python3 ci/golden/stability.py golden-out/pass1.json golden-out/pass2.json golden-out/golden.json
           python3 ci/golden/canonicalise.py faults-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" faults-out/fault-matrix.json
+          cp "$RUNNER_TEMP/flows.jsonl" golden-out/flows.jsonl
 
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
@@ -206,5 +210,6 @@ jobs:
           name: golden-twin
           path: |
             golden-out/
+            golden-out2/outcomes.json
             faults-out/
           retention-days: 30
