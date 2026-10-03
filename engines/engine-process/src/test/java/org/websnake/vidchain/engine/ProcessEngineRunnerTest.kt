@@ -90,9 +90,10 @@ class ProcessEngineRunnerTest {
 
 	@Test fun wholeGroupKilledFromOutsideIsOsKilled() = runBlocking {
 		val pidFile = File.createTempFile("group", ".pid").apply { deleteOnExit() }
-		val d = async(Dispatchers.Default) { runner().run(shell("ps -o pgid= -p \$\$ > ${pidFile.path}; sleep 300")) }
+		val d = async(Dispatchers.Default) { runner().run(shell("cut -d' ' -f5 /proc/\$\$/stat > ${pidFile.path}; sleep 300")) }
 		assertTrue(waitFor { pidFile.length() > 0 })
-		Runtime.getRuntime().exec(arrayOf("kill", "-9", "-" + pidFile.readText().trim())).waitFor()
+		// the shell builtin: procps-ng /usr/bin/kill reads "-PGID" as a signal option
+		Runtime.getRuntime().exec(arrayOf(launcher.sh, "-c", "kill -9 -" + pidFile.readText().trim())).waitFor()
 		assertTrue(d.await().outcome is EngineOutcome.OsKilled)
 	}
 
