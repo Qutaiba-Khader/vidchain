@@ -16,6 +16,7 @@ class FfmpegMethod(
 	private val engine: () -> FfmpegEngine?,
 	private val caps: suspend () -> FfmpegEngine.Caps?,
 	private val allowLocalTargets: Boolean = false,
+	private val saver: FfmpegEngine.Saver? = null,
 ) : FallbackMethod {
 	override val id = "F"
 	override val kind = FallbackMethod.Kind.EXECUTOR
@@ -33,9 +34,10 @@ class FfmpegMethod(
 		val dir = HttpFileExecutor.partialFile(ctx, id)?.parentFile ?: return MethodOutcome.Unsupported("destination folder unknown")
 		val out = File(dir, "${ctx.parentId}-$id.mp4")
 		val input = FfmpegEngine.Input(url, userAgent = ctx.userAgent, referer = ctx.referer?.takeIf { it.startsWith("http") })
-		var r = e.save(listOf(input), out)
+		val s = saver ?: e.saver
+		var r = s.save(listOf(input), out, "mp4")
 		if (r is FfmpegEngine.Result.Failed && FfmpegEngine.needsOtherContainer(r.reason)) {
-			r = e.save(listOf(input), File(dir, "${ctx.parentId}-$id.ts"), format = "mpegts")   // stream copy into TS, no re-encoding
+			r = s.save(listOf(input), File(dir, "${ctx.parentId}-$id.ts"), "mpegts")   // stream copy into TS, no re-encoding
 		}
 		return when (r) {
 			is FfmpegEngine.Result.Ok -> MethodOutcome.Delivered(r.file.path)

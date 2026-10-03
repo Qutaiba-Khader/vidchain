@@ -72,10 +72,10 @@ class FfmpegMethodTest {
 	private fun ctx(path: String) = FallbackContext("8", s.url(path), s.url(path), UrlClass.HLS_DASH, destPath = File(tmp.root, "dl/v.mp4").path, userAgent = "UA", referer = "https://site.example/p")
 	private val method get() = FfmpegMethod({ engine }, { engine.capabilities() })
 
-	private fun assertGood(r: MethodOutcome, ext: String) {
+	private fun assertGood(r: MethodOutcome, vararg ext: String) {
 		assertTrue(r.toString(), r is MethodOutcome.Delivered)
 		val f = File((r as MethodOutcome.Delivered).path)
-		assertTrue(f.name, f.name.endsWith(".$ext"))
+		assertTrue(f.name, ext.any { f.name.endsWith(".$it") })
 		assertEquals(Check.PASS, DeliveryVerifier().verify(f, Expectation()).check)
 		assertEquals("audio,video", streams(f))
 	}
@@ -87,9 +87,19 @@ class FfmpegMethodTest {
 		assertEquals("audio,video", streams(f))
 	}
 
-	// MPEG-4 Part 2 in TS cannot be copied into MP4 (no global header): F keeps the streams in MPEG-TS instead
-	@Test fun plainHls() = runBlocking { assertGood(method.attempt(ctx("/plain/index.m3u8")), "ts") }
-	@Test fun aes128Hls() = runBlocking { assertGood(method.attempt(ctx("/aes/index.m3u8")), "ts") }
+	// MPEG-4 Part 2 in TS: some ffmpeg builds cannot copy it into MP4 (no global header) and F keeps MPEG-TS instead
+	@Test fun plainHls() = runBlocking { assertGood(method.attempt(ctx("/plain/index.m3u8")), "mp4", "ts") }
+	@Test fun aes128Hls() = runBlocking { assertGood(method.attempt(ctx("/aes/index.m3u8")), "mp4", "ts") }
+
+	@Test fun whenMp4IsRefusedTheStreamsGoToMpegTs() = runBlocking {
+		val refusingMp4 = object : FfmpegEngine.Saver {
+			override suspend fun save(inputs: List<FfmpegEngine.Input>, out: File, format: String) =
+				if (format == "mp4") FfmpegEngine.Result.Failed("ffmpeg failed(234): Could not write header (incorrect codec parameters ?)", null)
+				else engine.save(inputs, out, format = format)
+		}
+		val r = FfmpegMethod({ engine }, { engine.capabilities() }, saver = refusingMp4).attempt(ctx("/plain/index.m3u8"))
+		assertGood(r, "ts")
+	}
 
 	@Test fun h264HlsBecomesMp4() = runBlocking {
 		val enc = ProcessBuilder(ffmpeg.path, "-hide_banner", "-encoders").start().inputStream.bufferedReader().readText()

@@ -27,6 +27,15 @@ class FfmpegEngine(
 
 	val ready: Boolean get() = ffmpeg.isFile
 
+	/** the save step as an interface, so the container fallback can be tested with a muxer that refuses MP4 */
+	interface Saver {
+		suspend fun save(inputs: List<Input>, out: File, format: String): Result
+	}
+
+	val saver: Saver get() = object : Saver {
+		override suspend fun save(inputs: List<Input>, out: File, format: String) = this@FfmpegEngine.save(inputs, out, format = format)
+	}
+
 	/** what this build can read (dumped once per build by the caller's probe cache) */
 	suspend fun capabilities(): Caps? {
 		// the full listing: the runner only keeps the last lines of a run, and -demuxers prints ~350
