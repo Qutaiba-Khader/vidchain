@@ -54,6 +54,8 @@ class FallbackCoordinator(
 		val includeStub: Boolean = true,
 		val enabled: () -> Boolean = { true },
 		val methodOn: (String) -> Boolean = { true },
+		/** wraps executor attempts (in the app: an EngineHost lease keeps the process alive while the method works) */
+		val keepAlive: suspend (reason: String, block: suspend () -> MethodOutcome) -> MethodOutcome = { _, block -> block() },
 	)
 
 	private val methods = methods.associateBy { it.id }
@@ -219,13 +221,15 @@ class FallbackCoordinator(
 				return
 			}
 			val ctx = FallbackContext(parentId = root.id, url = root.url, mediaUrl = root.mediaUrl, urlClass = urlClass, referer = root.referer,
-				userAgent = root.userAgent, fileName = root.fileName, failureClass = failureClass, attemptNo = no)
+				userAgent = root.userAgent, fileName = root.fileName, failureClass = failureClass, attemptNo = no,
+				destPath = root.filePath, expectMedia = root.expectMedia)
 			Trace.event { TraceEvent("attempt.start", downloadId = root.id, chain = urlClass.chain, step = step, method = next, failureClass = failureClass) }
 			val runnable = steps.filter { it in methods && config.methodOn(it) }
 			TrailBoard.put(Trail(root.id, urlClass.chain, runnable.indexOf(next) + 1, runnable.size, next, Trail.State.RUNNING))
 			val t0 = clock()
 			val outcome = try {
-				methods.getValue(next).attempt(ctx)
+				val m = methods.getValue(next)
+				if (m.kind == FallbackMethod.Kind.EXECUTOR) config.keepAlive("method $next") { m.attempt(ctx) } else m.attempt(ctx)
 			} catch (e: CancellationException) {
 				ledger.update(root.id, no, AttemptState.FAILED, null, "cancelled", clock())
 				throw e
@@ -269,6 +273,13 @@ class FallbackCoordinator(
 						val dest = root.filePath?.let(::File) ?: File(temp.parentFile, root.fileName ?: temp.name)
 						val final = runCatching { DeliveryVerifier.commit(temp, dest) }.getOrNull()
 						Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = if (final != null) "ok" else "failed", reason = final?.name) }
+						if (final != null) {
+							val listed = try { withContext(hostContext) { host.registerDelivered(root, final, next) } } catch (e: CancellationException) { throw e } catch (e: Exception) { null }
+							if (listed != null) {
+								ledger.update(root.id, no, state, listed, "verify ${r.check.name} ${r.kind.name}: ${r.reason}; saved as ${final.name}", clock())
+								TrailBoard.linkChild(listed, root.id, next)
+							}
+						}
 						if (state == AttemptState.DELIVERED && final != null) return
 					}
 				}

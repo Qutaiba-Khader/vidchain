@@ -9,7 +9,11 @@ import org.websnake.vidchain.fallback.classifier.StatusKey
 import org.websnake.vidchain.fallback.core.Candidate
 import org.websnake.vidchain.fallback.core.FallbackHost
 import org.websnake.vidchain.fallback.core.HostDownload
+import android.media.MediaScannerConnection
+import app.core.engines.downloader.DownloadStatus
 import java.io.File
+import lib.device.DateTimeUtils.millisToDateTimeString
+import lib.files.FileSizeFormatter.humanReadableSizeOf
 import java.net.URI
 import java.util.Locale
 
@@ -44,6 +48,37 @@ object VidChainFallbackHost : FallbackHost {
 		child.additionalWebHeaders = candidate.headers.filterKeys { it !in RESERVED_HEADERS }.ifEmpty { null }
 		AIOApp.downloadSystem.addDownload(child)
 		return child.downloadId.toString()
+	}
+
+	override fun registerDelivered(parent: HostDownload, file: File, method: String): String? {
+		val dir = file.parent ?: return null
+		val p = findModel(parent.id)
+		val now = System.currentTimeMillis()
+		val m = DownloadDataModel()
+		m.fileName = file.name
+		m.fileDirectory = dir
+		m.fileCategoryName = p?.fileCategoryName.orEmpty()
+		m.fileURL = parent.mediaUrl
+		m.siteReferrer = p?.siteReferrer.orEmpty()
+		m.fileMimeType = p?.fileMimeType.orEmpty()
+		m.fileSize = file.length()
+		m.fileSizeInFormat = humanReadableSizeOf(m.fileSize)
+		m.isUnknownFileSize = false
+		m.downloadedByte = m.fileSize
+		m.startTimeDate = now
+		m.startTimeDateInFormat = millisToDateTimeString(now)
+		m.lastModifiedTimeDate = now
+		m.lastModifiedTimeDateInFormat = millisToDateTimeString(now)
+		m.status = DownloadStatus.COMPLETE
+		m.isComplete = true
+		m.isRunning = false
+		m.statusInfo = AIOApp.INSTANCE.getString(R.string.title_completed)
+		m.updateInStorage()
+		val system = AIOApp.downloadSystem
+		system.addAndSortFinishedDownloadDataModels(m)
+		system.downloadsUIManager.finishedTasksFragment?.finishedTasksListAdapter?.notifyDataSetChangedOnSort(false)
+		MediaScannerConnection.scanFile(AIOApp.INSTANCE, arrayOf(file.path), null, null)
+		return m.downloadId.toString()
 	}
 
 	private fun findModel(id: String): DownloadDataModel? {

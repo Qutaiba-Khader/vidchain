@@ -25,11 +25,22 @@ object FallbackRuntime {
 	/** nothing running or waiting: look less often (main-thread read of the lists) */
 	const val IDLE_TICK_MS = 10_000L
 
-	/** P1 test path: the always-failing stub runs first in every chain until real methods exist (removed in P2). */
-	const val INCLUDE_STUB = true
+	/** P1 test path: the always-failing stub ran first in every chain; off since the first real method (T2.1). */
+	const val INCLUDE_STUB = false
+
+	/** shared HTTP client of the fallback methods (never the app's own client) */
+	val http: okhttp3.OkHttpClient by lazy {
+		okhttp3.OkHttpClient.Builder()
+			.connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+			.readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+			.followRedirects(true).followSslRedirects(true)
+			.build()
+	}
 
 	/** registered methods; P2-P5 add theirs here */
-	val methods: MutableList<FallbackMethod> = CopyOnWriteArrayList(listOf<FallbackMethod>(StubAlwaysFailMethod))
+	val methods: MutableList<FallbackMethod> = CopyOnWriteArrayList(listOf<FallbackMethod>(
+		org.websnake.vidchain.fallback.methods.PlainGetMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe)),
+	))
 
 	@Volatile var ledger: AttemptLedger? = null
 		private set
@@ -49,11 +60,13 @@ object FallbackRuntime {
 		val s = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, e ->
 			Trace.event { TraceEvent("runtime.error", reason = "${e.javaClass.simpleName}: ${e.message}") }
 		})
+		val kit = EngineKit(app)
 		val c = FallbackCoordinator(host, l, methods.toList(), s,
-			FallbackCoordinator.Config(INCLUDE_STUB, enabled = { FallbackSettings.enabled(app) }, methodOn = { FallbackSettings.methodOn(app, it) }),
+			FallbackCoordinator.Config(INCLUDE_STUB, enabled = { FallbackSettings.enabled(app) }, methodOn = { FallbackSettings.methodOn(app, it) },
+				keepAlive = { reason, block -> kit.keptAlive(reason) { block() } }),
 			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe))
 		ledger = l; coordinator = c; this.host = host; scope = s
-		engines = EngineKit(app)
+		engines = kit
 		s.launch {
 			runCatching { c.restoreBoard() }
 			delay(TICK_MS)

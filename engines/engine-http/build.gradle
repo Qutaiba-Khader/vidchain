@@ -1,13 +1,12 @@
-// VidChain fallback core (new code; never part of the upstream app). Pure Kotlin logic first:
-// the TerminalClassifier (T1.5), trace logger (T1.6), coordinator + attempt ledger (T1.7), DeliveryVerifier (T1.8),
-// engine kit (T1.9) and the fallback UI (T1.10).
+// VidChain HTTP engine (new code, not upstream): the plain GET fetcher behind method O (T2.1) and the
+// HTTP helpers later methods share (redirect unwrap, file-host resolvers).
 plugins {
 	id 'com.android.library'
 	id 'org.jetbrains.kotlin.android'
 }
 
 android {
-	namespace "org.websnake.vidchain.fallback"
+	namespace "org.websnake.vidchain.http"
 	compileSdk 36
 	defaultConfig {
 		minSdk 28
@@ -30,11 +29,8 @@ kotlin {
 }
 
 dependencies {
-	api project(':engines:engine-process')
-	api project(':engines:engine-http')
-	implementation libs.okhttp
 	implementation libs.kotlin.coroutines.core
 	implementation libs.kotlin.coroutines.android
-	implementation libs.androidx.appcompat
+	implementation libs.okhttp
 	testImplementation "junit:junit:4.13.2"
 }

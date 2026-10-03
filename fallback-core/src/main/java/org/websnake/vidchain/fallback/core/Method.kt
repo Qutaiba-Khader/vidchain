@@ -11,6 +11,8 @@ data class FallbackContext(
 	val fileName: String? = null,
 	val failureClass: String? = null,
 	val attemptNo: Int = 0,
+	val destPath: String? = null,        // the parent's destination file (executors write next to it)
+	val expectMedia: Boolean = true,
 )
 
 /** A resolved media source for the existing downloaders (resolver output) - headers never go into traces. */

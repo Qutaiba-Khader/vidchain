@@ -24,4 +24,7 @@ interface FallbackHost {
 
 	/** Queue [candidate] as a new download next to [parent] through the existing download system. Returns the child's id, or null when it could not be queued. */
 	fun enqueueChild(parent: HostDownload, candidate: Candidate, attemptNo: Int, method: String): String?
+
+	/** A file an executor method produced and the coordinator committed: list it in the app's finished downloads. Returns its id. */
+	fun registerDelivered(parent: HostDownload, file: java.io.File, method: String): String? = null
 }
