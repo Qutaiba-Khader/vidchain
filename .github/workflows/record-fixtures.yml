@@ -1,9 +1,15 @@
 name: Record fixtures
 
 # Records cassettes (real responses of openly licensed pages listed in ci/fixtures/cassettes/sources.json)
-# with sha256, date, tool version and this run's URL. The artifact is reviewed and committed; CI replays it.
+# with sha256, date, tool version and this run's URL. A refresh is proposed as a pull request (T6.1): by default a
+# dry run that only builds the PR (patch + text as an artifact); with open_pr it pushes a branch and opens the PR.
 on:
   workflow_dispatch:
+    inputs:
+      open_pr:
+        description: "push a branch and open the refresh pull request (otherwise dry run)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -12,14 +18,57 @@ jobs:
   record:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
       - name: Record every source
         run: python3 ci/fixtures/record.py ci/fixtures/cassettes
+      - name: Build the refresh pull request
+        id: diff
+        env:
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p pr
+          python3 ci/fixtures/refresh_pr.py ci/fixtures/cassettes pr "$RUN"
+          git add -N ci/fixtures/cassettes
+          git diff --binary -- ci/fixtures/cassettes > pr/refresh.patch
+          if [ -s pr/refresh.patch ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; fi
+          cat pr/pr.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: cassettes
-          path: ci/fixtures/cassettes/
+          name: cassette-refresh-pr
+          path: pr/
           retention-days: 30
+
+  open-pr:
+    needs: record
+    if: inputs.open_pr && needs.record.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: cassette-refresh-pr
+          path: ${{ runner.temp }}/pr
+      - name: Push the branch and open the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_DIR: ${{ runner.temp }}/pr
+        run: |
+          branch="fixtures/refresh-${GITHUB_RUN_ID}"
+          git apply --binary "$PR_DIR/refresh.patch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add ci/fixtures/cassettes
+          git commit -q -F "$PR_DIR/title.txt"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push -q origin "$branch"
+          gh pr create --head "$branch" --title "$(cat "$PR_DIR/title.txt")" --body-file "$PR_DIR/pr.md"

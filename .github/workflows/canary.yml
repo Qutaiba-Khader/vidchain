@@ -1,0 +1,95 @@
+name: canary
+# Weekly dead-man build + live canary + natives reproducibility (T6.1, Q12 = A). Non-blocking: BLOCKED (a site
+# refusing the runner's datacenter IP) is not a failure. Any FAIL opens (or updates) one issue labelled "canary".
+on:
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      seed_failure:
+        description: "add a probe that always fails (tests the issue path)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  deadman:
+    uses: ./.github/workflows/ci.yml
+
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      YTDLP_VERSION: 2026.8.19
+    outputs:
+      fail: ${{ steps.probe.outputs.fail }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: yt-dlp (the version full-test.yml uses, with its JavaScript challenge solver; node is on the runner)
+        run: pipx install "yt-dlp[default]==${YTDLP_VERSION}"
+      - name: Probes
+        id: probe
+        env:
+          SEED: ${{ inputs.seed_failure && '--seed-failure' || '' }}
+        run: python3 tools/canary/canary.py out $SEED
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: canary
+          path: out/
+
+  natives-repro:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    container:
+      image: docker.io/library/golang:1.25-bookworm@sha256:3b4a11519ad929d1e1d261a12cff056f0c85b735253d7d861346b9c6f8b36437
+    outputs:
+      same: ${{ steps.cmp.outputs.same }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Tools
+        run: apt-get update -q && apt-get install -y -q --no-install-recommends unzip python3
+      - name: Android NDK r28c
+        run: bash natives/ndk.sh /opt
+      - name: Rebuild lux
+        run: |
+          commit=$(python3 -c "import json;print(next(n for n in json.load(open('natives.lock'))['natives'] if n['name']=='lux')['source']['commit'])")
+          bash natives/lux/build.sh "$commit" /opt/android-ndk-r28c "$PWD/out/lib"
+      - name: Same bytes as natives.lock?
+        id: cmp
+        run: |
+          if python3 natives/repro.py lux out/lib; then echo "same=true" >> "$GITHUB_OUTPUT"; else echo "same=false" >> "$GITHUB_OUTPUT"; fi
+
+  report:
+    needs: [deadman, live, natives-repro]
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the canary issue on any FAIL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DEADMAN: ${{ needs.deadman.result }}
+          LIVE_FAIL: ${{ needs.live.outputs.fail }}
+          LIVE: ${{ needs.live.result }}
+          SAME: ${{ needs.natives-repro.outputs.same }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          problems=""
+          [ "$DEADMAN" = "success" ] || problems="$problems- dead-man build: $DEADMAN"$'\n'
+          [ "$LIVE" = "success" ] && [ "${LIVE_FAIL:-1}" = "0" ] || problems="$problems- live canary: ${LIVE_FAIL:-?} probe(s) FAIL (job $LIVE)"$'\n'
+          [ "$SAME" = "true" ] || problems="$problems- natives reproducibility: lux rebuild differs from natives.lock (or did not run)"$'\n'
+          if [ -z "$problems" ]; then echo "all PASS or BLOCKED"; exit 0; fi
+          printf '%s' "$problems"
+          gh label create canary --color B60205 --description "weekly canary found a failure" --force >/dev/null
+          body=$(printf 'Canary run %s\n\n%s\nDetails: the run summary and the `canary` artifact.' "$RUN" "$problems")
+          n=$(gh issue list --label canary --state open --json number -q '.[0].number')
+          if [ -n "$n" ]; then gh issue comment "$n" --body "$body"; else gh issue create --title "Canary failure" --label canary --body "$body"; fi
+          exit 1
