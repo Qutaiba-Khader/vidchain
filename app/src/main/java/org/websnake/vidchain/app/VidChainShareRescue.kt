@@ -130,11 +130,17 @@ object VidChainShareRescue {
 			if (!busy.compareAndSet(false, true)) return
 			track(activity)
 			val ref = WeakReference(activity)
-			Toast.makeText(activity.applicationContext, "VidChain: checking this link with yt-dlp…", Toast.LENGTH_SHORT).show()
+			val sharedAt = System.currentTimeMillis()
 			Trace.event { TraceEvent("share.rescue", chain = UrlClass.of(url).chain, method = "Y", result = "start") }
 			scope.launch {
 				try {
 					val found = withContext(Dispatchers.Default) { lookUp(engine, url, cookie) }
+					// the app's own way (its browser offers the file) goes first: wait, and stay away if it started a download
+					kotlinx.coroutines.delay((sharedAt + OWN_PATH_GRACE_MS - System.currentTimeMillis()).coerceAtLeast(0))
+					if (ownDownloadStarted(url, sharedAt)) {
+						Trace.event { TraceEvent("share.rescue", method = "Y", result = "not-needed", reason = "the app started its own download") }
+						return@launch
+					}
 					// a share from another app has closed its screen by now: show the result on the app's screen in front
 					val a = ref.get()?.takeIf { !it.isFinishing && !it.isDestroyed }
 						?: front?.get()?.takeIf { !it.isFinishing && !it.isDestroyed } ?: return@launch
@@ -153,6 +159,17 @@ object VidChainShareRescue {
 			busy.set(false)
 		}
 	}
+
+	/** how long the app's own path (browser sniffing, its picker) has before VidChain offers yt-dlp's formats */
+	private const val OWN_PATH_GRACE_MS = 12_000L
+
+	/** the app has a download for this link (its browser found the file now, or the user downloaded it before) */
+	private fun ownDownloadStarted(url: String, @Suppress("UNUSED_PARAMETER") since: Long): Boolean = runCatching {
+		val s = AIOApp.downloadSystem
+		(ArrayList(s.activeDownloadDataModels) + ArrayList(s.finishedDownloadDataModels)).any { m ->
+			m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url
+		}
+	}.getOrDefault(false)
 
 	private suspend fun lookUp(engine: YtDlpEngine, url: String, cookie: String?): VideoInfo? {
 		val host = runCatching { URI(url).host }.getOrNull()

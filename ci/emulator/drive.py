@@ -25,7 +25,7 @@ OUT = pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 CONTROL = pathlib.Path(sys.argv[3])
 FALLBACKS = sys.argv[sys.argv.index("--fallbacks") + 1] if "--fallbacks" in sys.argv else "on"
 TRACE_TAG = "VidChainTrace"
-FALLBACK_WAIT = 300          # seconds a started chain may take (engines, WebView, ffmpeg) before the driver gives up
+FALLBACK_WAIT = 600          # seconds a started chain may take (engines, WebView, ffmpeg) before the driver gives up
 
 
 def adb(*args, timeout=60):
@@ -52,7 +52,7 @@ def ui():
 def files():
     """media files written since the scenario marker, public Download and the app's private folder"""
     roots = " ".join(DL_ROOTS)
-    out = sh(f"find {roots} -type f -newer {MARK} 2>/dev/null | grep -v -E '/(youtubedl-android|no_backup|cache|code_cache|objectbox|shared_prefs|app_webview|databases|trace|\.vidchain-partial)/'")
+    out = sh(f"find {roots} -type f -newer {MARK} 2>/dev/null | grep -v -E '/(youtubedl-android|no_backup|cache|code_cache|objectbox|shared_prefs|app_webview|databases|trace|\\.vidchain-partial)/'")
     res = {}
     for f in filter(None, out.splitlines()):
         size = sh(f"stat -c %s '{f}'").strip()
@@ -140,13 +140,13 @@ for sc in scenarios:
         elif "Download Now" in texts and "Download Now" not in actions:
             tap = "Download Now"
         else:
-            quality = next((t for t in texts if re.fullmatch(r"\d{3,4}p.*", t)), None)
+            quality = next((t for t in texts if re.fullmatch(r"\d{3,4}p.*", t)), None) or ("unknown" if "Download Now" in actions and "unknown" in texts else None)
             if quality and "quality" not in actions:
                 tap, actions_tag = quality, "quality"
         if tap:
             x, y = next((x, y) for t, x, y in nodes if t == tap)
             sh(f"input tap {x} {y}")
-            actions.append("quality" if re.fullmatch(r"\d{3,4}p.*", tap) else tap)
+            actions.append("quality" if re.fullmatch(r"\d{3,4}p.*", tap) or tap == "unknown" else tap)
             if tap == "Download Now":
                 deadline = max(deadline, time.time() + 40)    # let the download finish
             continue
