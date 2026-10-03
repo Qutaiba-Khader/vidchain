@@ -6,7 +6,8 @@ VidChain (exactly like the YouTube app / Morphe do: ACTION_SEND text/plain), the
 accepts the obvious: tap the app's own "Download Now" or the first quality offered. Record what the
 user saw (texts on screen), which activity ended in front, and which files landed in the download folder.
 With fallbacks on (T6.2), after the current method's phase the driver also waits for VidChain's fallback chain to
-end (trace events "commit result=ok" or "chain.exhausted" in logcat tag VidChainTrace) and records the trace.
+end (trace events "commit result=ok" or "chain.exhausted" in the app's trace file) and records the trace.
+(The trace file, not logcat: a release build's Log.i lines did not reach logcat in the first run, 2026-10-03.)
 usage: drive.py <scenarios.json> <out-dir> <faults-control-file> [--fallbacks on|off]"""
 import hashlib
 import json
@@ -51,7 +52,7 @@ def ui():
 def files():
     """media files written since the scenario marker, public Download and the app's private folder"""
     roots = " ".join(DL_ROOTS)
-    out = sh(f"find {roots} -type f -newer {MARK} 2>/dev/null | grep -v -E '/(youtubedl-android|no_backup|cache|code_cache|objectbox|shared_prefs|app_webview|databases)/'")
+    out = sh(f"find {roots} -type f -newer {MARK} 2>/dev/null | grep -v -E '/(youtubedl-android|no_backup|cache|code_cache|objectbox|shared_prefs|app_webview|databases|trace|\.vidchain-partial)/'")
     res = {}
     for f in filter(None, out.splitlines()):
         size = sh(f"stat -c %s '{f}'").strip()
@@ -77,8 +78,20 @@ def set_fallbacks(on):
     print("fallbacks:", "on" if on else "off", "->", sh(f"cat {d}/vidchain_fallback.xml").strip().replace("\n", " "), flush=True)
 
 
+TRACE_FILE = f"/data/data/{PKG}/files/trace/trace.log"
+trace_from = 0
+
+
+def trace_size():
+    s = sh(f"stat -c %s {TRACE_FILE} 2>/dev/null").strip()
+    return int(s) if s.isdigit() else 0
+
+
 def trace():
-    return [l.split(f"{TRACE_TAG}: ", 1)[1] for l in adb("logcat", "-d", "-v", "brief", "-s", f"{TRACE_TAG}:I").splitlines() if f"{TRACE_TAG}: " in l]
+    """trace events written since this scenario started (as root: the file is in the app's private storage)"""
+    size = trace_size()
+    start = trace_from if size >= trace_from else 0          # the file rotated meanwhile
+    return [l for l in sh(f"tail -c +{start + 1} {TRACE_FILE} 2>/dev/null").splitlines() if " event=" in l]
 
 
 def chain_state(lines):
@@ -103,7 +116,7 @@ for sc in scenarios:
     CONTROL.write_text(json.dumps(sc.get("faults", {})))           # world.py re-reads it on change
     sh(f"am force-stop {PKG}")
     sh(f"touch {MARK}")
-    adb("logcat", "-c")
+    trace_from = trace_size()
     time.sleep(1.1)
     before = {}
     t0 = time.time()
