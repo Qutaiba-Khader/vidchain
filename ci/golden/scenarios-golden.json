@@ -1,0 +1,115 @@
+{
+ "_note": "Golden twin scenarios (T1.3): every fixture shared to the UNCHANGED app, no faults.",
+ "scenarios": [
+  {
+   "id": "direct-mp4",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "wait": 45
+  },
+  {
+   "id": "direct-webm",
+   "url": "https://files.vidchain.test/media/clip.webm",
+   "wait": 45
+  },
+  {
+   "id": "moov-at-end",
+   "url": "https://files.vidchain.test/media/clip-moov-end.mp4",
+   "wait": 45
+  },
+  {
+   "id": "video-only",
+   "url": "https://files.vidchain.test/media/video-only.mp4",
+   "wait": 45
+  },
+  {
+   "id": "audio-only",
+   "url": "https://files.vidchain.test/media/audio-only.m4a",
+   "wait": 45
+  },
+  {
+   "id": "no-head",
+   "url": "https://files.vidchain.test/nohead/clip.mp4",
+   "wait": 45
+  },
+  {
+   "id": "unknown-length",
+   "url": "https://files.vidchain.test/chunked/clip.mp4",
+   "wait": 45
+  },
+  {
+   "id": "extensionless",
+   "url": "https://files.vidchain.test/dl?id=42",
+   "wait": 45
+  },
+  {
+   "id": "redirect-chain",
+   "url": "https://short.vidchain.test/r3",
+   "wait": 45
+  },
+  {
+   "id": "meta-refresh",
+   "url": "https://short.vidchain.test/meta",
+   "wait": 45
+  },
+  {
+   "id": "cookie-gated",
+   "url": "https://members.vidchain.test/video.mp4",
+   "wait": 45
+  },
+  {
+   "id": "referer-gated",
+   "url": "https://cdn.vidchain.test/protected.mp4",
+   "wait": 45
+  },
+  {
+   "id": "drive-interstitial",
+   "url": "https://drive.vidchain.test/uc?id=abc",
+   "wait": 45
+  },
+  {
+   "id": "og-video",
+   "url": "https://www.vidchain.test/watch/og",
+   "wait": 45
+  },
+  {
+   "id": "json-ld",
+   "url": "https://www.vidchain.test/watch/jsonld",
+   "wait": 45
+  },
+  {
+   "id": "html5-video",
+   "url": "https://www.vidchain.test/watch/html5",
+   "wait": 45
+  },
+  {
+   "id": "js-injected",
+   "url": "https://www.vidchain.test/watch/js",
+   "wait": 45
+  },
+  {
+   "id": "hls-plain",
+   "url": "https://hls.vidchain.test/plain/master.m3u8",
+   "wait": 45
+  },
+  {
+   "id": "hls-aes",
+   "url": "https://hls.vidchain.test/aes/index.m3u8",
+   "wait": 45
+  },
+  {
+   "id": "dash-split",
+   "url": "https://dash.vidchain.test/manifest.mpd",
+   "wait": 45
+  },
+  {
+   "id": "trap-html-as-mp4",
+   "url": "https://files.vidchain.test/trap/fake.mp4",
+   "wait": 45
+  },
+  {
+   "id": "trap-truncated",
+   "url": "https://files.vidchain.test/trap/truncated.mp4",
+   "wait": 45
+  }
+ ]
+}

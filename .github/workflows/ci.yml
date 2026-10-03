@@ -202,3 +202,59 @@ jobs:
           name: cross-exam
           path: cross-exam.json
           retention-days: 14
+
+  golden-twin:
+    name: Golden twin + fault matrix (unchanged app in the fixture world)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: apk-ci
+          path: apk
+
+      - name: Enable KVM, generate media, start the fixture world
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null
+          pipx install "mitmproxy==${MITMPROXY_VERSION}"
+          bash ci/fixtures/world/gen_media.sh "$RUNNER_TEMP/media" >/dev/null
+          echo '{}' > "$RUNNER_TEMP/faults.json"
+          FIXTURE_MEDIA="$RUNNER_TEMP/media" FIXTURE_FLOW_LOG="$RUNNER_TEMP/flows.jsonl" FIXTURE_FAULTS_FILE="$RUNNER_TEMP/faults.json" \
+            nohup mitmdump --listen-host 127.0.0.1 -p 8080 -s ci/fixtures/world/world.py --set connection_strategy=lazy > "$RUNNER_TEMP/mitm.log" 2>&1 &
+          for _ in $(seq 1 30); do [ -f ~/.mitmproxy/mitmproxy-ca-cert.pem ] && break; sleep 1; done
+          cp ~/.mitmproxy/mitmproxy-ca-cert.pem "$RUNNER_TEMP/fixture-ca.pem"
+
+      - name: Drive every fixture, then every fault, through the unchanged app
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 33
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -writable-system -http-proxy http://127.0.0.1:8080
+          script: |
+            bash ci/emulator/fixture_env.sh apk/app-x86_64-release.apk ${{ runner.temp }}/fixture-ca.pem
+            python3 ci/emulator/drive.py ci/golden/scenarios-golden.json golden-out ${{ runner.temp }}/faults.json
+            python3 ci/emulator/drive.py ci/golden/scenarios-faults.json faults-out ${{ runner.temp }}/faults.json
+
+      - name: Canonicalise
+        run: |
+          python3 ci/golden/canonicalise.py golden-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" golden-out/golden.json
+          python3 ci/golden/canonicalise.py faults-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" faults-out/fault-matrix.json
+
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: golden-twin
+          path: |
+            golden-out/
+            faults-out/
+          retention-days: 30

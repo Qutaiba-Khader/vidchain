@@ -1,0 +1,91 @@
+{
+ "_note": "Fault matrix scenarios (T1.3): what the UNCHANGED app does under each injected fault. fault@N = from the N-th request of that fixture on (N=2: the browser sniff succeeds, the download fails).",
+ "scenarios": [
+  {
+   "id": "direct-mp4~500@2",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "faults": {
+    "direct-mp4": "500@2"
+   },
+   "wait": 60
+  },
+  {
+   "id": "direct-mp4~404@2",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "faults": {
+    "direct-mp4": "404@2"
+   },
+   "wait": 60
+  },
+  {
+   "id": "direct-mp4~403@2",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "faults": {
+    "direct-mp4": "403@2"
+   },
+   "wait": 60
+  },
+  {
+   "id": "direct-mp4~429@2",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "faults": {
+    "direct-mp4": "429@2"
+   },
+   "wait": 60
+  },
+  {
+   "id": "direct-mp4~reset@2",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "faults": {
+    "direct-mp4": "reset@2"
+   },
+   "wait": 60
+  },
+  {
+   "id": "direct-mp4~hang@2",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "faults": {
+    "direct-mp4": "hang@2"
+   },
+   "wait": 60
+  },
+  {
+   "id": "direct-mp4~html@2",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "faults": {
+    "direct-mp4": "html@2"
+   },
+   "wait": 60
+  },
+  {
+   "id": "direct-mp4~500",
+   "url": "https://files.vidchain.test/media/clip.mp4",
+   "faults": {
+    "direct-mp4": "500"
+   },
+   "wait": 60
+  },
+  {
+   "id": "hls-plain~404@2",
+   "url": "https://hls.vidchain.test/plain/master.m3u8",
+   "faults": {
+    "hls-plain": "404@2"
+   },
+   "wait": 60
+  },
+  {
+   "id": "og-video~500",
+   "url": "https://www.vidchain.test/watch/og",
+   "faults": {
+    "og-video": "500"
+   },
+   "wait": 60
+  },
+  {
+   "id": "listed-vimeo~no-route",
+   "url": "https://vimeo.com/76979871",
+   "faults": {},
+   "wait": 40
+  }
+ ]
+}

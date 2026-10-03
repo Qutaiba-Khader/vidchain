@@ -22,6 +22,21 @@ MEDIA = pathlib.Path(os.environ.get("FIXTURE_MEDIA", HERE / "media"))
 CASSETTES = pathlib.Path(os.environ.get("FIXTURE_CASSETTES", HERE.parent / "cassettes"))
 LOG = os.environ.get("FIXTURE_FLOW_LOG", "flows.jsonl")
 RUN_FAULTS = dict(x.split(":", 1) for x in os.environ.get("FIXTURE_FAULTS", "").split(",") if ":" in x)
+CONTROL = os.environ.get("FIXTURE_FAULTS_FILE")          # JSON {fixture-id: "fault" or "fault@N"}; re-read on change
+_control = {"mtime": None, "faults": {}, "count": {}}
+
+
+def _faults_now():
+    """Run-wide faults merged with the control file. "fault@N" fails only from the N-th request of that
+    fixture on (e.g. 500@2: the browser sniff works, the download then fails)."""
+    if CONTROL and os.path.exists(CONTROL):
+        m = os.path.getmtime(CONTROL)
+        if m != _control["mtime"]:
+            try:
+                _control.update(mtime=m, faults=json.loads(open(CONTROL).read() or "{}"), count={})
+            except ValueError:
+                pass
+    return {**RUN_FAULTS, **_control["faults"]}
 mimetypes.add_type("application/vnd.apple.mpegurl", ".m3u8")
 mimetypes.add_type("application/dash+xml", ".mpd")
 mimetypes.add_type("video/mp2t", ".ts")
@@ -136,8 +151,17 @@ async def request(flow: http.HTTPFlow) -> None:
           "fixture": fx["id"] if fx else None, "ua": h.get("user-agent", ""), "x_requested_with": h.get("x-requested-with", ""),
           "sec_fetch_mode": h.get("sec-fetch-mode", ""), "accept_encoding": h.get("accept-encoding", ""),
           "connection": h.get("connection", ""), "range": h.get("range", ""), "referer": h.get("referer", "")[:120],
-          "cookie": "present" if h.get("cookie") else "", "header_order": list(h.keys())[:12]})
-    fault = urllib.parse.parse_qs(query).get("fault", [None])[0] or (RUN_FAULTS.get(fx["id"]) if fx else None)
+          "cookie": "present" if h.get("cookie") else "", "header_order": list(h.keys())[:12],
+          "fault_spec": _faults_now().get(fx["id"].split("#")[0]) if fx else None})
+    fault = urllib.parse.parse_qs(query).get("fault", [None])[0]
+    if not fault and fx:
+        base_id = fx["id"].split("#")[0]
+        spec = _faults_now().get(base_id)
+        if spec:
+            n = _control["count"][base_id] = _control["count"].get(base_id, 0) + 1
+            name, _, start = spec.partition("@")
+            if n >= int(start or 1):
+                fault = name
     if fault and await _fault(flow, fault):
         return
     if fx is None:
