@@ -155,6 +155,11 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq tshark >/dev/null
+      - name: Hardware acceleration check (evidence for the run log)
+        run: |
+          "$ANDROID_HOME/emulator/emulator" -accel-check || true
+          ls -l /dev/kvm
+
       - name: Start VidChain in an emulator, capturing all traffic (capture stays on the runner)
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
