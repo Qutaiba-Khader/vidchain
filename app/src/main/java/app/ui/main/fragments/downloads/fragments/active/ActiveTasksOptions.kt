@@ -395,6 +395,7 @@ class ActiveTasksOptions(private val motherActivity: MotherActivity?) {
 			val requiresLogin = dataModel.ytdlpProblemMsg.contains("login", true)
 
 			if (!isDownloadProblematic && !requiresLogin) {
+				org.websnake.vidchain.fallback.core.FallbackSeams.userResumed(dataModel.downloadId) // FALLBACK-SEAM:resume
 				downloadSystem.resumeDownload(
 					downloadModel = dataModel,
 					coroutineScope = CoroutineScope(IO),
@@ -478,10 +479,12 @@ class ActiveTasksOptions(private val motherActivity: MotherActivity?) {
 					setOnClickForPositiveButton {
 						this.close()
 						this@ActiveTasksOptions.close()
+						org.websnake.vidchain.fallback.core.FallbackSeams.userPaused(dataModel.downloadId) // FALLBACK-SEAM:pause-confirm
 						downloadSystem.pauseDownload(dataModel)
 					}
 				}?.show()
 			} else {
+				org.websnake.vidchain.fallback.core.FallbackSeams.userPaused(dataModel.downloadId) // FALLBACK-SEAM:pause
 				downloadSystem.pauseDownload(dataModel)
 			}
 		}
@@ -527,6 +530,7 @@ class ActiveTasksOptions(private val motherActivity: MotherActivity?) {
 					this.close()
 					this@ActiveTasksOptions.close()
 					dataModel.let {
+						org.websnake.vidchain.fallback.core.FallbackSeams.userCleared(it.downloadId) // FALLBACK-SEAM:clear
 						downloadSystem.clearDownload(it) {
 							showToast(activityRef, string.title_successfully_cleared)
 						}
@@ -582,6 +586,7 @@ class ActiveTasksOptions(private val motherActivity: MotherActivity?) {
 				this@ActiveTasksOptions.close()
 
 				dataModel.let {
+					org.websnake.vidchain.fallback.core.FallbackSeams.userDeleted(it.downloadId) // FALLBACK-SEAM:delete
 					downloadSystem.deleteDownload(it) {
 						showToast(activityRef, string.title_successfully_deleted)
 					}

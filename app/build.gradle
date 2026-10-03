@@ -257,6 +257,7 @@ dependencies {
 	// Kotlin Coroutines for asynchronous programming
 	implementation libs.kotlin.coroutines.core       // Core coroutine primitives
 	implementation libs.kotlin.coroutines.android    // Android coroutine support and dispatchers
+	implementation project(':fallback-core')   // FALLBACK-SEAM:dep (the VidChain fallback module)
 
 	// Media3 for media playback (ExoPlayer's successor)
 	implementation libs.media3.exoplayer             // Core Media3 ExoPlayer implementation

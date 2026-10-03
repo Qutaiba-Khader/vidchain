@@ -1,7 +1,25 @@
 # FALLBACK-SEAM ledger: the only upstream-origin hunks the fallback system may add.
-# Each seam is one line marked `// FALLBACK-SEAM:<id>` (filled in from task T1.6).
-# Format of the paths block: <modified> <repo-relative path>
-# settings.gradle: one include line for the new :fallback-core module (FALLBACK-SEAM:module, T1.5).
+# Each seam is one added line marked `// FALLBACK-SEAM:<id>`; tools/seam_check.py proves that every `modified`
+# file below differs from upstream/ ONLY by such added lines (no removed or changed upstream line).
+# Format of the paths block: <modified|added> <repo-relative path>
+#
+# Seams (T1.5, T1.7):
+#   settings.gradle            module        include ':fallback-core'
+#   app/build.gradle           dep           implementation project(':fallback-core')   (file declared in BRANDING.md)
+#   AIOApp.kt                  start         FallbackSeams.appStarted(...) right after `INSTANCE = this` in onCreate
+#   AIOApp.kt                  shutdown      FallbackSeams.appShutdown() before downloadSystem.pauseAllDownloads() in onTerminate
+#   ActiveTasksOptions.kt      resume        user intent RESUME before downloadSystem.resumeDownload(...)
+#   ActiveTasksOptions.kt      pause-confirm user intent PAUSE before downloadSystem.pauseDownload (confirm dialog)
+#   ActiveTasksOptions.kt      pause         user intent PAUSE before downloadSystem.pauseDownload
+#   ActiveTasksOptions.kt      clear         user intent CLEAR before downloadSystem.clearDownload
+#   ActiveTasksOptions.kt      delete        user intent DELETE before downloadSystem.deleteDownload
+#   DownloadFileRenamer.kt     rename-pause  intent RENAME_PAUSE before the app pauses a download to rename it
+# The added adapter VidChainFallbackHost.kt (new file inside the upstream source tree) only reads the download
+# lists and adds child downloads through DownloadSystem.addDownload.
 ```paths
 modified settings.gradle
+modified app/src/main/java/app/core/AIOApp.kt
+modified app/src/main/java/app/ui/main/fragments/downloads/fragments/active/ActiveTasksOptions.kt
+modified app/src/main/java/app/ui/main/fragments/downloads/dialogs/DownloadFileRenamer.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainFallbackHost.kt
 ```

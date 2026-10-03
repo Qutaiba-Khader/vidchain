@@ -17,15 +17,21 @@ expect_fail() {  # $1 = label, rest = command that must exit non-zero
   if "$@" >"$work/out.txt" 2>&1; then
     echo "MISSED: $label - the gate passed on a seeded violation"; missed=1
   else
-    echo "caught: $label ($(grep -m1 -E 'FAIL|UNDECLARED|OLD BRAND|forbidden|not pinned|pull_request_target|applicationId|limit' "$work/out.txt" | cut -c1-90))"
+    echo "caught: $label ($(grep -m1 -E 'FAIL|UNDECLARED|OLD BRAND|forbidden|not pinned|pull_request_target|applicationId|limit|SEAM' "$work/out.txt" | cut -c1-90))"
   fi
 }
 
-d=$(fresh drift);   echo "// seeded" >> "$d/app/src/main/java/app/core/AIOApp.kt"
+d=$(fresh drift);   echo "// seeded" >> "$d/app/src/main/java/app/core/engines/downloader/DownloadSystem.kt"
 expect_fail "drift check: undeclared edit of an upstream file" python3 "$d/tools/drift_check.py"
 
 d=$(fresh stray);   echo seeded > "$d/app/src/main/stray.txt"
 expect_fail "drift check: undeclared new file in the app tree" python3 "$d/tools/drift_check.py"
+
+d=$(fresh seamedit); sed -i "s/^\(\s*\)INSTANCE = this$/\1INSTANCE = this; INSTANCE.hashCode()/" "$d/app/src/main/java/app/core/AIOApp.kt"
+expect_fail "seam gate: upstream line changed in a seamed file" python3 "$d/tools/seam_check.py"
+
+d=$(fresh seamstray); echo "// FALLBACK-SEAM:stray" >> "$d/app/src/main/java/app/core/engines/downloader/DownloadSystem.kt"
+expect_fail "seam gate: seam in an undeclared upstream file" python3 "$d/tools/seam_check.py"
 
 d=$(fresh rename);  sed -i 's/applicationId "org.websnake.vidchain"/applicationId "com.aio.video_downloader"/' "$d/app/build.gradle"
 expect_fail "rename audit: old applicationId" python3 "$d/tools/rename_audit.py"

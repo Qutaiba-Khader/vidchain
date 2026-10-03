@@ -451,6 +451,7 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 		logger.d("Application startup sequence initiated")
 		
 		INSTANCE = this
+		org.websnake.vidchain.fallback.core.FallbackSeams.appStarted(this, org.websnake.vidchain.app.VidChainFallbackHost) // FALLBACK-SEAM:start
 		initializeObjectBoxDB(INSTANCE)
 		initializeSupabaseClient()
 		aioBackend.initParseBackend()
@@ -1017,6 +1018,7 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 		
 		executeInBackground(timeOutInMilli = 1500, codeBlock = {
 			logger.d("Shutdown: Pausing downloads")
+			org.websnake.vidchain.fallback.core.FallbackSeams.appShutdown() // FALLBACK-SEAM:shutdown
 			downloadSystem.pauseAllDownloads()
 			downloadSystem.cleanUp()
 			

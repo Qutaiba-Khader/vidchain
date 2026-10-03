@@ -1,5 +1,5 @@
 // VidChain fallback core (new code; never part of the upstream app). Pure Kotlin logic first:
-// the TerminalClassifier (T1.5); the coordinator, ledger and verifier follow in T1.6-T1.8.
+// the TerminalClassifier (T1.5), the trace logger (T1.6), the coordinator + attempt ledger (T1.7); the verifier follows in T1.8.
 plugins {
 	id 'com.android.library'
 	id 'org.jetbrains.kotlin.android'
@@ -29,5 +29,7 @@ kotlin {
 }
 
 dependencies {
+	implementation libs.kotlin.coroutines.core
+	implementation libs.kotlin.coroutines.android
 	testImplementation "junit:junit:4.13.2"
 }

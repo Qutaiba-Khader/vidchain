@@ -189,6 +189,7 @@ class DownloadFileRenamer(
 	) {
 		ThreadsUtility.executeInBackground(codeBlock = {
 			val isRunningTask = downloadDataModel.isRunning
+			org.websnake.vidchain.fallback.core.FallbackSeams.renamePaused(downloadDataModel.downloadId) // FALLBACK-SEAM:rename-pause
 			downloadSystem.pauseDownload(downloadDataModel)
 
 			// Rename physical file

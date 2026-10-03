@@ -36,6 +36,9 @@ jobs:
       - name: Drift check (every change versus upstream/ is declared)
         run: python3 tools/drift_check.py
 
+      - name: Seam gate (upstream files differ only by one-line FALLBACK-SEAM calls)
+        run: python3 tools/seam_check.py
+
       - name: Rename audit (VidChain identity)
         run: python3 tools/rename_audit.py
 
