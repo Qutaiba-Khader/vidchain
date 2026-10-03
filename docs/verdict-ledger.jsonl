@@ -9,3 +9,6 @@
 {"task": "T1.2", "date": "2026-10-03", "new_findings": 3, "fixed": 3, "attempts": 2, "verdict": "clean", "commit": "840e12a"}
 {"task": "T1.3", "date": "2026-10-03", "new_findings": 5, "fixed": 5, "attempts": 3, "verdict": "clean", "commit": "e2960fe"}
 {"task": "T1.4", "date": "2026-10-03", "new_findings": 2, "fixed": 2, "attempts": 2, "verdict": "clean", "commit": "ac226c4"}
+{"task": "T1.5", "date": "2026-10-03", "new_findings": 1, "fixed": 1, "attempts": 2, "verdict": "clean", "commit": "46b94b5", "note": "exhaustive classifier test asserted a wrong combination count; now the exact 82,944"}
+{"task": "T1.6", "date": "2026-10-03", "new_findings": 1, "fixed": 1, "attempts": 2, "verdict": "clean", "commit": "31e9084", "note": "Redactor over-redacted plain words; cookie/auth patterns tightened"}
+{"task": "T1.7", "date": "2026-10-03", "new_findings": 5, "fixed": 4, "attempts": 2, "verdict": "clean", "commit": "b48b634", "carried_to": "T1.10", "note": "fixed: per-tick DB reads (in-memory caches), fixed 2 s main-thread tick (10 s when idle), finished chain jobs kept forever, resume failing before it is seen running; carried by plan: fallback activity is visible only in the trace until the T1.10 UI"}
