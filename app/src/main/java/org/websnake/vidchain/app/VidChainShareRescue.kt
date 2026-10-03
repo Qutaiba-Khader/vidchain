@@ -131,13 +131,14 @@ object VidChainShareRescue {
 			track(activity)
 			val ref = WeakReference(activity)
 			val sharedAt = System.currentTimeMillis()
+			val known = downloadIds()
 			Trace.event { TraceEvent("share.rescue", chain = UrlClass.of(url).chain, method = "Y", result = "start") }
 			scope.launch {
 				try {
 					val found = withContext(Dispatchers.Default) { lookUp(engine, url, cookie) }
 					// the app's own way (its browser offers the file) goes first: wait, and stay away if it started a download
 					kotlinx.coroutines.delay((sharedAt + OWN_PATH_GRACE_MS - System.currentTimeMillis()).coerceAtLeast(0))
-					if (ownDownloadStarted(url, sharedAt)) {
+					if (ownDownloadStarted(url, known)) {
 						Trace.event { TraceEvent("share.rescue", method = "Y", result = "not-needed", reason = "the app started its own download") }
 						return@launch
 					}
@@ -163,12 +164,16 @@ object VidChainShareRescue {
 	/** how long the app's own path (browser sniffing, its picker) has before VidChain offers yt-dlp's formats */
 	private const val OWN_PATH_GRACE_MS = 12_000L
 
-	/** the app has a download for this link (its browser found the file now, or the user downloaded it before) */
-	private fun ownDownloadStarted(url: String, @Suppress("UNUSED_PARAMETER") since: Long): Boolean = runCatching {
-		val s = AIOApp.downloadSystem
-		(ArrayList(s.activeDownloadDataModels) + ArrayList(s.finishedDownloadDataModels)).any { m ->
-			m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url
-		}
+	private fun models() = AIOApp.downloadSystem.let { s -> ArrayList(s.activeDownloadDataModels) + ArrayList(s.finishedDownloadDataModels) }
+
+	private fun downloadIds(): Set<Int> = runCatching { models().map { it.downloadId }.toSet() }.getOrDefault(emptySet())
+
+	/**
+	 * the app's own path worked: a download appeared since the share (its browser found the file, also after a
+	 * redirect, when the file's URL is not the shared one), or the app already has one for this link
+	 */
+	private fun ownDownloadStarted(url: String, before: Set<Int>): Boolean = runCatching {
+		models().any { m -> m.downloadId !in before || m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url }
 	}.getOrDefault(false)
 
 	private suspend fun lookUp(engine: YtDlpEngine, url: String, cookie: String?): VideoInfo? {
