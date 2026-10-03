@@ -94,3 +94,4 @@ include ':app'
 include ':fallback-core'   // FALLBACK-SEAM:module VidChain fallback core (new code)
 include ':engines:engine-process'   // FALLBACK-SEAM:module-engine VidChain engine runtime (new code, T1.9)
 include ':engines:engine-http'   // FALLBACK-SEAM:module-http VidChain HTTP engine (new code, T2.1)
+include ':engines:engine-ytdlp'   // FALLBACK-SEAM:module-ytdlp VidChain yt-dlp engine (new code, T2.4)

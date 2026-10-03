@@ -122,6 +122,8 @@ object VidChainFallbackHost : FallbackHost {
 			expectedBytes = m.fileSize.takeIf { !m.isUnknownFileSize && it > 0 },
 			expectedDurationMs = m.videoInfo?.videoDuration?.takeIf { viaExtractor && it > 0 },
 			expectMedia = viaExtractor || isMediaName(m.fileName, m.fileMimeType),
+			preferredHeight = m.videoFormat?.formatResolution?.let(::heightOf),
+			audioOnly = m.videoFormat?.let { it.formatVcodec == "none" || it.formatResolution.contains("audio", ignoreCase = true) } ?: false,
 			snapshot = DownloadSnapshot(
 				engine = if (viaExtractor) Engine.M3U8 else Engine.REGULAR,
 				status = m.status,
@@ -182,6 +184,12 @@ object VidChainFallbackHost : FallbackHost {
 		cached = locale to keys
 		return keys
 	}
+
+	/** "1280x720" / "720p" / "720" -> 720 */
+	private fun heightOf(resolution: String): Int? =
+		Regex("(\\d{3,4})p\\b").find(resolution)?.groupValues?.get(1)?.toIntOrNull()
+			?: Regex("\\d+x(\\d+)").find(resolution)?.groupValues?.get(1)?.toIntOrNull()
+			?: resolution.trim().toIntOrNull()
 
 	/** audio / video by MIME type or extension; a name that says nothing counts as media (the app is a video downloader) */
 	private fun isMediaName(name: String, mime: String): Boolean {

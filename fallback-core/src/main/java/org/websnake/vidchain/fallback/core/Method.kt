@@ -13,6 +13,8 @@ data class FallbackContext(
 	val attemptNo: Int = 0,
 	val destPath: String? = null,        // the parent's destination file (executors write next to it)
 	val expectMedia: Boolean = true,
+	val preferredHeight: Int? = null,      // the resolution the user picked for the current method (yt-dlp format choice)
+	val audioOnly: Boolean = false,
 )
 
 /** A resolved media source for the existing downloaders (resolver output) - headers never go into traces. */
@@ -31,7 +33,8 @@ sealed class MethodOutcome {
 	 * commits it next to the parent's destination on PASS / UNSURE (never overwriting) and deletes it on FAIL.
 	 */
 	data class Delivered(val path: String) : MethodOutcome()
-	data class Failed(val reason: String) : MethodOutcome()
+	/** [retryable]: the system stopped the method (OS kill), not the method failing: the coordinator runs it once more */
+	data class Failed(val reason: String, val retryable: Boolean = false) : MethodOutcome()
 	/** the download really lives at [url] (redirect, short link, wrapper): the chain continues there, in that URL's class */
 	data class Redirected(val url: String, val note: String = "") : MethodOutcome()
 	data class Unsupported(val reason: String) : MethodOutcome()

@@ -37,10 +37,21 @@ object FallbackRuntime {
 			.build()
 	}
 
+	/** yt-dlp engine on the shared engine kit (null until the runtime started) */
+	val ytdlp: org.websnake.vidchain.ytdlp.YtDlpEngine? get() = engines?.let { org.websnake.vidchain.ytdlp.YtDlpEngine(it.runner, it.layout) }
+
+	private val ytdlpMethod = org.websnake.vidchain.fallback.methods.YtDlpMethod({ ytdlp }, { engines?.layout?.cacheDir?.let { java.io.File(it, "vidchain-cookies") } },
+		bench = object : org.websnake.vidchain.fallback.methods.YtDlpMethod.Bench {
+			override fun benched(method: String) = engines?.let { it.bench(it.layout.ytdlp).benched(method) } ?: false
+			override fun record(method: String, outcome: org.websnake.vidchain.engine.EngineOutcome?) { engines?.let { it.bench(it.layout.ytdlp).record(method, outcome) } }
+		})
+
 	/** registered methods; P2-P5 add theirs here */
 	val methods: MutableList<FallbackMethod> = CopyOnWriteArrayList(listOf<FallbackMethod>(
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
-		org.websnake.vidchain.fallback.methods.SessionMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe), ::sessionFor),
+		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.SessionMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe), ::sessionFor,
+			withExtractor = { ctx, session -> ytdlpMethod.run(ctx, session) }),
 		org.websnake.vidchain.fallback.methods.PlainGetMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe)),
 	))
 

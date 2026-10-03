@@ -25,6 +25,14 @@ class EngineKit(context: Context) {
 		EngineHost.log = { msg -> Trace.event { TraceEvent("engine.host", reason = msg) } }
 	}
 
+	/** crash bench for one engine binary: per (method, binary version, ABI) */
+	fun bench(binary: java.io.File) = object : org.websnake.vidchain.fallback.methods.YtDlpMethod.Bench {
+		override fun benched(method: String) = quarantine.isQuarantined(method, layout.engineHash(binary), abi)
+		override fun record(method: String, outcome: org.websnake.vidchain.engine.EngineOutcome?) {
+			outcome?.let { quarantine.record(method, layout.engineHash(binary), abi, it) }
+		}
+	}
+
 	/** keep the process alive while [block] runs an engine */
 	suspend fun <T> keptAlive(reason: String, block: suspend () -> T): T = EngineHost.acquire(app, reason).use { block() }
 

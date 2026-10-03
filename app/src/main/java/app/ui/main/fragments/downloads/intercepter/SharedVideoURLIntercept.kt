@@ -105,6 +105,7 @@ class SharedVideoURLIntercept(
 			// Validate the provided URL before proceeding
 			if (!isValidURL(targetUrl)) {
 				logger.d("Invalid URL provided: $targetUrl")
+				org.websnake.vidchain.app.VidChainShareRescue.extractUrl(targetUrl)?.let { interceptIntentURI(it, shouldOpenBrowserAsFallback); return } // FALLBACK-SEAM:share-text
 				return
 			}
 			
@@ -219,6 +220,7 @@ class SharedVideoURLIntercept(
 							msgId = R.string.title_unsupported_video_link
 						)
 						openInBuiltInBrowser(targetVideoUrl)
+						org.websnake.vidchain.app.VidChainShareRescue.rescue(safeBaseActivityRef, targetVideoUrl, userGivenVideoInfo?.videoCookie) // FALLBACK-SEAM:share-rejected
 					}
 					return@executeInBackground
 				}
@@ -304,6 +306,7 @@ class SharedVideoURLIntercept(
 					// Handle empty formats (no downloadable content)
 					if (videoInfo.videoFormats.isEmpty()) {
 						logger.d("No downloadable video formats found for: $videoUrl")
+						org.websnake.vidchain.app.VidChainShareRescue.rescue(safeBaseActivityRef, videoUrl, videoCookie) // FALLBACK-SEAM:share-empty
 						if (shouldOpenBrowserAsFallback) {
 							openInBuiltInBrowser(targetUrl = videoUrl)
 						} else {

@@ -16,6 +16,8 @@ data class HostDownload(
 	val expectedBytes: Long? = null,       // size the server announced, null when unknown
 	val expectedDurationMs: Long? = null,  // from the extractor's metadata, null when unknown
 	val expectMedia: Boolean = true,       // false for downloads that are not audio / video (zip, apk, pdf, ...)
+	val preferredHeight: Int? = null,      // height of the format the user picked, when known
+	val audioOnly: Boolean = false,
 )
 
 /** The app side (VidChainFallbackHost): reads the upstream download lists and queues child downloads. Calls run on the coordinator's host context (main thread in the app). */

@@ -223,14 +223,19 @@ class FallbackCoordinator(
 			}
 			val ctx = FallbackContext(parentId = root.id, url = root.url, mediaUrl = root.mediaUrl, urlClass = urlClass, referer = root.referer,
 				userAgent = root.userAgent, fileName = root.fileName, failureClass = failureClass, attemptNo = no,
-				destPath = root.filePath, expectMedia = root.expectMedia)
+				destPath = root.filePath, expectMedia = root.expectMedia, preferredHeight = root.preferredHeight, audioOnly = root.audioOnly)
 			Trace.event { TraceEvent("attempt.start", downloadId = root.id, chain = urlClass.chain, step = step, method = next, failureClass = failureClass) }
 			val runnable = steps.filter { it in methods && config.methodOn(it) }
 			TrailBoard.put(Trail(root.id, urlClass.chain, runnable.indexOf(next) + 1, runnable.size, next, Trail.State.RUNNING))
 			val t0 = clock()
 			val outcome = try {
 				val m = methods.getValue(next)
-				if (m.kind == FallbackMethod.Kind.EXECUTOR) config.keepAlive("method $next") { m.attempt(ctx) } else m.attempt(ctx)
+				suspend fun once() = if (m.kind == FallbackMethod.Kind.EXECUTOR) config.keepAlive("method $next") { m.attempt(ctx) } else m.attempt(ctx)
+				val first = once()
+				if (first is MethodOutcome.Failed && first.retryable) {
+					Trace.event { TraceEvent("attempt.retry", downloadId = root.id, chain = urlClass.chain, step = step, method = next, reason = first.reason) }
+					once()
+				} else first
 			} catch (e: CancellationException) {
 				ledger.update(root.id, no, AttemptState.FAILED, null, "cancelled", clock())
 				throw e
@@ -271,7 +276,7 @@ class FallbackCoordinator(
 					if (state == AttemptState.FAILED) {
 						temp.delete()
 					} else {
-						val dest = root.filePath?.let(::File) ?: File(temp.parentFile, root.fileName ?: temp.name)
+						val dest = deliveredName(root.filePath?.let(::File) ?: File(temp.parentFile, root.fileName ?: temp.name), temp)
 						val final = runCatching { DeliveryVerifier.commit(temp, dest) }.getOrNull()
 						Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = if (final != null) "ok" else "failed", reason = final?.name) }
 						if (final != null) {
@@ -343,6 +348,13 @@ class FallbackCoordinator(
 		Manual.STARTED
 	}
 
+	/** keep the delivered file's real container extension (yt-dlp may produce .webm where the current method planned .mp4) */
+	private fun deliveredName(dest: File, temp: File): File {
+		val ext = temp.extension.lowercase()
+		if (ext.isEmpty() || ext in TEMP_EXT || dest.name.endsWith(".$ext", ignoreCase = true)) return dest
+		return File(dest.parentFile, dest.nameWithoutExtension.ifEmpty { dest.name } + "." + ext)
+	}
+
 	/** the download as the chain sees it: after a redirect unwrap, the unwrapped URL is both its source and its media URL */
 	private fun withEffectiveUrl(d: HostDownload): HostDownload = ledger.effectiveUrl(d.id)?.let { d.copy(url = it, mediaUrl = it) } ?: d
 
@@ -358,5 +370,6 @@ class FallbackCoordinator(
 	private companion object {
 		val REMOVAL = setOf(UserIntent.CANCEL, UserIntent.CLEAR, UserIntent.DELETE)
 		val RESTART = setOf(UserIntent.START, UserIntent.RESUME)
+		val TEMP_EXT = setOf("part", "tmp", "meta", "ytdl")
 	}
 }

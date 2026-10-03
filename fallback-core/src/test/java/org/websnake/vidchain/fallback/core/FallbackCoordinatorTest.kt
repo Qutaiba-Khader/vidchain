@@ -3,6 +3,7 @@ package org.websnake.vidchain.fallback.core
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.websnake.vidchain.fallback.classifier.DownloadSnapshot
@@ -321,6 +322,28 @@ class FallbackCoordinatorTest {
 		assertEquals(UrlClass.YOUTUBE, seen.single().urlClass)
 		assertEquals("https://youtu.be/abc", w.ledger.effectiveUrl("1"))
 		assertEquals(1, r.calls.get())
+	}
+
+	@Test fun deliveredFileKeepsItsRealContainerExtension() = runBlocking {
+		val dir = java.nio.file.Files.createTempDirectory("ext").toFile()
+		val webm = File(dir, ".vidchain-partial/1-Y.webm").apply { parentFile!!.mkdirs(); writeBytes(byteArrayOf(0x1A, 0x45, 0xDF.toByte(), 0xA3.toByte()) + ByteArray(4000)) }
+		val y = Counting("Y") { MethodOutcome.Delivered(webm.path) }
+		val w = World(this, listOf(y), stub = false)
+		w.host.set("1", running(), url = "https://site.example/page", path = File(dir, "clip.mp4").path); w.tick()
+		w.host.set("1", failed()); w.tick()
+		assertEquals(AttemptState.DELIVERED, w.ledger.attempts("1").single().state)
+		assertTrue(File(dir, "clip.webm").isFile)
+		assertFalse(File(dir, "clip.mp4").exists())
+	}
+
+	@Test fun anOsKillIsRetriedOnceInsideTheSameAttempt() = runBlocking {
+		val n = java.util.concurrent.atomic.AtomicInteger()
+		val y = Counting("Y") { if (n.incrementAndGet() == 1) MethodOutcome.Failed("stopped by the system", retryable = true) else MethodOutcome.Failed("real") }
+		val w = World(this, listOf(y), stub = false)
+		w.host.set("1", running(), url = "https://site.example/page"); w.tick()
+		w.host.set("1", failed()); w.tick()
+		assertEquals(2, y.calls.get())
+		assertEquals("real", w.ledger.attempts("1").single().reason)
 	}
 
 	@Test fun claimIsAtomicUnderConcurrency() {

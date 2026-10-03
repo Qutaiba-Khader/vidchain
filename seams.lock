@@ -3,10 +3,11 @@
 # file below differs from upstream/ ONLY by such added lines (no removed or changed upstream line).
 # Format of the paths block: <modified|added> <repo-relative path>
 #
-# Seams (T1.5, T1.7, T1.9, T1.10, T2.1):
+# Seams (T1.5, T1.7, T1.9, T1.10, T2.1, T2.4):
 #   settings.gradle            module        include ':fallback-core'
 #   settings.gradle            module-engine include ':engines:engine-process' (T1.9)
 #   settings.gradle            module-http   include ':engines:engine-http' (T2.1)
+#   settings.gradle            module-ytdlp  include ':engines:engine-ytdlp' (T2.4)
 #   app/build.gradle           dep           implementation project(':fallback-core')   (file declared in BRANDING.md)
 #   AIOApp.kt                  start         FallbackSeams.appStarted(...) right after `INSTANCE = this` in onCreate
 #   AIOApp.kt                  shutdown      FallbackSeams.appShutdown() before downloadSystem.pauseAllDownloads() in onTerminate
@@ -19,6 +20,9 @@
 #   DownloadUIManager.kt       row           fallback trail line on a download card, after the row is updated
 #   ActiveTasksOptions.kt      options       "Try another method" + "Methods tried" in the options dialog
 #   SettingsFragment.kt        settings      the "VidChain fallbacks" row, cloned after the advanced-downloads row
+#   SharedVideoURLIntercept.kt share-text    a shared text that is not a link: re-enter with the first link in it
+#   SharedVideoURLIntercept.kt share-rejected link not on the app's list: VidChain asks yt-dlp (picker if found)
+#   SharedVideoURLIntercept.kt share-empty   the app's analysis found no formats: the same yt-dlp rescue
 # The added adapter VidChainFallbackHost.kt (new file inside the upstream source tree) only reads the download
 # lists and adds child downloads through DownloadSystem.addDownload.
 ```paths
@@ -28,5 +32,7 @@ modified app/src/main/java/app/ui/main/fragments/downloads/fragments/active/Acti
 modified app/src/main/java/app/ui/main/fragments/downloads/dialogs/DownloadFileRenamer.kt
 modified app/src/main/java/app/core/engines/downloader/DownloadUIManager.kt
 modified app/src/main/java/app/ui/main/fragments/settings/SettingsFragment.kt
+modified app/src/main/java/app/ui/main/fragments/downloads/intercepter/SharedVideoURLIntercept.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainFallbackHost.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainShareRescue.kt
 ```
