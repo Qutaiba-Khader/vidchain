@@ -69,6 +69,8 @@ object FallbackRuntime {
 		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.NewPipeMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
+			{ url -> org.websnake.vidchain.fallback.methods.NewPipeMethod.newPipeSource(url) }, { ffmpeg }),
 		org.websnake.vidchain.fallback.methods.FfmpegMethod({ ffmpeg }, ::ffmpegCaps),
 		org.websnake.vidchain.fallback.methods.WebCatcherMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
 			{ url, ua -> appContext?.let { org.websnake.vidchain.web.catcher.WebViewCatcher(it).catch(url, ua) } }, stream = { ctx, _ -> ytdlpMethod.run(ctx, null) }),

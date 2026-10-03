@@ -39,6 +39,7 @@ dependencies {
 	implementation libs.kotlin.coroutines.core
 	implementation libs.kotlin.coroutines.android
 	implementation libs.androidx.appcompat
+	implementation libs.newpipe.extractor   // method P reads the streams of the NewPipe instance the app already set up
 	testImplementation "junit:junit:4.13.2"
 	testImplementation "org.json:json:20250517"   // real org.json in JVM tests (android.jar only has stubs)
 }
