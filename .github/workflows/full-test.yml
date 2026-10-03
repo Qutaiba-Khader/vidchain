@@ -1,0 +1,149 @@
+name: Full test (manual)
+
+# The long emulator suites (owner decision, INBOX #3): run once on the finished app, by hand, never per push.
+#   fixture-cross-exam  every fixture's expected outcome confirmed by desktop reference tools
+#   golden-twin         the app driven through every fixture and fault in the CI emulator, compared later with ci/golden
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-test
+  cancel-in-progress: false
+
+env:
+  MITMPROXY_VERSION: 12.2.3
+  YTDLP_VERSION: 2026.8.19
+
+jobs:
+  build:
+    name: Build the APK under test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: true
+      - name: Build release APKs (throwaway key)
+        run: |
+          mkdir -p ~/.gradle && echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8' >> ~/.gradle/gradle.properties
+          keytool -genkeypair -keystore "$RUNNER_TEMP/ci.jks" -storetype PKCS12 -storepass ci-only -keypass ci-only \
+            -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=VidChain CI throwaway" >/dev/null 2>&1
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/ci.jks" \
+            -Pandroid.injected.signing.store.password=ci-only \
+            -Pandroid.injected.signing.key.alias=ci \
+            -Pandroid.injected.signing.key.password=ci-only
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: apk-ci
+          path: |
+            app/build/outputs/apk/release/app-x86_64-release.apk
+            app/build/outputs/apk/release/app-arm64-v8a-release.apk
+          retention-days: 7
+          if-no-files-found: error
+
+  fixture-cross-exam:
+    name: Fixture world cross-examination (curl, ffprobe, yt-dlp, node)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Reference tools
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null
+          pipx install "mitmproxy==${MITMPROXY_VERSION}"
+          pipx install "yt-dlp==${YTDLP_VERSION}"
+
+      - name: Generate media, start the fixture world
+        run: |
+          bash ci/fixtures/world/gen_media.sh "$RUNNER_TEMP/media" >/dev/null
+          FIXTURE_MEDIA="$RUNNER_TEMP/media" FIXTURE_FLOW_LOG="$RUNNER_TEMP/flows.jsonl" nohup mitmdump --listen-host 127.0.0.1 -p 8080 \
+            -s ci/fixtures/world/world.py --set connection_strategy=lazy > "$RUNNER_TEMP/mitm.log" 2>&1 &
+          for _ in $(seq 1 30); do [ -f ~/.mitmproxy/mitmproxy-ca-cert.pem ] && break; sleep 1; done
+
+      - name: Every fixture's expected outcome, confirmed by tools the app does not share
+        run: python3 ci/fixtures/world/cross_exam.py ~/.mitmproxy/mitmproxy-ca-cert.pem cross-exam.json
+
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: cross-exam
+          path: cross-exam.json
+          retention-days: 14
+
+  golden-twin:
+    name: Golden twin + fault matrix (unchanged app in the fixture world)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: apk-ci
+          path: apk
+
+      - name: Enable KVM, generate media, start the fixture world
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null
+          pipx install "mitmproxy==${MITMPROXY_VERSION}"
+          bash ci/fixtures/world/gen_media.sh "$RUNNER_TEMP/media" >/dev/null
+          echo '{}' > "$RUNNER_TEMP/faults.json"
+          FIXTURE_MEDIA="$RUNNER_TEMP/media" FIXTURE_FLOW_LOG="$RUNNER_TEMP/flows.jsonl" FIXTURE_FAULTS_FILE="$RUNNER_TEMP/faults.json" \
+            nohup mitmdump --listen-host 127.0.0.1 -p 8080 -s ci/fixtures/world/world.py --set connection_strategy=lazy > "$RUNNER_TEMP/mitm.log" 2>&1 &
+          for _ in $(seq 1 30); do [ -f ~/.mitmproxy/mitmproxy-ca-cert.pem ] && break; sleep 1; done
+          cp ~/.mitmproxy/mitmproxy-ca-cert.pem "$RUNNER_TEMP/fixture-ca.pem"
+
+      - name: Drive every fixture, then every fault, through the unchanged app
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 33
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -writable-system -http-proxy http://127.0.0.1:8080
+          script: |
+            bash ci/emulator/fixture_env.sh apk/app-x86_64-release.apk ${{ runner.temp }}/fixture-ca.pem
+            python3 ci/emulator/drive.py ci/golden/scenarios-golden.json golden-out ${{ runner.temp }}/faults.json
+            python3 ci/emulator/drive.py ci/golden/scenarios-golden.json golden-out2 ${{ runner.temp }}/faults.json
+            python3 ci/emulator/drive.py ci/golden/scenarios-faults.json faults-out ${{ runner.temp }}/faults.json
+
+      - name: Canonicalise
+        run: |
+          python3 ci/golden/canonicalise.py golden-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" golden-out/pass1.json
+          python3 ci/golden/canonicalise.py golden-out2/outcomes.json "$RUNNER_TEMP/flows.jsonl" golden-out/pass2.json
+          python3 ci/golden/stability.py golden-out/pass1.json golden-out/pass2.json golden-out/golden.json
+          python3 ci/golden/canonicalise.py faults-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" faults-out/fault-matrix.json
+          cp "$RUNNER_TEMP/flows.jsonl" golden-out/flows.jsonl
+
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: golden-twin
+          path: |
+            golden-out/
+            golden-out2/outcomes.json
+            faults-out/
+          retention-days: 30
