@@ -135,6 +135,7 @@ jobs:
             python3 ci/emulator/drive.py ci/golden/scenarios-golden.json off-out2 ${{ runner.temp }}/faults.json --fallbacks off
             python3 ci/emulator/drive.py ci/golden/scenarios-golden.json on-out ${{ runner.temp }}/faults.json --fallbacks on --picker quality-first
             python3 ci/emulator/drive.py ci/golden/scenarios-faults.json faults-out ${{ runner.temp }}/faults.json --fallbacks on --picker quality-first
+            python3 ci/emulator/drive.py ci/golden/scenarios-faults.json faults-off-out ${{ runner.temp }}/faults.json --fallbacks off
 
       - name: Canonicalise
         run: |
@@ -142,12 +143,13 @@ jobs:
           python3 ci/golden/canonicalise.py off-out2/outcomes.json "$RUNNER_TEMP/flows.jsonl" off-out/off2.json
           python3 ci/golden/canonicalise.py on-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" on-out/on.json
           python3 ci/golden/canonicalise.py faults-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" faults-out/faults.json
+          python3 ci/golden/canonicalise.py faults-off-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" faults-out/faults-off.json
           cp "$RUNNER_TEMP/flows.jsonl" on-out/flows.jsonl
 
       - name: Judge against the committed golden and fallback-expect.json
         run: |
           python3 ci/golden/full_compare.py ci/golden/golden.json ci/golden/fault-matrix.json ci/golden/fallback-expect.json \
-            off-out/off.json on-out/on.json on-out/outcomes.json faults-out/faults.json faults-out/outcomes.json full-test-report.md off-out/off2.json
+            off-out/off.json on-out/on.json on-out/outcomes.json faults-out/faults.json faults-out/outcomes.json full-test-report.md off-out/off2.json faults-out/faults-off.json
           cat full-test-report.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
@@ -157,6 +159,7 @@ jobs:
           path: |
             off-out/
             off-out2/outcomes.json
+            faults-off-out/outcomes.json
             on-out/
             faults-out/
             full-test-report.md

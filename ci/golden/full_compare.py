@@ -6,7 +6,7 @@
      chain must end as fallback-expect.json says ("untouched" also keeps the golden's files byte-identical).
   3. fallbacks ON (fault scenarios): the current method's own files match the committed fault matrix; chains as expected.
 usage: full_compare.py <golden.json> <fault-matrix.json> <expect.json> <off.json> <on.json> <on-outcomes.json>
-                       <faults.json> <faults-outcomes.json> <report.md> [<off2.json>]
+                       <faults.json> <faults-outcomes.json> <report.md> [<off2.json> [<faults-off.json>]]
 The OFF pass runs twice: the unchanged app itself varies between runs (browser timing), so a scenario passes when
 either OFF pass is identical to the golden (the golden proved stability only within its own run)."""
 import json
@@ -15,6 +15,8 @@ import sys
 golden, fmatrix, expect = (json.load(open(p)) for p in sys.argv[1:4])
 off, on, faults = (json.load(open(p)) for p in (sys.argv[4], sys.argv[5], sys.argv[7]))
 off2 = json.load(open(sys.argv[10])) if len(sys.argv) > 10 else {}
+# the same fault scenarios with fallbacks OFF in the same run: the original app's own crashes vary with timing
+faults_off = json.load(open(sys.argv[11])) if len(sys.argv) > 11 else {}
 on_raw = {s["id"]: s for s in json.load(open(sys.argv[6]))["scenarios"]}
 f_raw = {s["id"]: s for s in json.load(open(sys.argv[8]))["scenarios"]}
 rows, bad = [], []
@@ -107,8 +109,10 @@ for sid, want in sorted(expect["faults"].items()):
     added = [f for f in files(o) if f[1] > 0 and f not in files(fm)]
     if added:
         probs.append(f"VidChain saved {added} although the fault persists")
-    if o["outcome"]["crash_logs"] > fm["outcome"]["crash_logs"]:
-        probs.append(f"{o['outcome']['crash_logs']} crash log(s), fault matrix {fm['outcome']['crash_logs']}: " + crash(raw))
+    base_crashes = max(fm["outcome"]["crash_logs"], faults_off.get(sid, {}).get("outcome", {}).get("crash_logs", 0))
+    if o["outcome"]["crash_logs"] > base_crashes:
+        probs.append(f"{o['outcome']['crash_logs']} crash log(s), unchanged app {base_crashes} (fault matrix {fm['outcome']['crash_logs']}, "
+                     f"fallbacks off this run {faults_off.get(sid, {}).get('outcome', {}).get('crash_logs', '-')}): " + crash(raw))
     ok, got, tried = judge(raw, o, fm, want)
     if not ok:
         probs.append(f"chain {got}, expected {want}")
