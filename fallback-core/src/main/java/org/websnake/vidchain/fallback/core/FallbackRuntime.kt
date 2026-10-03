@@ -53,6 +53,8 @@ object FallbackRuntime {
 		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.PageScrapeMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
+			{ ua -> org.websnake.vidchain.hosts.FileHosts.fetcher(http, ua) }, stream = { ctx, _ -> ytdlpMethod.run(ctx, null) }),
 		org.websnake.vidchain.fallback.methods.FileHostMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
 			{ url, ua -> org.websnake.vidchain.hosts.FileHosts.resolve(url, org.websnake.vidchain.hosts.FileHosts.fetcher(http, ua)) }),
 		org.websnake.vidchain.fallback.methods.SessionMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe), ::sessionFor,

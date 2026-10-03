@@ -1,0 +1,39 @@
+// VidChain web engines (new code, not upstream): page scraping for method H (T3.2) and the hidden WebView
+// catcher for method W (T3.3).
+plugins {
+	id 'com.android.library'
+	id 'org.jetbrains.kotlin.android'
+}
+
+android {
+	namespace "org.websnake.vidchain.web"
+	compileSdk 36
+	defaultConfig {
+		minSdk 28
+	}
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_17
+		targetCompatibility JavaVersion.VERSION_17
+	}
+	testOptions {
+		unitTests.returnDefaultValues = true
+	}
+	lint {
+		abortOnError true
+		disable "NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion"
+	}
+}
+
+kotlin {
+	jvmToolchain(17)
+}
+
+dependencies {
+	implementation libs.kotlin.coroutines.core
+	implementation libs.kotlin.coroutines.android
+	implementation libs.okhttp
+	api project(':engines:engine-hosts')
+	implementation libs.jsoup
+	testImplementation "org.json:json:20250517"
+	testImplementation "junit:junit:4.13.2"
+}

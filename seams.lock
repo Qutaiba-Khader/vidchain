@@ -3,12 +3,13 @@
 # file below differs from upstream/ ONLY by such added lines (no removed or changed upstream line).
 # Format of the paths block: <modified|added> <repo-relative path>
 #
-# Seams (T1.5, T1.7, T1.9, T1.10, T2.1, T2.4, T3.1):
+# Seams (T1.5, T1.7, T1.9, T1.10, T2.1, T2.4, T3.1, T3.2):
 #   settings.gradle            module        include ':fallback-core'
 #   settings.gradle            module-engine include ':engines:engine-process' (T1.9)
 #   settings.gradle            module-http   include ':engines:engine-http' (T2.1)
 #   settings.gradle            module-ytdlp  include ':engines:engine-ytdlp' (T2.4)
 #   settings.gradle            module-hosts  include ':engines:engine-hosts' (T3.1)
+#   settings.gradle            module-web    include ':engines:engine-web' (T3.2)
 #   app/build.gradle           dep           implementation project(':fallback-core')   (file declared in BRANDING.md)
 #   AIOApp.kt                  start         FallbackSeams.appStarted(...) right after `INSTANCE = this` in onCreate
 #   AIOApp.kt                  shutdown      FallbackSeams.appShutdown() before downloadSystem.pauseAllDownloads() in onTerminate
