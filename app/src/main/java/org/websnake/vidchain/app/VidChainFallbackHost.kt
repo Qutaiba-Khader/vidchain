@@ -81,6 +81,25 @@ object VidChainFallbackHost : FallbackHost {
 		return m.downloadId.toString()
 	}
 
+	override fun session(parent: HostDownload, url: String): org.websnake.vidchain.fallback.context.SessionContext? {
+		val p = findModel(parent.id) ?: return null
+		val page = p.siteReferrer.takeIf { it.startsWith("http") }
+		val cookies = ArrayList<org.websnake.vidchain.fallback.context.SessionCookie>()
+		val store = runCatching { android.webkit.CookieManager.getInstance() }.getOrNull()
+		for (u in listOfNotNull(url, page).distinct()) {
+			val host = runCatching { URI(u).host }.getOrNull() ?: continue
+			cookies += org.websnake.vidchain.fallback.context.SessionContext.parseHeader(store?.getCookie(u), host)
+		}
+		// cookies the app captured with the download belong to the page's host; they are used only for that host
+		page?.let { runCatching { URI(it).host }.getOrNull() }?.let { pageHost ->
+			val known = cookies.filter { it.host == pageHost.lowercase(Locale.ROOT) }.map { it.name }.toSet()
+			cookies += org.websnake.vidchain.fallback.context.SessionContext.parseHeader(p.siteCookieString, pageHost).filter { it.name !in known }
+		}
+		// the browser's UA when the session came from the browser (servers may tie a session to it)
+		val ua = if (p.isDownloadFromBrowser || cookies.isNotEmpty()) AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null } else null
+		return org.websnake.vidchain.fallback.context.SessionContext(cookies, page, ua ?: p.globalSettings.downloadHttpUserAgent.ifEmpty { null })
+	}
+
 	private fun findModel(id: String): DownloadDataModel? {
 		val system = AIOApp.downloadSystem
 		return (ArrayList(system.activeDownloadDataModels) + ArrayList(system.finishedDownloadDataModels))

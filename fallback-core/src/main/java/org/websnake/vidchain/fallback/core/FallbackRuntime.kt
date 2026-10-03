@@ -40,8 +40,15 @@ object FallbackRuntime {
 	/** registered methods; P2-P5 add theirs here */
 	val methods: MutableList<FallbackMethod> = CopyOnWriteArrayList(listOf<FallbackMethod>(
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
+		org.websnake.vidchain.fallback.methods.SessionMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe), ::sessionFor),
 		org.websnake.vidchain.fallback.methods.PlainGetMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe)),
 	))
+
+	/** method S asks the app for the session on the main thread (the browser's cookie store and the download models live there) */
+	private suspend fun sessionFor(parentId: String, url: String): org.websnake.vidchain.fallback.context.SessionContext? {
+		val h = host ?: return null
+		return kotlinx.coroutines.withContext(Dispatchers.Main) { h.downloads().firstOrNull { it.id == parentId }?.let { h.session(it, url) } }
+	}
 
 	@Volatile var ledger: AttemptLedger? = null
 		private set

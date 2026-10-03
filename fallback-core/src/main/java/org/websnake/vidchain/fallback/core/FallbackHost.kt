@@ -27,4 +27,7 @@ interface FallbackHost {
 
 	/** A file an executor method produced and the coordinator committed: list it in the app's finished downloads. Returns its id. */
 	fun registerDelivered(parent: HostDownload, file: java.io.File, method: String): String? = null
+
+	/** The browsing session for [url] (method S): cookies from the in-app browser for that host, full page Referer, browser UA. */
+	fun session(parent: HostDownload, url: String): org.websnake.vidchain.fallback.context.SessionContext? = null
 }

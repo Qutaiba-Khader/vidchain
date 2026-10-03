@@ -34,7 +34,14 @@ class PlainGetFetcher(
 		val maxRetries: Int = 3,
 		/** looks at the first bytes of a fresh download; a non-null answer aborts it (an HTML page instead of a file) */
 		val early: ((ByteArray) -> String?)? = null,
-	)
+		/**
+		 * Cookie header per request URL, asked again on every redirect hop, so cookies only reach their own host.
+		 * (A Cookie in [headers] would follow redirects to other hosts: OkHttp keeps hand-set headers.)
+		 */
+		val cookieFor: ((String) -> String?)? = null,
+	) {
+		init { require(headers.keys.none { it.equals("Cookie", ignoreCase = true) }) { "pass cookies through cookieFor" } }
+	}
 
 	sealed class Result {
 		data class Done(val file: File, val bytes: Long, val contentType: String?, val suggestedName: String, val finalUrl: String, val resumed: Boolean) : Result()
@@ -59,8 +66,15 @@ class PlainGetFetcher(
 				rb.header("Range", "bytes=$have-")
 				meta?.validator?.let { rb.header("If-Range", it) }
 			}
+			val callClient = f.cookieFor?.let { cookieFor ->
+				client.newBuilder().addNetworkInterceptor { chain ->
+					val req = chain.request()
+					val c = cookieFor(req.url.toString())
+					chain.proceed(if (c != null) req.newBuilder().header("Cookie", c).build() else req.newBuilder().removeHeader("Cookie").build())
+				}.build()
+			} ?: client
 			val response = try {
-				client.newCall(rb.build()).await()
+				callClient.newCall(rb.build()).await()
 			} catch (e: IOException) {
 				lastError = "connection: ${e.javaClass.simpleName}: ${e.message}"; continue
 			}
