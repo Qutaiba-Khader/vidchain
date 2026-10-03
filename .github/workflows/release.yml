@@ -224,7 +224,12 @@ jobs:
           VERSION: ${{ needs.plan.outputs.version }}
         run: |
           cert=$(grep -v '^#' signing/cert-sha256.txt | tr -d '[:space:]')
+          tested=$(python3 -c 'import json; print(json.load(open("release-contract.json"))["release"].get("fully_tested", True))')
           {
+            if [ "$tested" = "False" ]; then
+              echo "> **Not fully tested yet.** This build passed the fast checks and the short emulator traffic test below. The full emulator test pass runs once, before v1.0.0."
+              echo
+            fi
             echo "VidChain ${VERSION} - an Android video downloader based on [AIO Video Downloader](https://github.com/shibaFoss/AIO-Video-Downloader) by shibaFoss (independent, non-commercial, not official)."
             echo
             echo "**Phones: install \`vidchain-arm64-v8a.apk\`**, or add VidChain to Obtainium with the link in the README."

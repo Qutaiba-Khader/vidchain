@@ -1,8 +1,9 @@
 {
-  "_note": "Release contract (T0.6). release.yml publishes `release.version` once: when CI is green on main and the tag v<version> does not exist yet, and only if app/build.gradle carries the same versionName/versionCode. null = nothing to release. Asset names stay version-free so README links to releases/latest work; the tag carries the version.",
+  "_note": "Release contract (T0.6). release.yml publishes `release.version` once: when CI is green on main and the tag v<version> does not exist yet, and only if app/build.gradle carries the same versionName/versionCode. null = nothing to release. Asset names stay version-free so README links to releases/latest work; the tag carries the version. `fully_tested: false` adds the 'not fully tested yet' line to the notes (INBOX #3: intermediate releases before the one full test pass).",
   "release": {
-    "version": "0.0.1",
-    "version_code": 1
+    "version": "0.1.0",
+    "version_code": 100,
+    "fully_tested": false
   },
   "package": "org.websnake.vidchain",
   "assets": {
