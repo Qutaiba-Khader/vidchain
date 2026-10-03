@@ -19,13 +19,17 @@ class YtDlpMethod(
 	private val cookieDir: () -> File?,
 	/** crash bench (T1.9 quarantine) for this engine version and ABI; null in tests */
 	private val bench: Bench? = null,
+	/** extra yt-dlp options (N adds its JavaScript runtime) */
+	private val extraArgs: List<String> = emptyList(),
+	/** Y, or N when the nightly build runs the same path */
+	private val methodId: String = "Y",
 ) : FallbackMethod {
 	interface Bench {
 		fun benched(method: String): Boolean
 		fun record(method: String, outcome: org.websnake.vidchain.engine.EngineOutcome?)
 	}
 
-	override val id = "Y"
+	override val id = methodId
 	override val kind = FallbackMethod.Kind.EXECUTOR
 
 	override suspend fun attempt(ctx: FallbackContext): MethodOutcome = run(ctx, null)
@@ -45,6 +49,7 @@ class YtDlpMethod(
 				userAgent = session?.userAgent ?: ctx.userAgent,
 				referer = session?.referer ?: ctx.referer?.takeIf { it.startsWith("http") },
 				cookiesFile = cookies,
+				extraArgs = extraArgs,
 			)
 			return when (val r = e.download(url, YtDlpFormats.selector(ctx.preferredHeight, ctx.audioOnly), dir, base, options)) {
 				is YtDlpEngine.Result.Ok -> { bench?.record(id, org.websnake.vidchain.engine.EngineOutcome.Success); MethodOutcome.Delivered(r.value.path) }

@@ -32,6 +32,8 @@ dependencies {
 	implementation libs.kotlin.coroutines.core
 	implementation libs.kotlin.coroutines.android
 	api project(':engines:engine-process')
+	implementation project(':engines:engine-http')
+	implementation libs.okhttp
 	testImplementation "org.json:json:20250517"
 	testImplementation "junit:junit:4.13.2"
 }

@@ -69,6 +69,12 @@ object FallbackRuntime {
 		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.NightlyYtDlpMethod(
+			{ engines?.let { k -> appContext?.let { c -> org.websnake.vidchain.ytdlp.nightly.NightlyToolStore(java.io.File(c.noBackupFilesDir, "vidchain-tools/yt-dlp-nightly"), http, k.store) } } },
+			{ file -> engines?.let { k -> org.websnake.vidchain.ytdlp.YtDlpEngine(k.runner, k.layout, ytdlp = file) } },
+			{ engines?.layout?.quickJs },
+			{ engines?.layout?.cacheDir?.let { java.io.File(it, "vidchain-cookies") } },
+			bench = { file -> engines?.bench(file) }),
 		org.websnake.vidchain.fallback.methods.DownloadManagerMethod({ appContext?.let { org.websnake.vidchain.fallback.methods.AndroidSystemDownloads(it) } }),
 		org.websnake.vidchain.fallback.methods.Media3Method({ appContext?.let { org.websnake.vidchain.media3.Media3Downloader(it) } }, { ffmpeg }, { appContext?.cacheDir }),
 		org.websnake.vidchain.fallback.methods.NewPipeMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
