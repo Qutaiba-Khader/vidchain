@@ -53,3 +53,20 @@ tasks.withType(Test).configureEach {
 		exceptionFormat "full"
 	}
 }
+
+// The Python engines zip (T5.3): pinned pure wheels + aio_engine, built from python/requirements.lock into the assets
+def pyzipDir = layout.buildDirectory.dir("generated/pyzip/assets")
+def pyzipFile = pyzipDir.map { it.file("vidchain-py.zip") }
+tasks.register("buildPyZip", Exec) {
+	inputs.file(rootProject.file("python/requirements.lock"))
+	inputs.dir(rootProject.file("python/aio_engine"))
+	inputs.file(rootProject.file("tools/build_pyzip.py"))
+	outputs.file(pyzipFile)
+	commandLine "python3", rootProject.file("tools/build_pyzip.py").path, "--out", pyzipFile.get().asFile.path
+}
+android.sourceSets.main.assets.srcDir(pyzipDir)
+tasks.named("preBuild") { dependsOn "buildPyZip" }
+tasks.withType(Test).configureEach {
+	dependsOn "buildPyZip"
+	systemProperty "vidchain.pyzip", pyzipFile.get().asFile.path
+}

@@ -34,7 +34,11 @@ object SelfTest {
 			"ffmpeg: ${if (ff.ok) "OK " else "FAILED "}${ff.detail}"
 		} else "ffmpeg: not found"
 		lines += "aria2c: ${if (l.aria2c.isFile) "present" else "not in this build yet"}"
-		lines += "aio_engine (gallery-dl / you-get / Streamlink): not in this build yet"
+		val zip = org.websnake.vidchain.fallback.methods.PyZip.installed(context)
+		lines += if (l.pythonReady && zip != null) {
+			val r = org.websnake.vidchain.engine.python.PythonEngine(kit.runner, l).aio(listOf("probe"), zip, timeoutMs = 60_000)
+			"aio_engine (gallery-dl): " + (if (r.outcome == org.websnake.vidchain.engine.EngineOutcome.Success) "OK " else "FAILED ") + (r.lines.lastOrNull() ?: r.outcome.toString()).take(300)
+		} else "aio_engine (gallery-dl): " + (if (zip == null) "engines zip missing" else "library runtime not extracted yet")
 		return lines.joinToString("\n")
 	}
 }
