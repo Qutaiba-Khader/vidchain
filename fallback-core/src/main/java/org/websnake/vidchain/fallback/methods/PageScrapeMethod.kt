@@ -26,7 +26,8 @@ class PageScrapeMethod(
 
 	override suspend fun attempt(ctx: FallbackContext): MethodOutcome {
 		val page = ctx.url.takeIf { HttpFileExecutor.isHttp(it) } ?: return MethodOutcome.Unsupported("not an http(s) page")
-		val found = PageScraper.discover(page, pages(ctx.userAgent))
+		val startLocal = org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(page)
+		val found = PageScraper.discover(page, pages(ctx.userAgent), refuse = { u -> !allowLocalTargets && !startLocal && org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(u) })
 		if (found.isEmpty()) return MethodOutcome.Failed("no media on the page")
 		return MediaSaver.save(ctx, id, found, fetcher, verifier, stream, allowLocalTargets, maxCandidates)
 	}

@@ -122,17 +122,57 @@ class RedirectUnwrapper(baseClient: OkHttpClient, private val maxHops: Int = 10,
 			return null
 		}
 
-		/** loopback, private, link-local or .local hosts (literal addresses and names; no DNS lookup) */
+		/**
+		 * loopback, private, link-local, CGNAT, multicast or .local hosts (literal addresses and names; no DNS lookup).
+		 * IPv4 literals are read the way the resolver reads them (inet_aton: 1-4 parts, decimal / 0octal / 0xhex), so
+		 * 127.1, 2130706433, 0x7f000001 and 0177.0.0.1 are all loopback; IPv6 literals are compared as bytes.
+		 */
 		fun isLocal(url: String): Boolean {
-			val h = url.toHttpUrlOrNull()?.host?.lowercase(Locale.ROOT) ?: return false
-			if (h == "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".lan") || h.endsWith(".home.arpa")) return true
-			val v4 = h.split('.').mapNotNull { it.toIntOrNull() }.takeIf { it.size == 4 && h.count { c -> c == '.' } == 3 }
-			if (v4 != null) {
-				val (a, b) = v4
-				return a == 10 || a == 127 || a == 0 || (a == 172 && b in 16..31) || (a == 192 && b == 168) || (a == 169 && b == 254) || (a == 100 && b in 64..127)
-			}
-			if (h.contains(':')) return h == "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80")
+			val h = url.toHttpUrlOrNull()?.host?.lowercase(Locale.ROOT)?.removeSuffix(".") ?: return false
+			if (h.isEmpty() || h == "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".lan") || h.endsWith(".home.arpa") || h.endsWith(".internal")) return true
+			parseV4(h)?.let { return isLocalV4(it) }
+			if (h.contains(':')) return runCatching { isLocalAddress(java.net.InetAddress.getByName(h.removePrefix("[").removeSuffix("]"))) }.getOrDefault(true)
 			return false
+		}
+
+		/** a resolved address that must not be reached from a public start (loopback, any, private, link-local, CGNAT, ULA, multicast) */
+		fun isLocalAddress(a: java.net.InetAddress): Boolean {
+			if (a.isLoopbackAddress || a.isAnyLocalAddress || a.isLinkLocalAddress || a.isSiteLocalAddress || a.isMulticastAddress) return true
+			val b = a.address
+			if (b.size == 4) return isLocalV4(IntArray(4) { b[it].toInt() and 0xFF })
+			if (b.size == 16) {
+				if (b[0].toInt() and 0xFE == 0xFC) return true                                   // fc00::/7 unique local
+				val mapped = (0 until 10).all { b[it].toInt() == 0 } && (b[10].toInt() and 0xFF) == 0xFF && (b[11].toInt() and 0xFF) == 0xFF
+				val compat = (0 until 12).all { b[it].toInt() == 0 }
+				if (mapped || compat) return isLocalV4(IntArray(4) { b[12 + it].toInt() and 0xFF })
+			}
+			return false
+		}
+
+		private fun isLocalV4(v: IntArray): Boolean {
+			val a = v[0]; val b = v[1]
+			return a == 10 || a == 127 || a == 0 || (a == 172 && b in 16..31) || (a == 192 && b == 168) || (a == 169 && b == 254) ||
+				(a == 100 && b in 64..127) || a >= 224
+		}
+
+		/** inet_aton: "a", "a.b", "a.b.c", "a.b.c.d"; each part decimal, 0-prefixed octal or 0x hex; the last part fills the rest */
+		internal fun parseV4(h: String): IntArray? {
+			val parts = h.split('.')
+			if (parts.size !in 1..4 || parts.any { it.isEmpty() }) return null
+			val nums = parts.map { p ->
+				val (digits, radix) = when {
+					p.startsWith("0x") -> p.substring(2) to 16
+					p.length > 1 && p.startsWith("0") -> p.substring(1) to 8
+					else -> p to 10
+				}
+				if (digits.isEmpty() && radix == 16) return null
+				(if (digits.isEmpty()) 0L else digits.toLongOrNull(radix)) ?: return null
+			}
+			val lastMax = when (nums.size) { 1 -> 0xFFFFFFFFL; 2 -> 0xFFFFFFL; 3 -> 0xFFFFL; else -> 0xFFL }
+			if (nums.dropLast(1).any { it > 0xFF } || nums.last() > lastMax) return null
+			var v = nums.last()
+			for ((i, n) in nums.dropLast(1).withIndex()) v = v or (n shl (24 - 8 * i))
+			return IntArray(4) { ((v shr (24 - 8 * it)) and 0xFF).toInt() }
 		}
 
 		private fun isHtml(type: String?) = type == null || type.contains("html", ignoreCase = true)

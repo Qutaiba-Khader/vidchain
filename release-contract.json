@@ -119,17 +119,22 @@
     "M"
   ],
   "method_natives": {
-    "_note": "native libraries a method needs in lib/<abi>/; methods not listed run on every ABI (Java/Kotlin or WebView)",
+    "_note": "native libraries a method runs in lib/<abi>/ (S, W and H hand media streams to yt-dlp; ffmpeg merges and remuxes); methods not listed run on every ABI (Java/Kotlin or WebView)",
     "C": [
+      "libpython.so",
+      "libffmpeg.so"
+    ],
+    "S": [
       "libpython.so"
     ],
-    "S": [],
     "Y": [
-      "libpython.so"
+      "libpython.so",
+      "libffmpeg.so"
     ],
     "N": [
       "libpython.so",
-      "libqjs.so"
+      "libqjs.so",
+      "libffmpeg.so"
     ],
     "F": [
       "libffmpeg.so"
@@ -139,17 +144,31 @@
     ],
     "U": [
       "libpython.so",
-      "libqjs.so"
+      "libqjs.so",
+      "libffmpeg.so"
     ],
     "T": [
       "libpython.so",
       "libffmpeg.so"
     ],
     "X": [
-      "liblux.so"
+      "liblux.so",
+      "libffmpeg.so"
     ],
     "A": [
       "libaria2c.so"
+    ],
+    "P": [
+      "libffmpeg.so"
+    ],
+    "M": [
+      "libffmpeg.so"
+    ],
+    "W": [
+      "libpython.so"
+    ],
+    "H": [
+      "libpython.so"
     ]
   }
 }

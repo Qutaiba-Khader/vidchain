@@ -6,7 +6,6 @@ import org.websnake.vidchain.engine.EngineSpec
 import org.websnake.vidchain.engine.ProcessEngineRunner
 import java.io.File
 import java.nio.file.Files
-import java.util.Locale
 
 /**
  * Method X's engine (T5.6): lux (github.com/iawia002/lux, MIT), built by natives.yml for arm64-v8a and x86_64 and
@@ -40,7 +39,7 @@ class LuxEngine(
 		job.dir.mkdirs()
 		val work = workDir()
 		val out = ArrayList<String>()
-		val r = runner.run(EngineSpec(argv(job), env(), workDir = work, timeoutMs = timeoutMs), onStdout = { l -> synchronized(out) { out += l; if (out.size > 60) out.removeAt(0) } })
+		val r = runner.run(EngineSpec(argv(job), env(), workDir = work, timeoutMs = timeoutMs, stallMs = STALL_MS, watchDir = job.dir), onStdout = { l -> synchronized(out) { out += l; if (out.size > 60) out.removeAt(0) } })
 		if (r.outcome != EngineOutcome.Success) {
 			val reason = synchronized(out) { error(out) } ?: r.stderrTail.lastOrNull { it.isNotBlank() }?.take(200) ?: r.outcome.toString()
 			return Result.Failed(reason, r.outcome)
@@ -73,6 +72,9 @@ class LuxEngine(
 	}
 
 	companion object {
+		/** no line and no byte for this long: lux is stuck (the 6 h cap stays behind it) */
+		const val STALL_MS = 180_000L
+
 		/** lux prints "Downloading <url> error:" on stdout, then the error and its stack */
 		fun error(stdout: List<String>): String? {
 			val i = stdout.indexOfLast { it.startsWith("Downloading ") && it.trimEnd().endsWith("error:") }
@@ -85,11 +87,13 @@ class LuxEngine(
 			"pinterest", "pixivision", "pornhub", "qq", "reddit", "rumble", "streamta", "streamtape", "tangdou", "threads", "tiktok",
 			"toutiao", "tumblr", "twitter", "udn", "vimeo", "vk", "weibo", "xiaohongshu", "ximalaya", "xinpianchang", "xvideos",
 			"yinyuetai", "youku", "youtu", "youtube", "zhihu", "zing", "zingmp3")
+		private val AUTHORITY = Regex("""^[A-Za-z][A-Za-z0-9+.-]*://([^/?#]*)""")
 		private val DOMAIN = Regex("""([a-z0-9][-a-z0-9]{0,62})\.(com\.cn|com\.hk|cn|com|net|edu|gov|biz|org|info|pro|name|xxx|xyz|be|me|top|cc|tv|tt|vn)""")
 
 		/** lux's own choice of extractor for a URL (extractors.Extract + utils.Domain), or null for its generic fetcher */
 		fun extractorFor(url: String): String? {
-			val host = runCatching { java.net.URI(url.trim()).host?.lowercase(Locale.ROOT) }.getOrNull() ?: return null
+			// exactly what lux matches: Go's url.Host (case kept, port kept)
+			val host = AUTHORITY.find(url.trim())?.groupValues?.get(1)?.substringAfterLast('@')?.takeIf { it.isNotEmpty() } ?: return null
 			val name = when (host) { "haokan.baidu.com" -> "haokan"; "xhslink.com" -> "xiaohongshu"; else -> DOMAIN.find(host)?.groupValues?.get(1) }
 			return name?.takeIf { it in EXTRACTORS }
 		}

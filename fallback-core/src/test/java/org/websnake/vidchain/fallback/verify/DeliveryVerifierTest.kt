@@ -84,7 +84,7 @@ class DeliveryVerifierTest {
 	@Test fun durationAgainstExpected() {
 		val probe = DeliveryVerifier { 59_000L }
 		assertEquals(Check.PASS, check("d1.mkv", mkv, Expectation(expectedDurationMs = 60_000), probe).check)
-		assertEquals(Check.FAIL, check("d2.mkv", mkv, Expectation(expectedDurationMs = 120_000), probe).check)
+		assertEquals(Check.UNSURE, check("d2.mkv", mkv, Expectation(expectedDurationMs = 120_000), probe).check)   // possibly a preview: kept, the chain goes on
 		assertEquals(Check.UNSURE, check("d3.mkv", mkv, Expectation(expectedDurationMs = 60_000), DeliveryVerifier { null }).check)
 		assertEquals(Check.UNSURE, check("d4.mkv", mkv, Expectation(expectedDurationMs = 60_000), DeliveryVerifier { throw IllegalStateException() }).check)
 		assertEquals(Check.PASS, check("d5.mkv", mkv, media, DeliveryVerifier { null }).check)   // nothing expected: no duration needed
@@ -126,5 +126,35 @@ class DeliveryVerifierTest {
 		assertEquals(FileKind.UNKNOWN, Sniffer.sniff(rawAac))
 		assertEquals(FileKind.MPD_MANIFEST, Sniffer.sniff("<?xml version='1.0'?><MPD>".toByteArray()))
 		assertEquals(FileKind.EMPTY, Sniffer.sniff(ByteArray(0)))
+	}
+
+	// --- T6.2 review fixes ---
+
+	@Test fun textInDisguiseIsNeverMedia() {
+		val utf16Html = byteArrayOf(0xFF.toByte(), 0xFE.toByte()) + "<html><body>denied</body></html>".toByteArray(Charsets.UTF_16LE) + pad(3000)
+		assertEquals(Check.FAIL, check("u16.mp3", utf16Html).check)
+		val gzip = byteArrayOf(0x1F, 0x8B.toByte(), 8, 0) + pad(3000)
+		assertEquals(Check.FAIL, check("gz.mp4", gzip).check)
+		val cjk = "<meta charset=utf-8><title>访问被拒绝</title>".toByteArray() + pad(3000)
+		assertEquals(Check.FAIL, check("cjk.mp4", cjk).check)
+		assertEquals(Check.FAIL, check("tiny.bin", ByteArray(100) { 7 }).check)              // junk too small to be media
+	}
+
+	@Test fun aCutOffMatroskaFails() {
+		// EBML header (id 1A45DFA3, size 4, 4 bytes) then Segment (18538067) declaring 50 MB in an 8-byte size
+		val head = byteArrayOf(0x1A, 0x45, 0xDF.toByte(), 0xA3.toByte(), 0x84.toByte(), 0x42, 0x86.toByte(), 0x81.toByte(), 0x01,
+			0x18, 0x53, 0x80.toByte(), 0x67, 0x01, 0, 0, 0, 0x03, 0x00, 0x00, 0x00)
+		assertEquals(Check.FAIL, check("cut.webm", head + pad(4000)).check)
+		val unknown = head.copyOf().also { for (i in 13..20) it[i] = 0xFF.toByte(); it[13] = 0x01 }
+		assertEquals(Check.PASS, check("live.webm", unknown + pad(4000)).check)
+	}
+
+	@Test fun zeroPaddingAfterACompleteMp4IsFine() {
+		fun box(t: String, n: Int) = byteArrayOf(0, 0, ((8 + n) shr 8).toByte(), (8 + n).toByte()) + t.toByteArray() + ByteArray(n)
+		assertEquals(Check.PASS, check("pad.mp4", box("ftyp", 8) + box("moov", 200) + box("mdat", 3000) + ByteArray(16)).check)
+	}
+
+	@Test fun aTrustedTorrentFileOfAnyKindPasses() {
+		assertEquals(Check.PASS, check("book.txt", "chapter ".repeat(400).toByteArray(), Expectation(expectMedia = false, trusted = true)).check)
 	}
 }

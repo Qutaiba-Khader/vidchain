@@ -9,9 +9,10 @@ whether the fallback coordinator may start the next method. The first matching r
 | 1 | isDeleted / isRemoved / intent CANCEL, CLEAR, DELETE | UserStopped | no |
 | 2 | status COMPLETE or isComplete | Success (a bad current-method file only gets a badge, Q26) | no |
 | 3 | isWaitingForNetwork | Waiting(network / Wi-Fi / internet) | no |
-| 4 | status DOWNLOADING, progress within 120 s (or unknown) | InProgress | no |
-| 4b | status DOWNLOADING, no progress for >= 120 s | Failure STALLED (Regular retries ran out) | yes |
-| 5 | intent PAUSE, RENAME_PAUSE, APP_SHUTDOWN | UserStopped | no |
+| 4 | intent PAUSE, RENAME_PAUSE, APP_SHUTDOWN (checked before DOWNLOADING: a pause can leave a stale status) | UserStopped | no |
+| 5 | status DOWNLOADING, progress within 120 s (or unknown), or an M3U8 (yt-dlp) download whose process still runs | InProgress | no |
+| 5a | status DOWNLOADING, no progress for >= 120 s, Regular engine or M3U8 process gone | Failure STALLED (Regular retries ran out) | yes |
+| 5b | "Waiting to join" (resumed, waiting for a free slot) | Waiting(QUEUED) | no |
 | 6 | isFailedToAccessFile, storage dialog, "File IO", file deleted / destination missing | Failure STORAGE (checked before "expired": a storage FileNotFoundException can look expired) | no |
 | 7 | isYtdlpHavingProblem | Failure EXTRACTOR_LOGIN / UNAVAILABLE / FORMAT / HTTP_OR_SERVER / OTHER by reason | yes |
 | 8 | isFileUrlExpired or "Link Expired" | Failure EXPIRED_URL (for M3U8 this may really be offline) | yes |

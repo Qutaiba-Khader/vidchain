@@ -54,7 +54,7 @@ object PageScraper {
 	 * Scans [start] and, when it shows no media, its iframes, at most [maxDepth] levels and [maxPages] pages, never a
 	 * page twice. Candidates keep the page they were found on.
 	 */
-	suspend fun discover(start: String, fetch: suspend (String) -> Page, maxDepth: Int = 2, maxPages: Int = 6): List<MediaCandidate> {
+	suspend fun discover(start: String, fetch: suspend (String) -> Page, maxDepth: Int = 2, maxPages: Int = 6, refuse: (String) -> Boolean = { false }): List<MediaCandidate> {
 		val seen = HashSet<String>()
 		var frontier = listOf(start)
 		var depth = 0
@@ -63,6 +63,7 @@ object PageScraper {
 			val next = ArrayList<String>()
 			for (u in frontier) {
 				if (seen.size >= maxPages || !seen.add(u.substringBefore('#'))) continue
+				if (u != start && refuse(u)) continue                 // an iframe of a public page that points into the local network
 				val p = runCatching { fetch(u) }.getOrNull() ?: continue
 				if (p.code !in 200..299) continue
 				val type = p.contentType

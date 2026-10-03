@@ -27,8 +27,12 @@ class FallbackCoordinatorTest {
 	private class FakeHost : FallbackHost {
 		val list = LinkedHashMap<String, HostDownload>()
 		val queued = ArrayList<Pair<String, Candidate>>()
+		val delivered = ArrayList<File>()
+		var lists = true
 		private var nextId = 1000
 		override fun downloads() = list.values.toList()
+		override fun registerDelivered(parent: HostDownload, file: File, method: String): String? =
+			if (!lists) null else { delivered += file; "d${nextId++}" }
 		override fun enqueueChild(parent: HostDownload, candidate: Candidate, attemptNo: Int, method: String): String {
 			val id = (nextId++).toString()
 			queued += parent.id to candidate
@@ -355,5 +359,124 @@ class FallbackCoordinatorTest {
 		start.countDown(); pool.shutdown(); pool.awaitTermination(10, TimeUnit.SECONDS)
 		assertEquals(1, wins.get())
 		assertTrue(ledger.markHandled("p", "s", 0)); assertTrue(!ledger.markHandled("p", "s", 0))
+	}
+
+	// --- T6.2 review fixes ---
+
+	@Test fun aFileTheAppCouldNotListIsNotADelivery() = runBlocking {
+		val y = Counting("Y") { MethodOutcome.Delivered(goodMp4()) }
+		val n = Counting("N") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(y, n), stub = false)
+		w.host.lists = false
+		w.host.set("1", running(), url = "https://site.example/page", path = File(File(goodMp4()).parentFile, "l-${System.nanoTime()}.mp4").path); w.tick()
+		w.host.set("1", failed()); w.tick()
+		assertEquals(AttemptState.FAILED, w.ledger.attempts("1").first().state)
+		assertTrue(w.ledger.attempts("1").first().reason!!.startsWith("could not list"))
+		assertEquals(1, n.calls.get())                                   // the chain went on
+	}
+
+	@Test fun aDeletedDownloadIsForgottenAndItsReusedIdGetsFallbacksAgain() = runBlocking {
+		val y = Counting("Y") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(y), stub = false)
+		w.host.set("7", running(), url = "https://site.example/a"); w.tick()
+		w.host.set("7", failed()); w.tick()
+		assertEquals(1, w.ledger.attempts("7").size)
+		w.ledger.recordIntent("7", UserIntent.DELETE, w.now)
+		w.host.list.remove("7"); w.tick()                              // gone after the delete: forgotten
+		assertEquals(0, w.ledger.attempts("7").size)
+		assertEquals(UserIntent.NONE, w.ledger.intentOf("7"))
+		w.host.set("7", running(), url = "https://site.example/b"); w.tick()   // the app hands id 7 to a new download
+		w.host.set("7", failed()); w.tick()
+		assertEquals(2, y.calls.get())                                   // it gets its own chain
+	}
+
+	@Test fun aReusedIdStillMarkedDeletedIsForgottenWhenItAppears() = runBlocking {
+		val y = Counting("Y") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(y), stub = false)
+		w.ledger.recordIntent("9", UserIntent.DELETE, w.now)            // left over from an older app run
+		w.tick()
+		w.host.set("9", running(), url = "https://site.example/c"); w.tick()
+		w.host.set("9", failed()); w.tick()
+		assertEquals(1, y.calls.get())
+	}
+
+	@Test fun deletingTheDownloadStopsItsChainAndNothingIsSaved() = runBlocking {
+		val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+		val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+		val good = goodMp4()
+		val y = object : FallbackMethod {
+			override val id = "Y"; override val kind = FallbackMethod.Kind.EXECUTOR
+			override suspend fun attempt(ctx: FallbackContext): MethodOutcome { started.complete(Unit); gate.await(); return MethodOutcome.Delivered(good) }
+		}
+		val n = Counting("N") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(y, n), stub = false)
+		w.host.set("1", running(), url = "https://site.example/page"); w.c.tick()
+		w.host.set("1", failed()); w.c.tick()
+		started.await()
+		w.ledger.recordIntent("1", UserIntent.DELETE, w.now)
+		w.c.cancelChain("1")
+		w.c.drain()
+		assertTrue(w.host.delivered.isEmpty())
+		assertEquals(0, n.calls.get())
+	}
+
+	@Test fun aResumedDownloadWaitingForASlotIsNotAFailure() = runBlocking {
+		val y = Counting("Y") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(y), stub = false)
+		w.host.set("1", paused(), url = "https://site.example/p"); w.tick()
+		w.ledger.recordIntent("1", UserIntent.RESUME, w.now)
+		w.host.set("1", DownloadSnapshot(Engine.REGULAR, CLOSE, statusKey = StatusKey.QUEUED)); w.tick()
+		w.host.set("1", DownloadSnapshot(Engine.REGULAR, CLOSE, statusKey = StatusKey.OTHER)); w.now += 5_000; w.tick()
+		assertEquals(0, y.calls.get())                                   // not started yet: inside the grace time
+		w.host.set("1", running()); w.now += 5_000; w.tick()
+		w.host.set("1", failed()); w.now += 5_000; w.tick()
+		assertEquals(1, y.calls.get())                                   // a real failure after it ran
+	}
+
+	@Test fun anInterruptedChainResumesWithItsNextMethodOnlyTwice() = runBlocking {
+		val y = Counting("Y") { MethodOutcome.Failed("x") }
+		val n = Counting("N") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(y, n), stub = false)
+		w.host.set("1", failed(), url = "https://site.example/page")
+		assertTrue(w.ledger.claim("1", 1, "Y", 0))                     // the process died while Y ran
+		w.c.restoreBoard()
+		assertEquals(org.websnake.vidchain.fallback.ui.Trail.State.INTERRUPTED, org.websnake.vidchain.fallback.ui.TrailBoard.of("1")!!.state)
+		assertEquals(1, w.c.resumeInterrupted()); w.c.drain()
+		assertEquals(0, y.calls.get()); assertEquals(1, n.calls.get())  // Y is not run again, N is next
+		assertTrue(w.ledger.claim("1", 3, "N", 0))                     // killed again, a second time
+		w.c.restoreBoard()
+		assertEquals(0, w.c.resumeInterrupted())                        // two interruptions: it stays stopped
+	}
+
+	@Test fun aTorrentOfTextFilesIsKept() = runBlocking {
+		val dir = java.nio.file.Files.createTempDirectory("tor").toFile()
+		val a = File(dir, ".vidchain-partial/x-A/book.txt").apply { parentFile!!.mkdirs(); writeText("chapter one ".repeat(500)) }
+		val b = File(dir, ".vidchain-partial/x-A/notes.srt").apply { writeText("1\n00:00:01,000 --> 00:00:02,000\nhi\n") }
+		val aria = Counting("A") { MethodOutcome.Delivered(a.path, extras = listOf(b.path)) }
+		val w = World(this, listOf(aria), stub = false)
+		val root = HostDownload("share-x", "magnet:?xt=urn:btih:abc", "magnet:?xt=urn:btih:abc", DownloadSnapshot(Engine.REGULAR, CLOSE),
+			filePath = File(dir, "torrent").path, expectMedia = false, keepNames = true)
+		assertTrue(w.c.startStandalone(root)); w.c.drain()
+		assertEquals(AttemptState.DELIVERED, w.ledger.attempts("share-x").single().state)
+		assertTrue(File(dir, "book.txt").isFile && File(dir, "notes.srt").isFile)
+		assertEquals(2, w.host.delivered.size)
+	}
+
+	@Test fun aFailedFirstFileGivesWayToAGoodFileOfTheSameDelivery() = runBlocking {
+		val g = Counting("G") { MethodOutcome.Delivered(htmlAsMp4(), extras = listOf(goodMp4())) }
+		val w = World(this, listOf(g), stub = false)
+		w.host.set("1", running(), url = "https://site.example/page", path = File(File(goodMp4()).parentFile, "g-${System.nanoTime()}.mp4").path); w.tick()
+		w.host.set("1", failed()); w.tick()
+		assertEquals(AttemptState.DELIVERED, w.ledger.attempts("1").single().state)
+		assertEquals(1, w.host.delivered.size)
+	}
+
+	@Test fun aYtDlpDownloadThatIsStillRunningIsNeverStalled() {
+		val snap = DownloadSnapshot(Engine.M3U8, DOWNLOADING, isRunning = true, msSinceLastProgress = 600_000)
+		assertEquals(org.websnake.vidchain.fallback.classifier.Verdict.InProgress, org.websnake.vidchain.fallback.classifier.TerminalClassifier.classify(snap))
+		val gone = snap.copy(isRunning = false)
+		assertTrue(org.websnake.vidchain.fallback.classifier.TerminalClassifier.classify(gone) is org.websnake.vidchain.fallback.classifier.Verdict.Failure)
+		val paused = DownloadSnapshot(Engine.REGULAR, DOWNLOADING, userIntent = UserIntent.PAUSE, msSinceLastProgress = 600_000)
+		assertTrue(org.websnake.vidchain.fallback.classifier.TerminalClassifier.classify(paused) is org.websnake.vidchain.fallback.classifier.Verdict.UserStopped)
 	}
 }

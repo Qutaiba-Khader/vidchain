@@ -12,7 +12,7 @@ data class Trail(
 	val method: String,
 	val state: State,
 ) {
-	enum class State { RUNNING, WAITING_CHILD, VERIFYING, DELIVERED, BEST_SO_FAR, EXHAUSTED }
+	enum class State { RUNNING, WAITING_CHILD, VERIFYING, DELIVERED, BEST_SO_FAR, EXHAUSTED, INTERRUPTED }
 }
 
 /** In-memory board (no disk on the UI path). Empty after a restart until the chain moves again; the "methods tried" sheet reads the ledger. */
@@ -21,8 +21,17 @@ object TrailBoard {
 	private val childToParent = ConcurrentHashMap<String, String>()
 	private val childMethod = ConcurrentHashMap<String, String>()
 
-	fun put(t: Trail) { trails[t.parentId] = t }
-	fun update(parentId: String, change: (Trail) -> Trail) { trails.computeIfPresent(parentId) { _, t -> change(t) } }
+	/** called after every change of a parent's trail (the app re-draws that card) */
+	@Volatile var onChange: (String) -> Unit = {}
+
+	fun put(t: Trail) { trails[t.parentId] = t; notify(t.parentId) }
+	fun update(parentId: String, change: (Trail) -> Trail) { if (trails.computeIfPresent(parentId) { _, t -> change(t) } != null) notify(parentId) }
+	fun remove(parentId: String) {
+		trails.remove(parentId)
+		childToParent.entries.removeAll { it.value == parentId || it.key == parentId }
+		childMethod.keys.removeAll { !childToParent.containsKey(it) }
+	}
+	private fun notify(parentId: String) { runCatching { onChange(parentId) } }
 	fun linkChild(childId: String, parentId: String, method: String) { childToParent[childId] = parentId; childMethod[childId] = method }
 	fun methodOfChild(childId: String): String? = childMethod[childId]
 	fun of(parentId: String): Trail? = trails[parentId]
@@ -40,7 +49,7 @@ object TrailText {
 	)
 
 	/** every method in a stable display order (Settings) */
-	val ALL_METHODS: List<String> = NAMES.keys.toList()
+	val ALL_METHODS: List<String> = NAMES.keys.filter { it != "STUB" }
 
 	fun name(id: String): String = NAMES[id] ?: id
 
@@ -51,6 +60,7 @@ object TrailText {
 		Trail.State.DELIVERED -> "Fallback: saved by ${name(t.method)}"
 		Trail.State.BEST_SO_FAR -> "Fallback: kept the file from ${name(t.method)} (could not fully check it)"
 		Trail.State.EXHAUSTED -> "Fallback: no other method worked (${t.total} tried)"
+		Trail.State.INTERRUPTED -> "Fallback: stopped when Android closed the app after ${t.total} method(s) — tap Try another method"
 	}
 
 	fun childCard(method: String): String = "Fallback download via ${name(method)} (tap for the methods tried)"

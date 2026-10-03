@@ -206,6 +206,7 @@ class DownloadFileRenamer(
 			downloadSystem.downloadsUIManager.updateActiveUI(downloadDataModel)
 
 			// Resume if it was running before
+			if (isRunningTask) org.websnake.vidchain.fallback.core.FallbackSeams.userResumed(downloadDataModel.downloadId) // FALLBACK-SEAM:rename-resume
 			if (isRunningTask) downloadSystem.resumeDownload(
 				downloadModel = downloadDataModel,
 				coroutineScope = CoroutineScope(Dispatchers.IO)

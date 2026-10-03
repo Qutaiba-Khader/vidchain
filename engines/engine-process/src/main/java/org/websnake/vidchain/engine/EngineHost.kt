@@ -38,16 +38,18 @@ object EngineHost {
 
 	class Lease internal constructor(private val context: Context) : AutoCloseable {
 		private var open = true
-		@Synchronized override fun close() {
-			if (!open) return
-			open = false
-			if (leases.decrementAndGet() == 0) stop(context)
+		override fun close() {
+			synchronized(EngineHost) {
+				if (!open) return
+				open = false
+				if (leases.decrementAndGet() == 0) stop(context)
+			}
 		}
 	}
 
 	fun acquire(context: Context, reason: String): Lease {
 		val app = context.applicationContext
-		if (leases.getAndIncrement() == 0) start(app, reason)
+		synchronized(EngineHost) { if (leases.getAndIncrement() == 0) start(app, reason) }      // start / stop never interleave
 		return Lease(app)
 	}
 
@@ -125,6 +127,18 @@ class EngineForegroundService : Service() {
 			val s = instance ?: return
 			if (foreground) s.stopSelf()
 		}
+	}
+
+	/** Android 15+: the dataSync time budget is used up. Stop cleanly (a service that ignores it crashes the app);
+	 *  engines still running then end as OS kills and their chain moves on. */
+	override fun onTimeout(startId: Int, fgsType: Int) {
+		foreground = false
+		stopSelf()
+	}
+
+	override fun onTimeout(startId: Int) {
+		foreground = false
+		stopSelf()
 	}
 
 	override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

@@ -5,6 +5,7 @@ enum class FileKind(val media: Boolean, val negative: Boolean = false) {
 	MP4(true), MATROSKA(true), MPEG_TS(true), FLV(true), OGG(true), MP3_ID3(true), MPEG_AUDIO(true), AAC_ADTS(true),
 	FLAC(true), WAV(true), AVI(true),
 	JPEG(false), PNG(false), GIF(false), WEBP(false), ZIP(false), PDF(false), RAR(false), SEVEN_ZIP(false),
+	GZIP(false, negative = true),     // a compressed error body (the server ignored Accept-Encoding: identity)
 	HTML(false, negative = true), JSON(false, negative = true), XML(false, negative = true),
 	M3U8_PLAYLIST(false, negative = true), MPD_MANIFEST(false, negative = true), TEXT(false, negative = true),
 	EMPTY(false, negative = true), UNKNOWN(false),
@@ -41,10 +42,18 @@ object Sniffer {
 		if (ascii(0, "%PDF")) return FileKind.PDF
 		if (ascii(0, "Rar!")) return FileKind.RAR
 		if (at(0, 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C)) return FileKind.SEVEN_ZIP
-		if (b.size >= 2 && (b[0].toInt() and 0xFF) == 0xFF) {
+		if (at(0, 0x1F, 0x8B)) return FileKind.GZIP
+		// UTF-16 text (BOM): read it as text, never as an audio frame sync (FF FE looks like one)
+		if (at(0, 0xFF, 0xFE) || at(0, 0xFE, 0xFF)) {
+			val cs = if ((b[0].toInt() and 0xFF) == 0xFF) Charsets.UTF_16LE else Charsets.UTF_16BE
+			return textual(String(b, 2, minOf(b.size - 2, 2048) and 0x7FFE, cs).toByteArray(Charsets.UTF_8))
+		}
+		if (b.size >= 3 && (b[0].toInt() and 0xFF) == 0xFF) {
 			val b1 = b[1].toInt() and 0xFF
+			val b2 = b[2].toInt() and 0xFF
 			if (b1 and 0xF6 == 0xF0) return FileKind.AAC_ADTS            // 1111 0xx0 / 1111 0xx1: ADTS (layer 00)
-			if (b1 and 0xE0 == 0xE0 && b1 and 0x06 != 0) return FileKind.MPEG_AUDIO   // frame sync + a layer
+			// frame sync + a layer + a valid bitrate index (not 1111) + a valid sample-rate index (not 11)
+			if (b1 and 0xE0 == 0xE0 && b1 and 0x06 != 0 && (b2 shr 4) != 0xF && (b2 shr 2) and 3 != 3) return FileKind.MPEG_AUDIO
 		}
 		return null
 	}
@@ -64,6 +73,9 @@ object Sniffer {
 		return size == 0L || size == 1L || size >= 8
 	}
 
+	/** tags that make a "<..." head an HTML page even when its text is not ASCII (a CJK or Arabic error page) */
+	private val HTMLISH = listOf("<html", "<meta", "<title", "<script", "<div", "<head", "<body", "<!--", "<link", "<style")
+
 	private fun textual(b: ByteArray): FileKind {
 		var s = String(b, 0, minOf(b.size, 1024), Charsets.ISO_8859_1)
 		if (s.startsWith("ï»¿")) s = s.substring(3)
@@ -71,7 +83,7 @@ object Sniffer {
 		when {
 			t.startsWith("#extm3u") -> return FileKind.M3U8_PLAYLIST
 			t.startsWith("<!doctype html") || t.startsWith("<html") || t.startsWith("<head") || t.startsWith("<body") ||
-				(t.startsWith("<") && t.contains("<html")) -> return FileKind.HTML
+				(t.startsWith("<") && HTMLISH.any { it in t }) -> return FileKind.HTML
 			t.startsWith("<?xml") || t.startsWith("<mpd") -> return if (t.contains("<mpd")) FileKind.MPD_MANIFEST else FileKind.XML
 			t.startsWith("{") || t.startsWith("[") -> return FileKind.JSON
 		}

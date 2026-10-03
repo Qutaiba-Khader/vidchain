@@ -19,13 +19,16 @@ class SessionContext(
 	val referer: String?,
 	val userAgent: String?,
 ) {
-	/** the Cookie header for [url]: only cookies of that exact host (and its parent domains) and a matching path */
+	/**
+	 * the Cookie header for [url]: only cookies of that exact host (the browser store cannot say which cookies are
+	 * domain cookies, so none is widened to subdomains), a matching path, and secure cookies only over https
+	 */
 	fun cookieHeader(url: String): String? {
 		val u = runCatching { URI(url) }.getOrNull() ?: return null
 		val host = u.host?.lowercase(Locale.ROOT) ?: return null
 		val path = u.rawPath.orEmpty().ifEmpty { "/" }
 		val https = u.scheme.equals("https", true)
-		return cookies.filter { c -> (host == c.host || host.endsWith("." + c.host)) && path.startsWith(c.path) && (!c.secure || https) }
+		return cookies.filter { c -> host == c.host && path.startsWith(c.path) && (!c.secure || https) }
 			.distinctBy { it.name }.joinToString("; ") { "${it.name}=${it.value}" }.ifEmpty { null }
 	}
 
@@ -60,11 +63,11 @@ class SessionContext(
 	override fun toString() = "SessionContext(cookies=${cookies.size} on ${cookies.map { it.host }.distinct()}, referer=${referer?.let { runCatching { URI(it).host }.getOrNull() }}, ua=${userAgent != null})"
 
 	companion object {
-		/** "a=1; b=2" as cookies of [host] */
-		fun parseHeader(header: String?, host: String): List<SessionCookie> =
+		/** "a=1; b=2" as cookies of [host]; [secure] = they were read for an https URL (then they never go over plain http) */
+		fun parseHeader(header: String?, host: String, secure: Boolean = false): List<SessionCookie> =
 			header.orEmpty().split(';').mapNotNull { part ->
 				val kv = part.trim().split('=', limit = 2)
-				if (kv.size == 2 && kv[0].isNotBlank()) SessionCookie(host.lowercase(Locale.ROOT), kv[0].trim(), kv[1].trim()) else null
+				if (kv.size == 2 && kv[0].isNotBlank()) SessionCookie(host.lowercase(Locale.ROOT), kv[0].trim(), kv[1].trim(), secure = secure) else null
 			}
 
 		fun netscape(cookies: List<SessionCookie>): String = buildString {

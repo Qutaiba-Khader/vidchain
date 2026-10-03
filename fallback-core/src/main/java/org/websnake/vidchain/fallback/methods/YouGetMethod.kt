@@ -34,7 +34,7 @@ class YouGetMethod(
 			ctx.referer?.takeIf { it.startsWith("http") }?.let { add("--referer"); add(it) }
 			add("--"); add(url)
 		}
-		val r = e.aio(args, z, extraEnv = extraEnv)
+		val r = e.aio(args, z, extraEnv = extraEnv, watchDir = dir)
 		val events = r.lines.mapNotNull { l -> runCatching { JSONObject(l) }.getOrNull() }
 		val files = events.filter { it.optString("event") == "file" }.map { File(it.optString("path")) }.filter { it.isFile }.sortedByDescending { it.length() }
 		if (files.isNotEmpty() && r.outcome == EngineOutcome.Success) return MethodOutcome.Delivered(files.first().path, extras = files.drop(1).map { it.path })

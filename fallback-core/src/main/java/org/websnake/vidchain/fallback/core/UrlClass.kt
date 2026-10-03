@@ -1,5 +1,6 @@
 package org.websnake.vidchain.fallback.core
 
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.util.Locale
 
 /** The six URL classes of the plan, each with its own fallback chain (B1..B6). */
@@ -19,11 +20,14 @@ enum class UrlClass(val chain: String) {
 		fun of(url: String): UrlClass {
 			val u = url.trim()
 			val lower = u.lowercase(Locale.ROOT)
-			if (lower.startsWith("magnet:") || lower.substringBefore('?').endsWith(".torrent")) return MAGNET_TORRENT
-			val host = runCatching { java.net.URI(u).host?.lowercase(Locale.ROOT) }.getOrNull() ?: ""
-			val path = runCatching { java.net.URI(u).path?.lowercase(Locale.ROOT) }.getOrNull() ?: ""
+			if (lower.startsWith("magnet:") || lower.substringBefore('#').substringBefore('?').endsWith(".torrent")) return MAGNET_TORRENT
+			// OkHttp's parser for web links (it accepts what servers accept: spaces, '|'), java.net.URI for the rest
+			val web = u.toHttpUrlOrNull()
+			val host = (web?.host ?: runCatching { java.net.URI(u).host }.getOrNull())?.lowercase(Locale.ROOT)?.removeSuffix(".") ?: ""
+			val path = (web?.encodedPath?.let { runCatching { java.net.URLDecoder.decode(it.replace("+", "%2B"), "UTF-8") }.getOrDefault(it) }
+				?: runCatching { java.net.URI(u).path }.getOrNull())?.lowercase(Locale.ROOT) ?: ""
 			if (path.endsWith(".m3u8") || path.endsWith(".mpd")) return HLS_DASH
-			if (host == "youtu.be" || host.endsWith("youtube.com")) return YOUTUBE
+			if (host == "youtu.be" || host == "youtube.com" || host.endsWith(".youtube.com")) return YOUTUBE
 			if (host in FILE_HOSTS || FILE_EXT.containsMatchIn(path)) return DIRECT_FILE
 			val labels = host.split('.')
 			if (labels.size >= 2 && labels[labels.size - 2] in LISTED) return LISTED_SITE

@@ -45,14 +45,19 @@ object TerminalClassifier {
 		// 3. waiting for the network is not a failure of the method
 		if (s.isWaitingForNetwork) return Verdict.Waiting(
 			if (s.statusKey in WAITING) s.statusKey else StatusKey.WAITING_NETWORK)
-		// 4. still downloading: in progress, unless it stopped moving (exhausted Regular retries look like this)
+		// 4. the user (or the app for the user) paused it: never fall back (also while a stale DOWNLOADING status remains)
+		if (s.userIntent in PAUSES) return Verdict.UserStopped(s.userIntent)
+		// 5. still downloading: in progress, unless it stopped moving (exhausted Regular retries look like this). A
+		//    yt-dlp (M3U8) download whose process still runs is merging / remuxing / extracting: its bytes come only
+		//    from .part files, so a pause in them is not a failure
 		if (s.status == DOWNLOADING) {
 			val idle = s.msSinceLastProgress
-			return if (idle != null && idle >= STALL_AFTER_MS) Verdict.Failure(FailureClass.STALLED) else Verdict.InProgress
+			val stalled = idle != null && idle >= STALL_AFTER_MS && (s.engine == Engine.REGULAR || !s.isRunning)
+			return if (stalled) Verdict.Failure(FailureClass.STALLED) else Verdict.InProgress
 		}
 		// from here on: CLOSE (or an unknown status, treated like CLOSE)
-		// 5. the user (or the app for the user) paused it: never fall back
-		if (s.userIntent in PAUSES) return Verdict.UserStopped(s.userIntent)
+		// 5b. resumed and waiting for a free slot ("Waiting to join"): not started yet, not failed
+		if (s.statusKey == StatusKey.QUEUED) return Verdict.Waiting(StatusKey.QUEUED)
 		// 6. storage problems first: a storage error can also surface as "expired URL" (FileNotFoundException)
 		if (s.isFailedToAccessFile || s.hasStorageDialogMessage || s.statusKey == StatusKey.FILE_IO_FAILED)
 			return Verdict.Failure(FailureClass.STORAGE)

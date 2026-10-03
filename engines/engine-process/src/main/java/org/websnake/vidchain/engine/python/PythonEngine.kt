@@ -21,7 +21,8 @@ class PythonEngine(
 
 	val ready: Boolean get() = python.isFile && (!requireLibraryRuntime || layout.pythonReady)
 
-	suspend fun aio(args: List<String>, zip: File, timeoutMs: Long = 2 * 3_600_000L, extraEnv: Map<String, String> = emptyMap(), onLine: (String) -> Unit = {}): Run {
+	suspend fun aio(args: List<String>, zip: File, timeoutMs: Long = 2 * 3_600_000L, extraEnv: Map<String, String> = emptyMap(),
+			watchDir: File? = null, onLine: (String) -> Unit = {}): Run {
 		val lines = Collections.synchronizedList(ArrayList<String>())
 		val env = layout.env(extraPythonPath = listOf(zip)).toMutableMap()
 		if (!requireLibraryRuntime) { env.remove("PYTHONHOME"); env.remove("LD_LIBRARY_PATH") }   // a host Python in tests
@@ -32,7 +33,9 @@ class PythonEngine(
 		env["PYTHONIOENCODING"] = "utf-8"
 		if (!requireLibraryRuntime) env.remove("SSL_CERT_FILE").also { env.remove("REQUESTS_CA_BUNDLE") }
 		env.putAll(extraEnv)
-		val r = runner.run(EngineSpec(listOf(python.absolutePath, "-m", "aio_engine") + args, env, timeoutMs = timeoutMs), onStdout = { lines += it; onLine(it) })
+		// a download into [watchDir]: no line and no byte for 3 min = stuck
+		val r = runner.run(EngineSpec(listOf(python.absolutePath, "-m", "aio_engine") + args, env, timeoutMs = timeoutMs,
+			stallMs = watchDir?.let { 180_000L }, watchDir = watchDir), onStdout = { lines += it; onLine(it) })
 		return Run(r.outcome, r.exitCode, lines.toList(), r.stderrTail)
 	}
 }

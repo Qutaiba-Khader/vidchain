@@ -118,6 +118,26 @@ class SqliteLedger(context: Context) : AttemptLedger {
 
 	override fun parentOf(childId: String): String? = childCache[childId]
 
+	@Synchronized
+	override fun forget(downloadId: String) {
+		val d = db
+		d.beginTransaction()
+		try {
+			val id = arrayOf(downloadId)
+			d.delete("intents", "download_id = ?", id)
+			d.delete("handled", "download_id = ?", id)
+			d.delete("attempts", "parent_id = ?", id)
+			d.delete("children", "child_id = ? OR parent_id = ?", arrayOf(downloadId, downloadId))
+			d.delete("parents", "parent_id = ?", id)
+			d.setTransactionSuccessful()
+		} finally {
+			d.endTransaction()
+		}
+		intentCache.remove(downloadId)
+		childCache.remove(downloadId)
+		childCache.entries.removeAll { it.value == downloadId }
+	}
+
 	companion object {
 		const val DB_NAME = "vidchain-fallback.db"
 		const val DB_VERSION = 2

@@ -15,6 +15,7 @@ data class Expectation(
 	val expectedBytes: Long? = null,
 	val expectedDurationMs: Long? = null,
 	val fileName: String? = null,
+	val trusted: Boolean = false,        // the engine already checked the content (torrent pieces by hash): any non-empty file
 )
 
 /** Reads a media file's duration (Android: MediaExtractor). null = could not tell. */
@@ -41,6 +42,7 @@ class DeliveryVerifier(private val probe: DurationProbe? = null) {
 		if (!file.isFile) return Delivery(Check.FAIL, FileKind.EMPTY, "file missing")
 		val size = file.length()
 		if (size == 0L) return Delivery(Check.FAIL, FileKind.EMPTY, "empty file")
+		if (exp.trusted) return Delivery(Check.PASS, FileKind.UNKNOWN, "checked by the engine (hashes)")
 		val head = ByteArray(minOf(size, Sniffer.HEAD_BYTES.toLong()).toInt())
 		file.inputStream().use { input -> var n = 0; while (n < head.size) { val r = input.read(head, n, head.size - n); if (r < 0) break; n += r } }
 		val kind = Sniffer.sniff(head)
@@ -48,11 +50,12 @@ class DeliveryVerifier(private val probe: DurationProbe? = null) {
 		if (kind.negative && !negativeExpected(kind, exp)) return Delivery(Check.FAIL, kind, "${kind.name} instead of the file")
 		exp.expectedBytes?.takeIf { it > 0 }?.let { if (size < it) return Delivery(Check.FAIL, kind, "truncated: $size of $it bytes") }
 		if (!exp.expectMedia) return Delivery(if (kind == FileKind.UNKNOWN) Check.UNSURE else Check.PASS, kind, "not media: size ok")
+		if (size < MIN_MEDIA_BYTES) return Delivery(Check.FAIL, kind, "media file too small ($size bytes)")
 		if (!kind.media) {
 			return if (kind == FileKind.UNKNOWN) Delivery(Check.UNSURE, kind, "unknown container (raw stream?)")
 			else Delivery(Check.FAIL, kind, "${kind.name} is not a media file")
 		}
-		if (size < MIN_MEDIA_BYTES) return Delivery(Check.FAIL, kind, "media file too small ($size bytes)")
+		if (kind == FileKind.MATROSKA && Ebml.segmentPastEnd(file)) return Delivery(Check.FAIL, kind, "Matroska truncated (segment past end of file)")
 		if (kind == FileKind.MP4) {
 			val boxes = Mp4Boxes.walk(file)
 			if (boxes.garbage) return Delivery(Check.FAIL, kind, "MP4 box structure broken")
@@ -67,7 +70,8 @@ class DeliveryVerifier(private val probe: DurationProbe? = null) {
 		val expected = exp.expectedDurationMs?.takeIf { it > 0 }
 		if (expected != null) {
 			if (duration == null) return Delivery(Check.UNSURE, kind, "duration unreadable", null)
-			if (duration < expected * MIN_DURATION_SHARE) return Delivery(Check.FAIL, kind, "too short: ${duration}ms of ${expected}ms", duration)
+			// kept as the best so far (a preview or a trailer is still better than nothing), the chain keeps looking
+			if (duration < expected * MIN_DURATION_SHARE) return Delivery(Check.UNSURE, kind, "shorter than expected (${duration}ms of ${expected}ms): possibly a preview", duration)
 		}
 		return Delivery(Check.PASS, kind, "ok", duration)
 	}
@@ -82,6 +86,7 @@ class DeliveryVerifier(private val probe: DurationProbe? = null) {
 			FileKind.M3U8_PLAYLIST -> ext in setOf("m3u8", "m3u")
 			FileKind.MPD_MANIFEST -> ext == "mpd"
 			FileKind.TEXT -> ext in setOf("txt", "srt", "vtt", "csv", "md", "log")
+			FileKind.GZIP -> ext in setOf("gz", "tgz")
 			else -> false
 		}
 	}

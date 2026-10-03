@@ -178,7 +178,9 @@ class PlainGetFetcher(
 		/** Content-Disposition filename*= / filename=, else the URL's last path segment, else "download" + an extension from the type */
 		fun suggestName(disposition: String?, url: String, contentType: String?): String {
 			disposition?.let { d ->
-				Regex("""filename\*\s*=\s*(?:UTF-8|utf-8)''([^;]+)""").find(d)?.let { return clean(URLDecoder.decode(it.groupValues[1].trim('"'), "UTF-8")) }
+				Regex("""filename\*\s*=\s*(?:UTF-8|utf-8)''([^;]+)""").find(d)?.let { m ->
+					runCatching { URLDecoder.decode(m.groupValues[1].trim('"'), "UTF-8") }.getOrNull()?.let { return clean(it) }   // a malformed % falls through
+				}
 				Regex("""filename\s*=\s*"?([^";]+)"?""").find(d)?.let { return clean(it.groupValues[1]) }
 			}
 			val path = runCatching { java.net.URI(url).rawPath }.getOrNull().orEmpty()

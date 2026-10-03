@@ -34,7 +34,27 @@ object FallbackRuntime {
 			.connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
 			.readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
 			.followRedirects(true).followSslRedirects(true)
+			.addNetworkInterceptor(LanGuard)
 			.build()
+	}
+
+	/**
+	 * Every hop of every fallback HTTP request: a redirect (or any follow-up) from a public start to ANOTHER host that
+	 * is a local-network address (by name, literal, or the address actually connected to) is refused. A start the user
+	 * chose on the local network stays allowed, and so does its own host.
+	 */
+	object LanGuard : okhttp3.Interceptor {
+		override fun intercept(chain: okhttp3.Interceptor.Chain): okhttp3.Response {
+			val req = chain.request()
+			val start = chain.call().request().url
+			if (req.url.host != start.host && !org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(start.toString())) {
+				val addr = chain.connection()?.route()?.socketAddress?.address
+				if (org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(req.url.toString()) ||
+					(addr != null && org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocalAddress(addr)))
+					throw java.io.IOException("refused: redirect from ${start.host} to a local network address")
+			}
+			return chain.proceed(req)
+		}
 	}
 
 	/** yt-dlp engine on the shared engine kit (null until the runtime started) */
@@ -123,7 +143,11 @@ object FallbackRuntime {
 		if (scope != null) return
 		val app = context.applicationContext
 		appContext = app
-		val l = SqliteLedger(app)
+		// the database is opened once here; if it cannot be (storage full, corrupt file) the chains still run, unrecorded
+		val l: AttemptLedger = runCatching { SqliteLedger(app).also { it.recentParents(1) } }.getOrElse { e ->
+			Trace.event { TraceEvent("runtime.error", reason = "ledger database unavailable, using memory: ${e.javaClass.simpleName}: ${e.message}") }
+			org.websnake.vidchain.fallback.ledger.InMemoryLedger()
+		}
 		val s = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, e ->
 			Trace.event { TraceEvent("runtime.error", reason = "${e.javaClass.simpleName}: ${e.message}") }
 		})
@@ -136,13 +160,21 @@ object FallbackRuntime {
 		engines = kit
 		// aria2c (method A) is unpacked by its module like the library's other runtimes; the app itself never does it
 		s.launch(Dispatchers.IO) { runCatching { com.yausername.aria2c.Aria2c.getInstance().init(app) } }
+		// a card whose fallback line changed is re-drawn by the app (on the main thread)
+		org.websnake.vidchain.fallback.ui.TrailBoard.onChange = { id -> s.launch(Dispatchers.Main) { runCatching { host.refresh(id) } } }
 		s.launch {
 			runCatching { c.restoreBoard() }
 			delay(TICK_MS)
+			var resumed = false
 			while (isActive) {
 				val busy = try { c.tick() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) {
 					Trace.event { TraceEvent("observer.error", reason = "${e.javaClass.simpleName}: ${e.message}") }
 					true
+				}
+				// chains the OS stopped: continue once the app's lists are loaded (the first tick that saw them)
+				if (!resumed && runCatching { kotlinx.coroutines.withContext(Dispatchers.Main) { host.ready() } }.getOrDefault(false)) {
+					resumed = true
+					runCatching { c.resumeInterrupted() }
 				}
 				delay(if (busy) TICK_MS else IDLE_TICK_MS)
 			}
@@ -153,6 +185,11 @@ object FallbackRuntime {
 	fun recordIntent(downloadId: String, intent: UserIntent) {
 		ledger?.recordIntent(downloadId, intent, System.currentTimeMillis())
 		Trace.event { TraceEvent("intent", downloadId = downloadId, result = intent.name) }
+		// deleted / cleared: its running chain stops now (engines killed), nothing more is saved for it
+		if (intent == UserIntent.DELETE || intent == UserIntent.CLEAR || intent == UserIntent.CANCEL) {
+			val c = coordinator; val s = scope
+			if (c != null && s != null) s.launch { runCatching { c.cancelChain(downloadId) } }
+		}
 	}
 
 	/** app shutdown: running downloads are paused by the app, not by an error */

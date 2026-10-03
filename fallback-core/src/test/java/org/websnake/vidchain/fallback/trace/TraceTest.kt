@@ -42,7 +42,7 @@ class TraceTest {
 		val l = lines.single()
 		for (secret in listOf("abc123", "eyJhbGciOiJIUzI1NiJ9", "SECRET1", "SECRET2", "a=b", "theme=dark"))
 			assertFalse("leaked $secret in: $l", l.contains(secret))
-		assertTrue(l.contains("quality=720"))                 // harmless parameters stay
+		assertTrue(l.contains("https://cdn.example.com/v.mp4?token=<redacted>&sig=<redacted>&quality=<redacted>"))   // every URL value goes; the link stays readable
 		assertTrue(l.contains("<redacted>"))
 	}
 
@@ -68,5 +68,17 @@ class TraceTest {
 		Trace.addSink { throw IllegalStateException("disk full") }
 		Trace.emit(TraceEvent("decision"))
 		assertEquals(1, lines.size)
+	}
+
+	@Test fun `redaction - signed CDN links, fragments, userinfo, nested and JSON forms`() {
+		for (s in listOf("URI=https://cdn.x/v.mp4?X-Amz-Security-Token=S1",
+				"https://cdn.example/v/index.m3u8?hdnts=exp=1~acl=/*~hmac=S2: Server returned 403",
+				"https://a.example/p#access_token=S3", "https://a.example/p;jsessionid=S4",
+				"https://l.facebook.com/l.php?u=https%3A%2F%2Fcdn.x%2Fv.mp4%3Ftoken%3DS5", "https://user:S6@host.example/v.mp4",
+				"{\"Cookie\":\"sid=S7\"}", "Cookie: a=1, sid=S8", "auth_token=S9 lsig=S10")) {
+			val c = Redactor.clean(s)!!
+			for (k in 1..10) assertFalse("leaked S$k in: $c", Regex("S$k\\b").containsMatchIn(c))
+		}
+		assertEquals(Redactor.clean("https://x.example/a?b=1"), Redactor.clean(Redactor.clean("https://x.example/a?b=1")))   // idempotent
 	}
 }

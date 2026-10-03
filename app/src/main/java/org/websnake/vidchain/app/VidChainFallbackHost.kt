@@ -50,11 +50,33 @@ object VidChainFallbackHost : FallbackHost {
 		return child.downloadId.toString()
 	}
 
+	/** ids handed out this session: a new model takes max(id on disk)+1, but its file is written in the background */
+	private val issuedIds = HashSet<Int>()
+
+	@Volatile private var sawLoading = false
+	private val createdAt = android.os.SystemClock.elapsedRealtime()
+
+	override fun ready(): Boolean {
+		if (AIOApp.downloadSystem.isInitializing) { sawLoading = true; return false }
+		return sawLoading || android.os.SystemClock.elapsedRealtime() - createdAt > 15_000
+	}
+
+	override fun refresh(downloadId: String) {
+		val system = AIOApp.downloadSystem
+		val m = ArrayList(system.activeDownloadDataModels).firstOrNull { it.downloadId.toString() == downloadId } ?: return
+		system.downloadsUIManager.updateActiveUI(m)
+	}
+
 	override fun registerDelivered(parent: HostDownload, file: File, method: String): String? {
 		val dir = file.parent ?: return null
 		val p = findModel(parent.id)
 		val now = System.currentTimeMillis()
 		val m = DownloadDataModel()
+		synchronized(issuedIds) {
+			val taken = issuedIds + (ArrayList(AIOApp.downloadSystem.activeDownloadDataModels) + ArrayList(AIOApp.downloadSystem.finishedDownloadDataModels)).map { it.downloadId }
+			while (m.downloadId in taken) m.downloadId++
+			issuedIds += m.downloadId
+		}
 		m.fileName = file.name
 		m.fileDirectory = dir
 		m.fileCategoryName = p?.fileCategoryName.orEmpty()
@@ -88,12 +110,12 @@ object VidChainFallbackHost : FallbackHost {
 		val store = runCatching { android.webkit.CookieManager.getInstance() }.getOrNull()
 		for (u in listOfNotNull(url, page).distinct()) {
 			val host = runCatching { URI(u).host }.getOrNull() ?: continue
-			cookies += org.websnake.vidchain.fallback.context.SessionContext.parseHeader(store?.getCookie(u), host)
+			cookies += org.websnake.vidchain.fallback.context.SessionContext.parseHeader(store?.getCookie(u), host, secure = u.startsWith("https:", ignoreCase = true))
 		}
 		// cookies the app captured with the download belong to the page's host; they are used only for that host
 		page?.let { runCatching { URI(it).host }.getOrNull() }?.let { pageHost ->
 			val known = cookies.filter { it.host == pageHost.lowercase(Locale.ROOT) }.map { it.name }.toSet()
-			cookies += org.websnake.vidchain.fallback.context.SessionContext.parseHeader(p.siteCookieString, pageHost).filter { it.name !in known }
+			cookies += org.websnake.vidchain.fallback.context.SessionContext.parseHeader(p.siteCookieString, pageHost, secure = page.startsWith("https:", ignoreCase = true)).filter { it.name !in known }
 		}
 		// the browser's UA when the session came from the browser (servers may tie a session to it)
 		val ua = if (p.isDownloadFromBrowser || cookies.isNotEmpty()) AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null } else null
@@ -177,6 +199,7 @@ object VidChainFallbackHost : FallbackHost {
 			R.string.title_site_banned_in_your_area to StatusKey.SITE_BANNED,
 			R.string.title_invalid_file_url to StatusKey.INVALID_URL,
 			R.string.title_completed to StatusKey.COMPLETED,
+			R.string.title_waiting_to_join to StatusKey.QUEUED,
 		).entries.associate { (res, key) -> ctx.getString(res).trim() to key }
 		val marker = "\u0000"
 		val serverIssue = ctx.getString(R.string.title_server_issue, marker)
@@ -189,7 +212,6 @@ object VidChainFallbackHost : FallbackHost {
 	private fun heightOf(resolution: String): Int? =
 		Regex("(\\d{3,4})p\\b").find(resolution)?.groupValues?.get(1)?.toIntOrNull()
 			?: Regex("\\d+x(\\d+)").find(resolution)?.groupValues?.get(1)?.toIntOrNull()
-			?: resolution.trim().toIntOrNull()
 
 	/** audio / video by MIME type or extension; a name that says nothing counts as media (the app is a video downloader) */
 	private fun isMediaName(name: String, mime: String): Boolean {

@@ -20,7 +20,7 @@ internal object HttpFileExecutor {
 
 	suspend fun fetch(fetcher: PlainGetFetcher, verifier: DeliveryVerifier, ctx: FallbackContext, temp: File, url: String, headers: Map<String, String>,
 					  cookieFor: ((String) -> String?)? = null): MethodOutcome {
-		val exp = Expectation(expectMedia = ctx.expectMedia)
+		val exp = Expectation(expectMedia = ctx.expectMedia, fileName = ctx.fileName)      // the same view as the final check
 		return when (val r = fetcher.fetch(PlainGetFetcher.Fetch(url, headers, temp, early = { head -> verifier.early(head, exp)?.reason }, cookieFor = cookieFor))) {
 			is PlainGetFetcher.Result.Done -> MethodOutcome.Delivered(r.file.path)
 			is PlainGetFetcher.Result.Failed -> {

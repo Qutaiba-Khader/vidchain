@@ -1,6 +1,7 @@
 package org.websnake.vidchain.fallback.ui
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.websnake.vidchain.fallback.core.ChainSpec
@@ -18,7 +19,7 @@ class TrailTest {
 
 	@Test fun everyChainMethodHasAName() {
 		for (steps in ChainSpec.chains.values) for (m in steps) assertTrue(m, TrailText.name(m) != m)
-		assertTrue(ChainSpec.STUB in TrailText.ALL_METHODS)
+		assertFalse(ChainSpec.STUB in TrailText.ALL_METHODS)            // Settings lists the real methods only
 		assertEquals(TrailText.ALL_METHODS.size, TrailText.ALL_METHODS.toSet().size)
 	}
 

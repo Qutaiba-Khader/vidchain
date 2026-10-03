@@ -35,9 +35,12 @@ object ExitCodes {
 
 	const val SIGNAL_BASE = 128
 	const val SIGILL = 4; const val SIGABRT = 6; const val SIGBUS = 7; const val SIGFPE = 8
-	const val SIGKILL = 9; const val SIGSEGV = 11; const val SIGTERM = 15
+	const val SIGKILL = 9; const val SIGSEGV = 11; const val SIGTERM = 15; const val SIGSYS = 31
 
-	private val CRASH_SIGNALS = setOf(SIGILL, SIGABRT, SIGBUS, SIGFPE, SIGSEGV)
+	private val CRASH_SIGNALS = setOf(SIGILL, SIGABRT, SIGBUS, SIGFPE, SIGSEGV, SIGSYS)
+	/** what the system sends to a process it reclaims; every other code above 128 can also be a program's own exit
+	 *  code (ffmpeg exits with AVERROR & 0xFF: 183 invalid data, 146 timeout, 145 refused, ...) */
+	private val KILL_SIGNALS = setOf(SIGKILL, SIGTERM)
 
 	/**
 	 * @param exitCode the code the launcher shell reported, or null when the shell itself died (whole group killed)
@@ -51,7 +54,8 @@ object ExitCodes {
 		if (exitCode == OK) return EngineOutcome.Success
 		if (exitCode > SIGNAL_BASE && exitCode < SIGNAL_BASE + 64) {
 			val sig = exitCode - SIGNAL_BASE
-			return if (sig in CRASH_SIGNALS) EngineOutcome.Crashed(sig) else EngineOutcome.OsKilled("signal $sig")
+			if (sig in CRASH_SIGNALS) return EngineOutcome.Crashed(sig)
+			if (sig in KILL_SIGNALS) return EngineOutcome.OsKilled("signal $sig")
 		}
 		val reason = stderrTail.lineSequence().map { it.trim() }.lastOrNull { it.isNotEmpty() }?.take(300) ?: "exit $exitCode"
 		return when (exitCode) {

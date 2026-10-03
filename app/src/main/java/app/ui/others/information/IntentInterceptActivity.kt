@@ -143,6 +143,7 @@ class IntentInterceptActivity : BaseActivity() {
 			logger.d("onAfterLayoutRender: Retrieved intent URL = $intentUrl")
 
 			// Handle invalid URLs with user feedback
+			if (org.websnake.vidchain.app.VidChainShareRescue.shared(safeActivityRef, intentUrl)) { onBackPressActivity(); return } // FALLBACK-SEAM:share-entry
 			if (isValidURL(intentUrl) == false) {
 				logger.d("onAfterLayoutRender: Invalid URL detected.")
 				doSomeVibration(50)

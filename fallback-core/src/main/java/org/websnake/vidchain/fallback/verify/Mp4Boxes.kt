@@ -17,6 +17,8 @@ object Mp4Boxes {
 				if (len - pos < 8) return Result(types, truncated = true, garbage = false)
 				f.seek(pos); f.readFully(h, 0, 8)
 				var size = u32(h, 0)
+				// zero padding after a complete movie (some muxers and copy tools leave it): the end, not garbage
+				if ((0 until 8).all { h[it].toInt() == 0 } && "moov" in types) return Result(types, truncated = false, garbage = false)
 				val type = String(h, 4, 4, Charsets.ISO_8859_1)
 				if (!type.all { it.code in 32..126 }) return Result(types, truncated = false, garbage = true)
 				var header = 8L

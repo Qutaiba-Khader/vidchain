@@ -133,4 +133,30 @@ class ProcessEngineRunnerTest {
 		probe.check("slow", "v1", shell("sleep 300", timeoutMs = 300))   // timed out: not cached
 		assertEquals(null, store.get("probe.slow.v1"))
 	}
+
+	// --- T6.2 review fixes ---
+
+	@Test fun aStalledEngineIsStoppedAndOneThatPrintsIsNot() = runBlocking {
+		val stuck = runner().run(shell("sleep 30").copy(stallMs = 1_500))
+		assertTrue(stuck.outcome.toString(), stuck.outcome is EngineOutcome.Failed && (stuck.outcome as EngineOutcome.Failed).reason.startsWith("no progress"))
+		assertTrue(stuck.durationMs < 10_000)
+		val talking = runner().run(shell("for i in 1 2 3 4 5 6; do echo tick; sleep 0.5; done").copy(stallMs = 1_500))
+		assertEquals(EngineOutcome.Success, talking.outcome)
+	}
+
+	@Test fun growingFilesCountAsProgressWhenLinesDoNot() = runBlocking {
+		val dir = java.nio.file.Files.createTempDirectory("watch").toFile()
+		val grows = runner().run(shell("for i in 1 2 3 4 5 6; do echo status; head -c 1000 /dev/zero >> ${dir.path}/f; sleep 0.5; done")
+			.copy(stallMs = 1_500, watchDir = dir, linesAreProgress = false))
+		assertEquals(EngineOutcome.Success, grows.outcome)
+		val idle = runner().run(shell("while true; do echo status; sleep 0.2; done").copy(stallMs = 1_500, watchDir = dir, linesAreProgress = false))
+		assertTrue(idle.outcome is EngineOutcome.Failed)
+	}
+
+	@Test fun programExitCodesAboveOneTwentyEightAreNotOsKills() {
+		assertEquals(EngineOutcome.Failed(183, "Invalid data found when processing input"), ExitCodes.classify(183, false, false, "Invalid data found when processing input"))
+		assertTrue(ExitCodes.classify(146, false, false) is EngineOutcome.Failed)
+		assertEquals(EngineOutcome.Crashed(31), ExitCodes.classify(159, false, false))
+		assertEquals(EngineOutcome.OsKilled("signal 9"), ExitCodes.classify(137, false, false))
+	}
 }

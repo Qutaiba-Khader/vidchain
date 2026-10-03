@@ -75,7 +75,7 @@ class SessionMethodTest {
 		), "https://www.site.org/watch/9?x=1", "UA")
 		assertEquals("a=1; sec=3", sc.cookieHeader("https://example.com/v.mp4"))
 		assertEquals("a=1", sc.cookieHeader("http://example.com/v.mp4"))                  // secure cookie only over https
-		assertEquals("a=1; b=2; sec=3", sc.cookieHeader("https://cdn.example.com/v.mp4"))   // parent domain cookies apply
+		assertEquals("b=2", sc.cookieHeader("https://cdn.example.com/v.mp4"))   // exact host only: the store cannot tell domain cookies apart
 		assertNull(sc.cookieHeader("https://evil-example.com/v.mp4"))
 		assertEquals("https://www.site.org", sc.originFor("https://example.com/v.mp4"))
 		assertNull(SessionContext(emptyList(), "https://example.com/p", null).originFor("https://example.com/v.mp4"))

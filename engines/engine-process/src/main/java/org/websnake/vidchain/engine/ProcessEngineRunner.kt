@@ -17,12 +17,20 @@ import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-/** One engine run. [argv] starts with the binary (absolute path). */
+/**
+ * One engine run. [argv] starts with the binary (absolute path).
+ * Stall watchdog: with [stallMs] set, the engine is stopped when for that long it printed no line (unless
+ * [linesAreProgress] is false: engines that print a status line every second whether or not anything moves) and the
+ * files under [watchDir] did not grow. [timeoutMs] stays the hard cap behind it.
+ */
 data class EngineSpec(
 	val argv: List<String>,
 	val env: Map<String, String> = emptyMap(),
 	val workDir: File? = null,
 	val timeoutMs: Long = 30 * 60_000L,
+	val stallMs: Long? = null,
+	val watchDir: File? = null,
+	val linesAreProgress: Boolean = true,
 )
 
 data class EngineResult(
@@ -92,12 +100,15 @@ class ProcessEngineRunner(
 		val pgid = CompletableDeferred<Int?>()
 		var exitLine: Int? = null
 		var timedOut = false
+		val stalledFlag = java.util.concurrent.atomic.AtomicBoolean(false)
+		val lastActivity = java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis())
 		coroutineScope {
 			val readers = listOf(
 				launch(Dispatchers.IO) {
 					process.inputStream.bufferedReader().useLines { lines ->
 						for (line in lines) {
 							if (!pgid.isCompleted && line.startsWith(Launcher.PGID_MARK)) { pgid.complete(line.substringAfter(' ').trim().toIntOrNull()); continue }
+							if (spec.linesAreProgress) lastActivity.set(System.currentTimeMillis())
 							tail(out, line); runCatching { onStdout(line) }
 						}
 					}
@@ -107,11 +118,29 @@ class ProcessEngineRunner(
 					process.errorStream.bufferedReader().useLines { lines ->
 						for (line in lines) {
 							if (line.startsWith(Launcher.EXIT_MARK)) { exitLine = line.substringAfter(' ').trim().toIntOrNull(); continue }
+							if (spec.linesAreProgress) lastActivity.set(System.currentTimeMillis())
 							tail(err, line); runCatching { onStderr(line) }
 						}
 					}
 				},
 			)
+			val watchdog = spec.stallMs?.let { stallMs ->
+				launch(Dispatchers.IO) {
+					var bytes = -1L
+					while (true) {
+						kotlinx.coroutines.delay((stallMs / 6).coerceIn(250, 10_000))
+						val now = System.currentTimeMillis()
+						val b = spec.watchDir?.let { d -> runCatching { d.walkTopDown().filter { it.isFile }.sumOf { it.length() } }.getOrDefault(bytes) } ?: -1L
+						if (b != bytes) { bytes = b; lastActivity.set(now) }
+						if (now - lastActivity.get() >= stallMs) {
+							stalledFlag.set(true)
+							log("engine stalled (${stallMs / 1000} s without progress): ${spec.argv.firstOrNull()?.substringAfterLast('/')}")
+							withContext(NonCancellable) { killGroup(process, pgid) }
+							break
+						}
+					}
+				}
+			}
 			try {
 				withTimeout(spec.timeoutMs) { runInterruptible(Dispatchers.IO) { process.waitFor() } }
 			} catch (e: TimeoutCancellationException) {
@@ -125,11 +154,13 @@ class ProcessEngineRunner(
 				log("engine cancelled: ${spec.argv.firstOrNull()?.substringAfterLast('/')}")
 				throw e
 			}
+			watchdog?.cancel()
 			// whatever the engine left running in its group goes too
 			withContext(NonCancellable) { signalGroup(pgid, ExitCodes.SIGKILL) }
 			if (withTimeoutOrNull(killGraceMs) { readers.forEach { it.join() } } == null) readers.forEach { it.cancel() }
 		}
-		val outcome = ExitCodes.classify(exitLine, cancelledByUs = false, timedOut = timedOut, stderrTail = err.joinToString("\n"))
+		val outcome = if (stalledFlag.get()) EngineOutcome.Failed(-1, "no progress for ${(spec.stallMs ?: 0) / 1000} s (stopped)")
+			else ExitCodes.classify(exitLine, cancelledByUs = false, timedOut = timedOut, stderrTail = err.joinToString("\n"))
 		val result = EngineResult(outcome, exitLine, out.toList(), err.toList(), System.currentTimeMillis() - started)
 		log("engine ${spec.argv.firstOrNull()?.substringAfterLast('/')}: $outcome in ${result.durationMs}ms")
 		result

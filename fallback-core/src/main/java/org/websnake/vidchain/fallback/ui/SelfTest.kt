@@ -33,7 +33,9 @@ object SelfTest {
 			val ff = kit.probe.check("ffmpeg", kit.layout.engineHash(l.ffmpeg), CapabilityProbe.ffmpegSpec(l))
 			"ffmpeg: ${if (ff.ok) "OK " else "FAILED "}${ff.detail}"
 		} else "ffmpeg: not found"
-		lines += "aria2c: ${if (l.aria2c.isFile) "present" else "not in this build yet"}"
+		val wide = android.os.Build.SUPPORTED_64_BIT_ABIS.isNotEmpty() && (android.os.Build.SUPPORTED_ABIS.firstOrNull() in setOf("arm64-v8a", "x86_64"))
+		lines += "aria2c: ${if (l.aria2c.isFile) "present" else if (!wide) "not available on 32-bit phones" else "not unpacked yet"}"
+		lines += "lux: ${if (l.lux.isFile) "present" else if (!wide) "not available on 32-bit phones" else "missing"}"
 		val zip = org.websnake.vidchain.fallback.methods.PyZip.installed(context)
 		lines += if (l.pythonReady && zip != null) {
 			val r = org.websnake.vidchain.engine.python.PythonEngine(kit.runner, l).aio(listOf("probe"), zip, timeoutMs = 60_000)

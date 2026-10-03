@@ -33,4 +33,10 @@ interface FallbackHost {
 
 	/** The browsing session for [url] (method S): cookies from the in-app browser for that host, full page Referer, browser UA. */
 	fun session(parent: HostDownload, url: String): org.websnake.vidchain.fallback.context.SessionContext? = null
+
+	/** false while the app is still loading its download lists (a partial list must not become the baseline) */
+	fun ready(): Boolean = true
+
+	/** re-draw [downloadId]'s card (its fallback line changed) */
+	fun refresh(downloadId: String) {}
 }

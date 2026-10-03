@@ -33,10 +33,57 @@ import java.util.concurrent.atomic.AtomicBoolean
 object VidChainShareRescue {
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 	private val busy = AtomicBoolean(false)
+	@Volatile private var front: WeakReference<BaseActivity>? = null
+	private val tracking = AtomicBoolean(false)
+
+	/** remembers the app's screen in front (the yt-dlp answer may arrive after the share screen closed) */
+	private fun track(activity: BaseActivity) {
+		if (!tracking.compareAndSet(false, true)) return
+		activity.application.registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
+			override fun onActivityResumed(a: android.app.Activity) { if (a is BaseActivity) front = WeakReference(a) }
+			override fun onActivityCreated(a: android.app.Activity, b: android.os.Bundle?) {}
+			override fun onActivityStarted(a: android.app.Activity) {}
+			override fun onActivityPaused(a: android.app.Activity) {}
+			override fun onActivityStopped(a: android.app.Activity) {}
+			override fun onActivitySaveInstanceState(a: android.app.Activity, b: android.os.Bundle) {}
+			override fun onActivityDestroyed(a: android.app.Activity) {}
+		})
+	}
 
 	/** the first http(s) link inside shared text; null when there is none or the text already is that link */
 	@JvmStatic
 	fun extractUrl(text: String?): String? = org.websnake.vidchain.fallback.context.ShareText.firstUrl(text)
+
+	/**
+	 * Seam share-entry: a share the app would reject as "Invalid URL" (it only takes a bare http(s) link). A magnet /
+	 * torrent link runs chain B6; a text with a link in it is shared again as that link, so the app's own analysis runs
+	 * on it. true = taken (the share screen closes). A valid link is never touched.
+	 */
+	@JvmStatic
+	fun shared(activity: BaseActivity?, text: String?): Boolean = try {
+		if (activity == null || text.isNullOrBlank() || lib.networks.URLUtility.isValidURL(text)) false
+		else if (torrent(activity, text)) true
+		else extractUrl(text)?.let { url ->
+			activity.startActivity(android.content.Intent(activity, activity.javaClass).setAction(android.content.Intent.ACTION_SEND)
+				.setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, url))
+			true
+		} ?: false
+	} catch (t: Throwable) {
+		false
+	}
+
+	/** Seam paste: the same for text pasted into the "download a link" dialog. true = taken (a torrent); else [replace] gets the link in it. */
+	@JvmStatic
+	fun pasted(activity: BaseActivity?, text: String?, replace: (String) -> Unit): Boolean = try {
+		if (activity == null || text.isNullOrBlank() || lib.networks.URLUtility.isValidURL(text)) false
+		else if (torrent(activity, text)) true
+		else { extractUrl(text)?.let(replace); false }
+	} catch (t: Throwable) {
+		false
+	}
+
+	private fun aria2Ready(): Boolean =
+		FallbackRuntime.engines?.let { org.websnake.vidchain.engine.aria2.Aria2Engine(it.runner, it.layout).ready } ?: false
 
 	/** a shared magnet link or torrent/metalink file: VidChain runs chain B6 (aria2c) for it; true = taken */
 	@JvmStatic
@@ -44,11 +91,19 @@ object VidChainShareRescue {
 		try {
 			val u = uri?.trim() ?: return false
 			if (activity == null || UrlClass.of(u) != UrlClass.MAGNET_TORRENT) return false
-			if (!FallbackSettings.methodOn(activity, "A")) return false
+			if (!FallbackSettings.enabled(activity) || !FallbackSettings.methodOn(activity, "A")) return false
 			val c = FallbackRuntime.coordinator ?: return false
+			if (!aria2Ready()) {
+				// 32-bit phones carry no aria2c (Q8), and the first start unpacks it a moment after the app opens
+				Toast.makeText(activity.applicationContext, "VidChain: torrents need aria2c, which is not available on this phone", Toast.LENGTH_LONG).show()
+				return true
+			}
 			val dir = app.core.engines.downloader.DownloadDataModel().fileDirectory.takeIf { it.isNotEmpty() } ?: return false
+			// the same torrent shared twice is one download (its info hash, else the link)
+			val key = Regex("""(?i)btih:([a-z0-9]+)""").find(u)?.groupValues?.get(1)?.lowercase() ?: u
+			val hash = java.security.MessageDigest.getInstance("SHA-1").digest(key.toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
 			val root = org.websnake.vidchain.fallback.core.HostDownload(
-				id = "share-${System.currentTimeMillis()}", url = u, mediaUrl = u,
+				id = "share-$hash", url = u, mediaUrl = u,
 				snapshot = org.websnake.vidchain.fallback.classifier.DownloadSnapshot(org.websnake.vidchain.fallback.classifier.Engine.REGULAR, org.websnake.vidchain.fallback.classifier.DownloadSnapshot.CLOSE),
 				filePath = File(dir, "torrent").path, expectMedia = false, keepNames = true,
 			)
@@ -73,13 +128,16 @@ object VidChainShareRescue {
 			val engine = FallbackRuntime.ytdlp ?: return
 			if (!engine.ready) return
 			if (!busy.compareAndSet(false, true)) return
+			track(activity)
 			val ref = WeakReference(activity)
 			Toast.makeText(activity.applicationContext, "VidChain: checking this link with yt-dlp…", Toast.LENGTH_SHORT).show()
 			Trace.event { TraceEvent("share.rescue", chain = UrlClass.of(url).chain, method = "Y", result = "start") }
 			scope.launch {
 				try {
 					val found = withContext(Dispatchers.Default) { lookUp(engine, url, cookie) }
-					val a = ref.get()?.takeIf { !it.isFinishing && !it.isDestroyed } ?: return@launch
+					// a share from another app has closed its screen by now: show the result on the app's screen in front
+					val a = ref.get()?.takeIf { !it.isFinishing && !it.isDestroyed }
+						?: front?.get()?.takeIf { !it.isFinishing && !it.isDestroyed } ?: return@launch
 					if (found == null || found.videoFormats.isEmpty()) {
 						Toast.makeText(a.applicationContext, "VidChain: no downloadable video found on this page", Toast.LENGTH_SHORT).show()
 						return@launch
@@ -99,7 +157,7 @@ object VidChainShareRescue {
 	private suspend fun lookUp(engine: YtDlpEngine, url: String, cookie: String?): VideoInfo? {
 		val host = runCatching { URI(url).host }.getOrNull()
 		val cookieFile = if (!cookie.isNullOrBlank() && host != null) {
-			SessionContext(SessionContext.parseHeader(cookie, host), null, null)
+			SessionContext(SessionContext.parseHeader(cookie, host, secure = url.startsWith("https:", ignoreCase = true)), null, null)
 				.writeNetscape(File(AIOApp.INSTANCE.cacheDir, "vidchain-cookies/share-${System.nanoTime()}.txt"))
 		} else null
 		try {

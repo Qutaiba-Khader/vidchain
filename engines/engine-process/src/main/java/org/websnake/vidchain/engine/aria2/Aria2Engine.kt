@@ -36,7 +36,11 @@ class Aria2Engine(
 	suspend fun run(job: Job, timeoutMs: Long = 24 * 3_600_000L, onProgress: (Double) -> Unit = {}): Result {
 		if (!ready) return Result.Failed(null, "aria2c not unpacked yet", null)
 		job.dir.mkdirs()
-		val r = runner.run(EngineSpec(argv(job), layout.env(), workDir = job.dir, timeoutMs = timeoutMs), onStdout = { l -> progress(l)?.let(onProgress) })
+		// plain files: no byte for 3 min = stuck (aria2c prints a status line every second either way, so only bytes count);
+		// torrents have their own rule (--bt-stop-timeout) because finding peers can take a while
+		val plain = !job.uri.startsWith("magnet:", true) && !job.uri.substringBefore('?').endsWith(".torrent", true) && !job.uri.substringBefore('?').endsWith(".metalink", true)
+		val r = runner.run(EngineSpec(argv(job), layout.env(), workDir = job.dir, timeoutMs = timeoutMs,
+			stallMs = if (plain) 180_000L else null, watchDir = job.dir, linesAreProgress = false), onStdout = { l -> progress(l)?.let(onProgress) })
 		if (r.outcome != EngineOutcome.Success) {
 			val code = r.exitCode
 			return Result.Failed(code, "${meaning(code)}: ${r.stderrTail.lastOrNull { it.isNotBlank() }?.take(200) ?: r.outcome}", r.outcome)

@@ -53,7 +53,7 @@ class FfmpegEngine(
 		require(inputs.size in 1..2) { "one input, or video + audio" }
 		if (!ready) return Result.Failed("ffmpeg not found", null)
 		out.parentFile?.mkdirs(); out.delete()
-		val r = runner.run(EngineSpec(argv(inputs, out, format), layout.env(), timeoutMs = timeoutMs), onStdout = { line ->
+		val r = runner.run(EngineSpec(argv(inputs, out, format), layout.env(), timeoutMs = timeoutMs, stallMs = 180_000L, watchDir = out.parentFile), onStdout = { line ->
 			progressMs(line)?.let { ms -> durationMs?.takeIf { it > 0 }?.let { onProgress((ms * 100.0 / it).coerceIn(0.0, 100.0)) } }
 		})
 		if (r.outcome != EngineOutcome.Success) {

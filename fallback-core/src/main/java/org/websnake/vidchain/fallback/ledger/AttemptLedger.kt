@@ -45,4 +45,10 @@ interface AttemptLedger {
 
 	fun mapChild(childId: String, parentId: String)
 	fun parentOf(childId: String): String?
+
+	/**
+	 * Drop everything known about [downloadId] (intents, handled failures, its attempts, child links, effective URL).
+	 * Called when the user deleted or cleared it: the app reuses download ids, and a new download must not inherit them.
+	 */
+	fun forget(downloadId: String)
 }

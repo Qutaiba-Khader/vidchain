@@ -128,6 +128,7 @@ class VideoLinkPasteEditor(
 			userGivenURL = editFieldFileURL.text.toString()
 			logger.d("Download button clicked with URL: $userGivenURL")
 
+			if (org.websnake.vidchain.app.VidChainShareRescue.pasted(safeActivity, userGivenURL) { userGivenURL = it }) { close(); return } // FALLBACK-SEAM:paste
 			if (!URLUtility.isValidURL(userGivenURL)) {
 				logger.d("Invalid URL entered: $userGivenURL")
 				safeActivity.doSomeVibration(50)

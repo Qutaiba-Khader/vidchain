@@ -12,7 +12,7 @@ enum class StatusKey {
 	PAUSED, DOWNLOAD_FAILED, FILE_IO_FAILED, LINK_EXPIRED, FILE_DELETED,
 	WAITING_NETWORK, WAITING_WIFI, WAITING_INTERNET,
 	SERVER_PROBLEM, LOGIN_REQUIRED, CONTENT_NOT_AVAILABLE, FORMAT_NOT_FOUND, SITE_BANNED, SERVER_ISSUE,
-	INVALID_URL, COMPLETED, OTHER, NONE,
+	INVALID_URL, COMPLETED, QUEUED, OTHER, NONE,      // QUEUED = "Waiting to join": resumed, not started yet
 }
 
 /** What the user (or the app on the user's behalf) last asked for, recorded at the UI seams (T1.6). */

@@ -50,7 +50,7 @@ class YtDlpEngine(
 			"-o", File(dir, "$base.%(ext)s").absolutePath, "--print", "after_move:$PATH_MARK%(filepath)s",
 		)
 		var finalPath: String? = null
-		val r = runner.run(EngineSpec(argv(o, args) + listOf("--", url), layout.env(), timeoutMs = timeoutMs), onStdout = { line ->
+		val r = runner.run(EngineSpec(argv(o, args) + listOf("--", url), layout.env(), timeoutMs = timeoutMs, stallMs = STALL_MS, watchDir = dir), onStdout = { line ->
 			if (line.startsWith(PATH_MARK)) finalPath = line.removePrefix(PATH_MARK).trim()
 			else progress(line)?.let(onProgress)
 		})
@@ -73,6 +73,8 @@ class YtDlpEngine(
 
 	companion object {
 		const val PATH_MARK = "__VIDCHAIN_FILE__"
+		/** no progress line and no byte for this long: the download is stuck (the 4 h cap stays behind it) */
+		const val STALL_MS = 180_000L
 		private val PROGRESS = Regex("""^\[download]\s+(\d+(?:\.\d+)?)%""")
 
 		fun progress(line: String): Double? = PROGRESS.find(line.trim())?.groupValues?.get(1)?.toDoubleOrNull()

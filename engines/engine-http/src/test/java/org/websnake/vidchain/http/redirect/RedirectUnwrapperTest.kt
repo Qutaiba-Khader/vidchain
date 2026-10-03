@@ -86,4 +86,13 @@ class RedirectUnwrapperTest {
 		assertEquals(s.url("/final.mp4"), res.url)
 		assertEquals(listOf(wrapped, s.url("/short")), res.hops)
 	}
+
+	@Test fun everyLocalAddressSpellingIsLocal() {
+		for (u in listOf("http://127.1/", "http://2130706433/", "http://0x7f000001/", "http://0177.0.0.1/", "http://3232235777/",
+				"http://10.1/", "http://[::]/", "http://[::ffff:127.0.0.1]/", "http://[fd00::1]/", "http://[fe80::1]/", "http://localhost./",
+				"http://127.0.0.1./", "http://0.0.0.0/", "http://224.0.0.1/", "http://100.64.1.1/"))
+			assertTrue(u, RedirectUnwrapper.isLocal(u))
+		for (u in listOf("https://example.org/", "https://8.8.8.8/", "https://[2606:4700::1111]/", "https://123.com/", "https://1.1/"))
+			assertTrue(u, !RedirectUnwrapper.isLocal(u))
+	}
 }

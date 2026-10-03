@@ -32,7 +32,7 @@ class GalleryDlMethod(
 			ctx.referer?.takeIf { it.startsWith("http") }?.let { add("--referer"); add(it) }
 			add("--"); add(url)                                   // a URL is never read as an option
 		}
-		val r = e.aio(args, z)
+		val r = e.aio(args, z, watchDir = dir)
 		val files = r.lines.mapNotNull { l -> runCatching { JSONObject(l) }.getOrNull()?.takeIf { it.optString("event") == "file" }?.optString("path")?.let(::File) }
 			.filter { it.isFile }.sortedByDescending { it.length() }
 		if (files.isNotEmpty() && r.outcome == EngineOutcome.Success) return MethodOutcome.Delivered(files.first().path, extras = files.drop(1).map { it.path })

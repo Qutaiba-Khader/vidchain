@@ -44,4 +44,13 @@ class InMemoryLedger : AttemptLedger {
 
 	@Synchronized override fun mapChild(childId: String, parentId: String) { children[childId] = parentId }
 	@Synchronized override fun parentOf(childId: String) = children[childId]
+
+	@Synchronized override fun forget(downloadId: String) {
+		intents.remove(downloadId)
+		handled.removeAll { it.first == downloadId }
+		attempts.keys.removeAll { it.first == downloadId }
+		children.remove(downloadId)
+		children.values.removeAll { it == downloadId }
+		effective.remove(downloadId)
+	}
 }
