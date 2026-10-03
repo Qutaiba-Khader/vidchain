@@ -42,15 +42,22 @@ if [ -n "$PYCERT" ]; then
   adb shell "cat /data/local/tmp/fixture-ca.pem >> '$PYCERT'"
 fi
 
-share() { adb shell am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "'$1'" -p "$PKG" >/dev/null; sleep "$2"; }
-log "share 1: unlisted page -> in-app browser (WebView)"
+# Fresh app process before every share: upstream leaves its "intercepting" flag set after a link is
+# handed to the browser (SharedVideoURLIntercept.kt:212 skips the reset at :298), so later shares in
+# the same process are ignored. Recorded for T1.3 (fault matrix) - here it only must not hide traffic.
+n=0
+share() {
+  n=$((n+1))
+  adb shell am force-stop "$PKG"; sleep 2
+  adb shell am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "'$1'" -p "$PKG" >/dev/null
+  sleep "$2"
+  adb shell screencap -p /sdcard/s.png && adb pull /sdcard/s.png "$OUT/screen-$n.png" >/dev/null
+}
+log "share 1: listed site (vimeo) -> yt-dlp format listing (Python)"
+share "https://vimeo.com/76979871" 75
+log "share 2: YouTube -> NewPipe metadata + yt-dlp"
+share "https://www.youtube.com/watch?v=aqz-KE-bpKQ" 75
+log "share 3: unlisted page -> in-app browser (WebView)"
 share "https://fixture.vidchain.test/page.html" 30
-adb shell input keyevent KEYCODE_BACK; sleep 3
-log "share 2: listed site (vimeo) -> yt-dlp format listing (Python)"
-share "https://vimeo.com/76979871" 60
-adb shell input keyevent KEYCODE_BACK; sleep 3
-log "share 3: YouTube -> NewPipe metadata + yt-dlp"
-share "https://www.youtube.com/watch?v=aqz-KE-bpKQ" 60
-adb shell screencap -p /sdcard/s.png && adb pull /sdcard/s.png "$OUT/screen.png" >/dev/null
-adb logcat -d | grep -F "$PKG" | sed -E 's#https?://[^ ]+#<url>#g' | tail -400 > "$OUT/logcat-app.txt" || true
+adb logcat -d -v threadtime | grep -E "$PKG|youtubedl|yt-dlp|YoutubeDL|python|VideoParser|SharedVideo|IntentIntercept" | sed -E 's#https?://[^ ]+#<url>#g' | tail -600 > "$OUT/logcat-app.txt" || true
 log "done"
