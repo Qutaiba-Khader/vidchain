@@ -16,7 +16,8 @@ class EngineKit(context: Context) {
 	private val app = context.applicationContext
 	val layout = EngineLayout(java.io.File(app.applicationInfo.nativeLibraryDir), app.noBackupFilesDir, app.cacheDir)
 	val runner = ProcessEngineRunner(log = { msg -> Trace.event { TraceEvent("engine", reason = msg) } })
-	private val store = PrefsStore(app)
+	/** small persistent store of the engines (probe cache, quarantine, YouTube client winner) */
+	val store: KeyValueStore = PrefsStore(app)
 	val probe = CapabilityProbe(runner, store)
 	val quarantine = Quarantine(store)
 	val abi: String = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"

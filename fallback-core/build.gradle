@@ -38,4 +38,5 @@ dependencies {
 	implementation libs.kotlin.coroutines.android
 	implementation libs.androidx.appcompat
 	testImplementation "junit:junit:4.13.2"
+	testImplementation "org.json:json:20250517"   // real org.json in JVM tests (android.jar only has stubs)
 }

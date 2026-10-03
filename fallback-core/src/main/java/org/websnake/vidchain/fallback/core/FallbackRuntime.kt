@@ -48,6 +48,9 @@ object FallbackRuntime {
 
 	/** registered methods; P2-P5 add theirs here */
 	val methods: MutableList<FallbackMethod> = CopyOnWriteArrayList(listOf<FallbackMethod>(
+		org.websnake.vidchain.fallback.methods.YouTubeClientMethod({ ytdlp }, {
+			engines?.let { k -> org.websnake.vidchain.ytdlp.youtube.YouTubeClients(k.store, k.layout.engineHash(k.layout.ytdlp)) }
+		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
 		org.websnake.vidchain.fallback.methods.SessionMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe), ::sessionFor,
