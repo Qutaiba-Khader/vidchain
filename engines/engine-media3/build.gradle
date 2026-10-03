@@ -1,0 +1,40 @@
+// VidChain Media3 engine (new code, not upstream): method M downloads HLS/DASH with Media3 into a cache and
+// exports it to MP4 with the library ffmpeg through a loopback proxy (T3.6).
+plugins {
+	id 'com.android.library'
+	id 'org.jetbrains.kotlin.android'
+}
+
+android {
+	namespace "org.websnake.vidchain.media3"
+	compileSdk 36
+	defaultConfig {
+		minSdk 28
+	}
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_17
+		targetCompatibility JavaVersion.VERSION_17
+	}
+	testOptions {
+		unitTests.returnDefaultValues = true
+	}
+	lint {
+		abortOnError true
+		disable "NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion"
+	}
+}
+
+kotlin {
+	jvmToolchain(17)
+}
+
+dependencies {
+	implementation libs.kotlin.coroutines.core
+	implementation libs.kotlin.coroutines.android
+	api project(':engines:engine-process')
+	implementation libs.media3.exoplayer
+	implementation libs.media3.exoplayer.hls
+	implementation libs.media3.exoplayer.dash
+	implementation libs.media3.datasource
+	testImplementation "junit:junit:4.13.2"
+}

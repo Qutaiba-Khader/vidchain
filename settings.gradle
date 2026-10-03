@@ -97,3 +97,4 @@ include ':engines:engine-http'   // FALLBACK-SEAM:module-http VidChain HTTP engi
 include ':engines:engine-ytdlp'   // FALLBACK-SEAM:module-ytdlp VidChain yt-dlp engine (new code, T2.4)
 include ':engines:engine-hosts'   // FALLBACK-SEAM:module-hosts VidChain file-host resolvers (new code, T3.1)
 include ':engines:engine-web'   // FALLBACK-SEAM:module-web VidChain web engines (new code, T3.2)
+include ':engines:engine-media3'   // FALLBACK-SEAM:module-media3 VidChain Media3 engine (new code, T3.6)
