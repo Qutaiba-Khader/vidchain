@@ -35,6 +35,9 @@ object FallbackRuntime {
 		private set
 	@Volatile var coordinator: FallbackCoordinator? = null
 		private set
+	/** shared engine runtime for the engine-based methods (T1.9) */
+	@Volatile var engines: EngineKit? = null
+		private set
 	@Volatile private var host: FallbackHost? = null
 	private var scope: CoroutineScope? = null
 
@@ -50,6 +53,7 @@ object FallbackRuntime {
 			FallbackCoordinator.Config(INCLUDE_STUB, enabled = { FallbackSettings.enabled(app) }, methodOn = { FallbackSettings.methodOn(app, it) }),
 			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe))
 		ledger = l; coordinator = c; this.host = host; scope = s
+		engines = EngineKit(app)
 		s.launch {
 			delay(TICK_MS)
 			while (isActive) {

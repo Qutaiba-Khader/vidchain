@@ -1,0 +1,36 @@
+// VidChain engine runtime (new code, not upstream): runs native engines (bundled Python, ffmpeg, aria2c, later
+// gallery-dl / Streamlink / lux) as child processes for the fallback methods. T1.9.
+plugins {
+	id 'com.android.library'
+	id 'org.jetbrains.kotlin.android'
+}
+
+android {
+	namespace "org.websnake.vidchain.engine"
+	compileSdk 36
+	defaultConfig {
+		minSdk 28
+	}
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_17
+		targetCompatibility JavaVersion.VERSION_17
+	}
+	testOptions {
+		unitTests.returnDefaultValues = true
+	}
+	lint {
+		abortOnError true
+		disable "NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion"
+	}
+}
+
+kotlin {
+	jvmToolchain(17)
+}
+
+dependencies {
+	implementation libs.kotlin.coroutines.core
+	implementation libs.kotlin.coroutines.android
+	implementation libs.androidx.lifecycle.process
+	testImplementation "junit:junit:4.13.2"
+}

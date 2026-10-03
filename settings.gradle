@@ -92,3 +92,4 @@ rootProject.name = "AIO_VDM"
  */
 include ':app'
 include ':fallback-core'   // FALLBACK-SEAM:module VidChain fallback core (new code)
+include ':engines:engine-process'   // FALLBACK-SEAM:module-engine VidChain engine runtime (new code, T1.9)

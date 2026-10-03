@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="org.websnake.vidchain.engine.EngineUnitsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-03T06:39:24.183Z" hostname="code-cc" time="0.051">
+  <properties/>
+  <testcase name="exitCodeTable" classname="org.websnake.vidchain.engine.EngineUnitsTest" time="0.03"/>
+  <testcase name="quarantineCountsOnlyCrashes" classname="org.websnake.vidchain.engine.EngineUnitsTest" time="0.014"/>
+  <testcase name="crashesOutsideTheWindowDoNotAddUp" classname="org.websnake.vidchain.engine.EngineUnitsTest" time="0.001"/>
+  <testcase name="layoutMatchesTheLibrary" classname="org.websnake.vidchain.engine.EngineUnitsTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

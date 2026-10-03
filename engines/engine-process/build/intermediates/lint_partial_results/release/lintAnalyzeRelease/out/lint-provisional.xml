@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.13.2" type="conditional_incidents">
+
+    <incident
+        id="ObsoleteSdkInt"
+        severity="warning"
+        message="Unnecessary; `SDK_INT` is always >= 34">
+        <fix-replace
+            description="Delete @RequiresApi"
+            replacement=""
+            priority="0">
+            <range
+                file="${:engines:engine-process*release*MAIN*sourceProvider*0*javaDir*0}/org/websnake/vidchain/engine/EngineHost.kt"
+                startOffset="3187"
+                endOffset="3203"/>
+        </fix-replace>
+        <location
+            file="${:engines:engine-process*release*MAIN*sourceProvider*0*javaDir*0}/org/websnake/vidchain/engine/EngineHost.kt"
+            line="85"
+            column="2"
+            startOffset="3187"
+            endLine="85"
+            endColumn="18"
+            endOffset="3203"/>
+        <map>
+            <condition minGE="34-∞"/>
+        </map>
+    </incident>
+
+</incidents>

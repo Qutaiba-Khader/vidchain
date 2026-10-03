@@ -1,0 +1,25 @@
+<variant
+    name="release"
+    package="org.websnake.vidchain.engine"
+    minSdkVersion="28"
+    targetSdkVersion="28"
+    mergedManifest="build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml"
+    partialResultsDir="build/intermediates/unit_test_lint_partial_results/release/lintAnalyzeReleaseUnitTest/out"
+    desugaredMethodsFiles="/root/.gradle/caches/9.4.0-milestone-3/transforms/a2ee2bc96679d15131f32d971ccd32e9/transformed/D8BackportedDesugaredMethods.txt">
+  <buildFeatures
+      namespacing="REQUIRED"/>
+  <sourceProviders>
+  </sourceProviders>
+  <testSourceProviders>
+    <sourceProvider
+        manifests="src/test/AndroidManifest.xml"
+        javaDirectories="src/test/java:src/testRelease/java:src/test/kotlin:src/testRelease/kotlin"
+        assetsDirectories="src/test/assets:src/testRelease/assets"
+        unitTest="true"/>
+  </testSourceProviders>
+  <testFixturesSourceProviders>
+  </testFixturesSourceProviders>
+  <artifact
+      type="UNIT_TEST">
+  </artifact>
+</variant>

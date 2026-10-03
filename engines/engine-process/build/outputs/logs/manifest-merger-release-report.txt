@@ -1,0 +1,46 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:2:1-19:12
+INJECTED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:2:1-19:12
+	package
+		INJECTED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.RUN_USER_INITIATED_JOBS
+ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:5:2-79
+	android:name
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:5:19-76
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:6:2-74
+	android:name
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:6:19-71
+uses-permission#android.permission.FOREGROUND_SERVICE_DATA_SYNC
+ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:7:2-84
+	android:name
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:7:19-81
+application
+ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:9:2-18:16
+service#org.websnake.vidchain.engine.EngineJobService
+ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:10:3-13:63
+	android:exported
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:12:4-28
+	android:permission
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:13:4-60
+	android:name
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:11:4-64
+service#org.websnake.vidchain.engine.EngineForegroundService
+ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:14:3-17:47
+	android:exported
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:16:4-28
+	android:foregroundServiceType
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:17:4-44
+	android:name
+		ADDED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml:15:4-71
+uses-sdk
+INJECTED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml
+INJECTED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /root/build/aio-fallback/engines/engine-process/src/main/AndroidManifest.xml
