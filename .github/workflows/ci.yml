@@ -19,6 +19,7 @@ env:
   ACTIONLINT_VERSION: 1.7.12
   ZIZMOR_VERSION: 1.30.1
   MITMPROXY_VERSION: 12.2.3
+  YTDLP_VERSION: 2026.8.19
 
 jobs:
   gates:
@@ -168,4 +169,36 @@ jobs:
         with:
           name: fixture-evidence
           path: fixture-evidence/
+          retention-days: 14
+
+  fixture-cross-exam:
+    name: Fixture world cross-examination (curl, ffprobe, yt-dlp, node)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Reference tools
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null
+          pipx install "mitmproxy==${MITMPROXY_VERSION}"
+          pipx install "yt-dlp==${YTDLP_VERSION}"
+
+      - name: Generate media, start the fixture world
+        run: |
+          bash ci/fixtures/world/gen_media.sh "$RUNNER_TEMP/media" >/dev/null
+          FIXTURE_MEDIA="$RUNNER_TEMP/media" FIXTURE_FLOW_LOG="$RUNNER_TEMP/flows.jsonl" nohup mitmdump --listen-host 127.0.0.1 -p 8080 \
+            -s ci/fixtures/world/world.py --set connection_strategy=lazy > "$RUNNER_TEMP/mitm.log" 2>&1 &
+          for _ in $(seq 1 30); do [ -f ~/.mitmproxy/mitmproxy-ca-cert.pem ] && break; sleep 1; done
+
+      - name: Every fixture's expected outcome, confirmed by tools the app does not share
+        run: python3 ci/fixtures/world/cross_exam.py ~/.mitmproxy/mitmproxy-ca-cert.pem cross-exam.json
+
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: cross-exam
+          path: cross-exam.json
           retention-days: 14

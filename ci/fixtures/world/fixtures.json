@@ -1,0 +1,34 @@
+{
+  "_note": "Fixture world (T1.2). Every route is served by world.py through the hermetic proxy and its expected outcome is confirmed by cross_exam.py with desktop reference tools BEFORE any emulator test uses it. Hosts under .vidchain.test are invented; T1.3+ map them to 203.0.113.x in the emulator hosts file.",
+  "media_base": "https://files.vidchain.test/media/",
+  "fixtures": [
+    {"id": "direct-mp4", "url": "https://files.vidchain.test/media/clip.mp4", "route": {"kind": "file", "file": "clip.mp4"}, "expect": {"curl_head": 200, "content_length": true, "ffprobe_duration": 4}},
+    {"id": "direct-webm", "url": "https://files.vidchain.test/media/clip.webm", "route": {"kind": "file", "file": "clip.webm"}, "expect": {"ffprobe_duration": 4}},
+    {"id": "moov-at-end", "url": "https://files.vidchain.test/media/clip-moov-end.mp4", "route": {"kind": "file", "file": "clip-moov-end.mp4"}, "expect": {"ffprobe_duration": 4}},
+    {"id": "video-only", "url": "https://files.vidchain.test/media/video-only.mp4", "route": {"kind": "file", "file": "video-only.mp4"}, "expect": {"ffprobe_streams": ["video"]}},
+    {"id": "audio-only", "url": "https://files.vidchain.test/media/audio-only.m4a", "route": {"kind": "file", "file": "audio-only.m4a"}, "expect": {"ffprobe_streams": ["audio"]}},
+    {"id": "no-head", "url": "https://files.vidchain.test/nohead/clip.mp4", "route": {"kind": "file", "file": "clip.mp4", "head": 405}, "expect": {"curl_head": 405, "ffprobe_duration": 4}},
+    {"id": "unknown-length", "url": "https://files.vidchain.test/chunked/clip.mp4", "route": {"kind": "file", "file": "clip.mp4", "chunked": true, "ranges": false}, "expect": {"content_length": false, "ffprobe_duration": 4}},
+    {"id": "extensionless", "url": "https://files.vidchain.test/dl?id=42", "route": {"kind": "file", "file": "clip.mp4", "disposition": "clip.mp4"}, "expect": {"content_disposition": "clip.mp4", "ffprobe_duration": 4}},
+    {"id": "redirect-chain", "url": "https://short.vidchain.test/r3", "route": {"kind": "redirect", "chain": ["https://short.vidchain.test/r2", "https://short.vidchain.test/r1", "https://files.vidchain.test/media/clip.mp4"]}, "expect": {"redirects": 3, "final_url": "https://files.vidchain.test/media/clip.mp4"}},
+    {"id": "meta-refresh", "url": "https://short.vidchain.test/meta", "route": {"kind": "html", "body": "<!doctype html><html><head><meta http-equiv=\"refresh\" content=\"0; url=https://files.vidchain.test/media/clip.mp4\"></head><body>moving</body></html>"}, "expect": {"html_contains": "url=https://files.vidchain.test/media/clip.mp4"}},
+    {"id": "cookie-gated", "url": "https://members.vidchain.test/video.mp4", "route": {"kind": "file", "file": "clip.mp4", "require_cookie": "session=ok"}, "expect": {"status_without": 403, "status_with": 200, "with": {"cookie": "session=ok"}}},
+    {"id": "referer-gated", "url": "https://cdn.vidchain.test/protected.mp4", "route": {"kind": "file", "file": "clip.mp4", "require_referer": "https://www.vidchain.test/watch/1"}, "expect": {"status_without": 403, "status_with": 200, "with": {"referer": "https://www.vidchain.test/watch/1"}}},
+    {"id": "drive-interstitial", "url": "https://drive.vidchain.test/uc?id=abc", "route": {"kind": "interstitial", "file": "clip.mp4", "confirm_param": "confirm=t"}, "expect": {"html_contains": "uc?id=abc&amp;confirm=t", "confirmed_url": "https://drive.vidchain.test/uc?id=abc&confirm=t", "ffprobe_confirmed": 4}},
+    {"id": "og-video", "url": "https://www.vidchain.test/watch/og", "route": {"kind": "html", "body": "<!doctype html><html><head><title>og fixture</title><meta property=\"og:title\" content=\"og fixture\"><meta property=\"og:video\" content=\"https://files.vidchain.test/media/clip.mp4\"><meta property=\"og:video:type\" content=\"video/mp4\"></head><body>page</body></html>"}, "expect": {"ytdlp_url": "https://files.vidchain.test/media/clip.mp4"}},
+    {"id": "json-ld", "url": "https://www.vidchain.test/watch/jsonld", "route": {"kind": "html", "body": "<!doctype html><html><head><title>jsonld fixture</title><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"VideoObject\",\"name\":\"jsonld fixture\",\"uploadDate\":\"2026-10-03\",\"thumbnailUrl\":\"https://files.vidchain.test/media/thumb.jpg\",\"contentUrl\":\"https://files.vidchain.test/media/clip.mp4\"}</script></head><body>page</body></html>"}, "expect": {"ytdlp_url": "https://files.vidchain.test/media/clip.mp4"}},
+    {"id": "html5-video", "url": "https://www.vidchain.test/watch/html5", "route": {"kind": "html", "body": "<!doctype html><html><head><title>html5 fixture</title></head><body><video controls><source src=\"https://files.vidchain.test/media/clip.webm\" type=\"video/webm\"></video></body></html>"}, "expect": {"ytdlp_url": "https://files.vidchain.test/media/clip.webm"}},
+    {"id": "js-injected", "url": "https://www.vidchain.test/watch/js", "route": {"kind": "html", "body": "<!doctype html><html><head><title>js fixture</title></head><body><video id=\"v\"></video><script>var parts=['https:','','files.vidchain.test','media','clip.mp4'];document.getElementById('v').src=parts.join('/');</script></body></html>"}, "expect": {"html_lacks": "files.vidchain.test/media/clip.mp4", "js_eval_url": "https://files.vidchain.test/media/clip.mp4"}},
+    {"id": "hls-plain", "url": "https://hls.vidchain.test/plain/master.m3u8", "route": {"kind": "dir", "dir": "hls/plain", "prefix": "/plain/"}, "expect": {"ffprobe_duration": 6}},
+    {"id": "hls-aes", "url": "https://hls.vidchain.test/aes/index.m3u8", "route": {"kind": "dir", "dir": "hls/aes", "prefix": "/aes/"}, "expect": {"ffprobe_duration": 4, "playlist_contains": "METHOD=AES-128"}},
+    {"id": "dash-split", "url": "https://dash.vidchain.test/manifest.mpd", "route": {"kind": "dir", "dir": "dash", "prefix": "/"}, "expect": {"ffprobe_streams": ["video", "audio"]}},
+    {"id": "trap-html-as-mp4", "url": "https://files.vidchain.test/trap/fake.mp4", "route": {"kind": "html", "body": "<!doctype html><html><body>Please sign in</body></html>", "content_type": "video/mp4"}, "expect": {"ffprobe_fails": true}},
+    {"id": "trap-truncated", "url": "https://files.vidchain.test/trap/truncated.mp4", "route": {"kind": "file", "file": "clip.mp4", "truncate": 0.5}, "expect": {"curl_error": true}}
+  ],
+  "faults": {
+    "_note": "Any route accepts ?fault=<name> (or the fault table FIXTURE_FAULTS=id:fault,...) to fail on purpose.",
+    "403": {"status": 403}, "404": {"status": 404}, "410": {"status": 410}, "429": {"status": 429, "headers": {"Retry-After": "2"}},
+    "500": {"status": 500}, "503": {"status": 503}, "hang": {"hang_seconds": 30}, "slow": {"bytes_per_second": 20000},
+    "reset": {"reset": true}, "html": {"status": 200, "html": true}
+  }
+}

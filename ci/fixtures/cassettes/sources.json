@@ -1,0 +1,8 @@
+{
+  "_note": "What record-fixtures.yml records. Only openly licensed pages (Q12); a cassette is the real response of that URL at recording time, with its sha256, date and tool versions in manifest.json.",
+  "sources": [
+    {"id": "commons-bbb-filepage", "url": "https://commons.wikimedia.org/wiki/File:Big_Buck_Bunny_4K.webm",
+     "licence": "Wikimedia Commons page text CC BY-SA 4.0; the video it describes CC BY 3.0 (Blender Foundation)",
+     "used_by": "H (page scraping) and Y (yt-dlp) fixtures from P2/P3"}
+  ]
+}
