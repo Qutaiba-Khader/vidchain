@@ -33,6 +33,15 @@ android {
 	// Package namespace used for generated R, BuildConfig, and other classes.
 	namespace "com.aio"
 
+	// VidChain (T1.4): inherited lint findings are frozen in lint-baseline-vidchain.xml; only NEW findings fail the build.
+	lint {
+		baseline file("lint-baseline-vidchain.xml")
+		abortOnError true
+		checkReleaseBuilds true
+		// results that change with the calendar (new library releases), not with this code
+		disable "NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion"
+	}
+
 	// Android SDK version used to compile the app.
 	compileSdkVersion 36
 

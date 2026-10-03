@@ -80,7 +80,7 @@ jobs:
           keytool -genkeypair -keystore "$RUNNER_TEMP/ci.jks" -storetype PKCS12 -storepass ci-only -keypass ci-only \
             -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=VidChain CI throwaway" >/dev/null 2>&1
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease -x lintVitalRelease \
+          ./gradlew --no-daemon assembleRelease \
             -Pandroid.injected.signing.store.file="$RUNNER_TEMP/ci.jks" \
             -Pandroid.injected.signing.store.password=ci-only \
             -Pandroid.injected.signing.key.alias=ci \

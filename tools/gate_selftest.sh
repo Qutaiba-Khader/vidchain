@@ -48,4 +48,7 @@ mkdir -p "$work/apk"; head -c 2048 /dev/zero > "$work/apk/app-arm64-v8a-release.
 printf '{"tolerance":0.0,"arm64-v8a":1000,"armeabi-v7a":1,"x86":1,"x86_64":1,"universal":1}' > "$work/budget.json"
 expect_fail "size budget: APK above its budget" python3 "$ROOT/tools/size_budget.py" "$work/apk" "$work/budget.json"
 
+d=$(fresh ledger);  printf '{"task": "T9.9", "date": "x", "new_findings": 2, "fixed": 1, "attempts": 1, "verdict": "clean", "commit": "x"}\n' >> "$d/docs/verdict-ledger.jsonl"
+expect_fail "verdict ledger: unfixed finding without carried_to" python3 "$d/tools/ledger_check.py"
+
 [[ $missed -eq 0 ]] && echo "OK: every gate caught its seeded violation" || exit 1

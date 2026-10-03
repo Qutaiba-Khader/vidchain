@@ -16,9 +16,10 @@ between the app tree and `upstream/`.
 | `others/release_keystore.properties` | Read unconditionally by `app/build.gradle`. Placeholders only; CI injects the real signing key from protected secrets. |
 | `.gitignore` | Upstream ignores the files above; the ignore lines are removed so they can be committed. |
 
-Build command note: the release build needs `-x lintVitalRelease` (an upstream layout,
-`activity_user_account_profile_1.xml`, fails lint with a `NotSibling` error). This is a CI flag,
-not a source change.
+Lint: upstream ships a lint error in its own layout (`activity_user_account_profile_1.xml`, `NotSibling`)
+that used to need `-x lintVitalRelease`. Since T1.4 every inherited lint finding is frozen in
+`app/lint-baseline-vidchain.xml` (the `lint {}` block in `app/build.gradle`, see BRANDING.md for that file),
+so release builds run lint again and only NEW lint errors fail.
 
 ```paths
 added app/src/main/res/values/strings_unit_ids.xml
@@ -27,4 +28,5 @@ added app/src/main/java/app/core/engines/backend/AppUsageTimer.kt
 added app/src/main/java/app/core/engines/backend/AIOSelfDestruct.kt
 added others/release_keystore.properties
 modified .gitignore
+added app/lint-baseline-vidchain.xml
 ```

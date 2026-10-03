@@ -59,6 +59,9 @@ jobs:
           "$RUNNER_TEMP/actionlint" -color
           pipx run "zizmor==${ZIZMOR_VERSION}" --offline --min-severity medium .github/workflows
 
+      - name: Flow-tracing records (verdict ledger, frozen findings)
+        run: python3 tools/ledger_check.py
+
       - name: Gate self-test (every gate must fail on a seeded violation)
         run: tools/gate_selftest.sh
 
@@ -88,8 +91,8 @@ jobs:
           keytool -genkeypair -keystore "$RUNNER_TEMP/ci.jks" -storetype PKCS12 -storepass ci-only -keypass ci-only \
             -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=VidChain CI throwaway" >/dev/null 2>&1
           chmod +x gradlew
-          # -x lintVitalRelease: upstream ships a lint error in its own layout (BUILD-FIXES.md)
-          ./gradlew --no-daemon assembleRelease testReleaseUnitTest -x lintVitalRelease \
+          # lint: inherited findings are frozen in app/lint-baseline-vidchain.xml; new lint errors fail here
+          ./gradlew --no-daemon assembleRelease lintRelease testReleaseUnitTest \
             -Pandroid.injected.signing.store.file="$RUNNER_TEMP/ci.jks" \
             -Pandroid.injected.signing.store.password=ci-only \
             -Pandroid.injected.signing.key.alias=ci \

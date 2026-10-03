@@ -1,0 +1,10 @@
+{"task": "T0.1", "date": "2026-10-03", "new_findings": 1, "fixed": 0, "carried_to": "T0.3", "attempts": 1, "verdict": "clean (1 carried)", "commit": "568167a"}
+{"task": "T0.2", "date": "2026-10-03", "new_findings": 1, "fixed": 1, "attempts": 2, "verdict": "clean", "commit": "6cdf129"}
+{"task": "T0.3", "date": "2026-10-03", "new_findings": 2, "fixed": 2, "attempts": 2, "verdict": "clean", "commit": "883163b"}
+{"task": "T0.4", "date": "2026-10-03", "new_findings": 2, "fixed": 2, "attempts": 2, "verdict": "clean", "commit": "5225ac4"}
+{"task": "T0.5", "date": "2026-10-03", "new_findings": 1, "fixed": 1, "attempts": 1, "verdict": "clean", "commit": "991d1ea"}
+{"task": "T0.6", "date": "2026-10-03", "new_findings": 3, "fixed": 3, "attempts": 2, "verdict": "clean", "commit": "1f0cc56"}
+{"task": "T0.7", "date": "2026-10-03", "new_findings": 1, "fixed": 1, "attempts": 2, "verdict": "clean", "commit": "c33d063"}
+{"task": "T1.1", "date": "2026-10-03", "new_findings": 3, "fixed": 3, "attempts": 3, "verdict": "clean", "commit": "d06b59b"}
+{"task": "T1.2", "date": "2026-10-03", "new_findings": 3, "fixed": 3, "attempts": 2, "verdict": "clean", "commit": "840e12a"}
+{"task": "T1.3", "date": "2026-10-03", "new_findings": 5, "fixed": 5, "attempts": 3, "verdict": "clean", "commit": "e2960fe"}

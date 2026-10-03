@@ -1,0 +1,97 @@
+{
+ "_note": "Flow-tracing baseline (T1.4, Q16 = A changed). These findings exist in the inherited code. They do not block a task unless the task touches the same file, in which case they are fixed there. A finding is matched by its fingerprint (rule + file). Machine findings (Android lint) are frozen separately in app/lint-baseline-vidchain.xml.",
+ "frozen": "2026-10-03",
+ "app_commit": "e2960fe",
+ "findings": [
+  {
+   "fingerprint": "507753c95e2fe573",
+   "rule": "unsupported-url-route",
+   "location": "app/src/main/java/app/ui/main/fragments/downloads/intercepter/SharedVideoURLIntercept.kt:212",
+   "finding": "After an unsupported URL is handed to the browser the intercept flag is not reset (:298); later shares in the same process are ignored.",
+   "seen_in": "T1.1, T1.3",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "49a9641840a5e4a2",
+   "rule": "swallowed-extraction-errors",
+   "location": "app/src/main/java/app/core/engines/video_parser/parsers/VideoParserUtility.kt:189,271",
+   "finding": "Extraction exceptions become empty format lists; the error category is lost.",
+   "seen_in": "research, Appendix B",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "42723181ee84e0cb",
+   "rule": "domain-allowlist-gate",
+   "location": "app/src/main/java/app/core/engines/video_parser/parsers/SupportedURLs.kt:48",
+   "finding": "Only 33 listed domains reach yt-dlp; everything else goes to the browser.",
+   "seen_in": "research",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "76ad9fb840d7a0da",
+   "rule": "head-dependency",
+   "location": "app/src/main/java/app/core/engines/downloader/RegularDownloader.kt",
+   "finding": "Direct downloads need a working HEAD / Content-Length: HEAD-405 and chunked responses are detected but never downloaded.",
+   "seen_in": "T1.3 golden no-head, unknown-length",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "41071cd0805c6030",
+   "rule": "silent-bad-file",
+   "location": "app/src/main/java/app/core/engines/downloader/RegularDownloader.kt",
+   "finding": "Error pages and truncated bodies are saved as the requested media file without any check (fake.mp4 55 B, clip.mp4 36 B, truncated.mp4 full size, 0-byte file after 403).",
+   "seen_in": "T1.3 golden traps + fault matrix",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "549a8a2eb4c2551b",
+   "rule": "hls-404-crash",
+   "location": "app/src/main/java/app/core/engines/downloader/M3U8VideoDownloader.kt",
+   "finding": "An HLS segment 404 writes crash logs (two per run).",
+   "seen_in": "T1.3 fault matrix hls-plain~404@2",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "a267fdc77b61c3c8",
+   "rule": "retry-without-backoff",
+   "location": "app/src/main/java/app/core/engines/video_parser/dialogs/VideoLinkPasteEditor.kt",
+   "finding": "The page-title fetch for a listed site retries a 404 without backoff (thousands of requests per minute).",
+   "seen_in": "T1.1",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "afc758d66d8e4f45",
+   "rule": "cookie-domain-empty",
+   "location": "app/src/main/java/lib/networks/DownloaderUtils.kt:344",
+   "finding": "Cookie export uses an empty domain.",
+   "seen_in": "research, Appendix B",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "fb8216fca2c20211",
+   "rule": "referer-path-cut",
+   "location": "app/src/main/java/app/core/engines/downloader/DownloadURLHelper.kt:238",
+   "finding": "The Referer is cut to the host.",
+   "seen_in": "research, Appendix B",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  },
+  {
+   "fingerprint": "8d071bd4c4ae7bd9",
+   "rule": "all-files-access-gate",
+   "location": "app/src/main/java/app/ui/main/MotherActivity.kt",
+   "finding": "Shared links are only handled after 'All files access' is granted.",
+   "seen_in": "T1.1",
+   "status": "inherited (upstream behaviour, frozen)",
+   "owner_task": null
+  }
+ ]
+}
