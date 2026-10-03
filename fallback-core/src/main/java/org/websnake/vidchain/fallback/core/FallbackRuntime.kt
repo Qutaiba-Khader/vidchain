@@ -53,6 +53,8 @@ object FallbackRuntime {
 		}),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
+		org.websnake.vidchain.fallback.methods.WebCatcherMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
+			{ url, ua -> appContext?.let { org.websnake.vidchain.web.catcher.WebViewCatcher(it).catch(url, ua) } }, stream = { ctx, _ -> ytdlpMethod.run(ctx, null) }),
 		org.websnake.vidchain.fallback.methods.PageScrapeMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
 			{ ua -> org.websnake.vidchain.hosts.FileHosts.fetcher(http, ua) }, stream = { ctx, _ -> ytdlpMethod.run(ctx, null) }),
 		org.websnake.vidchain.fallback.methods.FileHostMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
@@ -76,12 +78,14 @@ object FallbackRuntime {
 	@Volatile var engines: EngineKit? = null
 		private set
 	@Volatile private var host: FallbackHost? = null
+	@Volatile private var appContext: Context? = null
 	private var scope: CoroutineScope? = null
 
 	@Synchronized
 	fun start(context: Context, host: FallbackHost) {
 		if (scope != null) return
 		val app = context.applicationContext
+		appContext = app
 		val l = SqliteLedger(app)
 		val s = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, e ->
 			Trace.event { TraceEvent("runtime.error", reason = "${e.javaClass.simpleName}: ${e.message}") }
