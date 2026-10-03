@@ -1,0 +1,30 @@
+// VidChain fallback core (new code; never part of the upstream app). Pure Kotlin logic first:
+// the TerminalClassifier (T1.5); the coordinator, ledger and verifier follow in T1.6-T1.8.
+plugins {
+	id 'com.android.library'
+	id 'org.jetbrains.kotlin.android'
+}
+
+android {
+	namespace "org.websnake.vidchain.fallback"
+	compileSdk 36
+	defaultConfig {
+		minSdk 28
+	}
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_17
+		targetCompatibility JavaVersion.VERSION_17
+	}
+	lint {
+		abortOnError true
+		disable "NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion"
+	}
+}
+
+kotlin {
+	jvmToolchain(17)
+}
+
+dependencies {
+	testImplementation "junit:junit:4.13.2"
+}

@@ -1,5 +1,7 @@
 # FALLBACK-SEAM ledger: the only upstream-origin hunks the fallback system may add.
 # Each seam is one line marked `// FALLBACK-SEAM:<id>` (filled in from task T1.6).
 # Format of the paths block: <modified> <repo-relative path>
+# settings.gradle: one include line for the new :fallback-core module (FALLBACK-SEAM:module, T1.5).
 ```paths
+modified settings.gradle
 ```

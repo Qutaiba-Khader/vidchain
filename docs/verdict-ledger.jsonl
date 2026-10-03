@@ -8,3 +8,4 @@
 {"task": "T1.1", "date": "2026-10-03", "new_findings": 3, "fixed": 3, "attempts": 3, "verdict": "clean", "commit": "d06b59b"}
 {"task": "T1.2", "date": "2026-10-03", "new_findings": 3, "fixed": 3, "attempts": 2, "verdict": "clean", "commit": "840e12a"}
 {"task": "T1.3", "date": "2026-10-03", "new_findings": 5, "fixed": 5, "attempts": 3, "verdict": "clean", "commit": "e2960fe"}
+{"task": "T1.4", "date": "2026-10-03", "new_findings": 2, "fixed": 2, "attempts": 2, "verdict": "clean", "commit": "ac226c4"}

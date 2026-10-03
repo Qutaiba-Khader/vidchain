@@ -91,3 +91,4 @@ rootProject.name = "AIO_VDM"
  * Includes the application module in the build.
  */
 include ':app'
+include ':fallback-core'   // FALLBACK-SEAM:module VidChain fallback core (new code)
