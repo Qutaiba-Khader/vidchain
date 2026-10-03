@@ -68,4 +68,14 @@ class ChainContractTest {
 		assertEquals(FallbackMethod.Kind.RESOLVER, kinds["R"])
 		for (id in listOf("C", "Y", "S", "O", "L", "H", "W", "F", "P", "M", "D", "N", "A", "G", "U", "T", "X")) assertEquals(id, FallbackMethod.Kind.EXECUTOR, kinds[id])
 	}
+
+	@Test fun theReleaseContractMatrixNamesExactlyTheRegisteredMethods() {
+		val c = org.json.JSONObject(java.io.File("../release-contract.json").readText())
+		val methods = c.getJSONArray("methods").let { a -> (0 until a.length()).map { a.getString(it) } }
+		assertEquals(FallbackRuntime.methods.map { it.id }.toSet(), methods.toSet())
+		assertEquals(ChainSpec.chains.values.flatten().toSet(), methods.toSet())
+		val perAbi = c.getJSONObject("methods_per_abi")
+		for (abi in listOf("arm64-v8a", "x86_64")) assertEquals(abi, methods, perAbi.getJSONArray(abi).let { a -> (0 until a.length()).map { a.getString(it) } })
+		for (abi in listOf("armeabi-v7a", "x86")) assertEquals(abi, methods - setOf("X", "A"), perAbi.getJSONArray(abi).let { a -> (0 until a.length()).map { a.getString(it) } })
+	}
 }

@@ -1,9 +1,9 @@
 {
-  "_note": "Expected release APK size in bytes per ABI split (PLAN.md 'Expected APK size per ABI'). CI fails when an APK is more than tolerance above it. Raised deliberately by the task that adds the bytes (P5 natives). T5.6: + lux (liblux.so, ~8.5 MB arm64 / ~9.3 MB x86_64 compressed) on top of the measured v0.4.0 sizes; T5.7 resets all ABIs to measured.",
+  "_note": "Expected release APK size in bytes per ABI split, reset to the sizes measured in CI run 37118937815 (T5.7, all 18 methods; lux and aria2c on 64-bit only). CI fails when an APK is more than tolerance above it. Raised deliberately by a task that adds bytes.",
   "tolerance": 0.1,
-  "arm64-v8a": 110900000,
-  "armeabi-v7a": 86500000,
-  "x86": 91900000,
+  "arm64-v8a": 110800000,
+  "armeabi-v7a": 90400000,
+  "x86": 95800000,
   "x86_64": 114600000,
-  "universal": 273300000
+  "universal": 273200000
 }

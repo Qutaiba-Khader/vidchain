@@ -1,8 +1,8 @@
 {
   "_note": "Release contract (T0.6). release.yml publishes `release.version` once: when CI is green on main and the tag v<version> does not exist yet, and only if app/build.gradle carries the same versionName/versionCode. null = nothing to release. Asset names stay version-free so README links to releases/latest work; the tag carries the version. `fully_tested: false` adds the 'not fully tested yet' line to the notes (INBOX #3: intermediate releases before the one full test pass).",
   "release": {
-    "version": "0.4.0",
-    "version_code": 400,
+    "version": "0.5.0",
+    "version_code": 500,
     "fully_tested": false
   },
   "package": "org.websnake.vidchain",
@@ -20,81 +20,136 @@
   },
   "keep_releases": 10,
   "methods_per_abi": {
-    "_note": "Fallback methods available per ABI; filled as methods land (P2-P5).",
+    "_note": "Fallback methods per ABI (Q8 = A: new natives on 64-bit only). CI and release.yml check every APK against this with tools/release/method_matrix.py; the universal APK carries each ABI's set.",
     "arm64-v8a": [
       "C",
       "S",
       "Y",
+      "P",
+      "F",
+      "N",
+      "W",
       "R",
-      "O",
       "L",
       "H",
-      "W",
-      "F",
-      "P",
-      "M",
+      "G",
+      "U",
+      "T",
+      "X",
+      "O",
+      "A",
       "D",
-      "N"
+      "M"
     ],
     "armeabi-v7a": [
       "C",
       "S",
       "Y",
+      "P",
+      "F",
+      "N",
+      "W",
       "R",
-      "O",
       "L",
       "H",
-      "W",
-      "F",
-      "P",
-      "M",
+      "G",
+      "U",
+      "T",
+      "O",
       "D",
-      "N"
+      "M"
     ],
     "x86": [
       "C",
       "S",
       "Y",
+      "P",
+      "F",
+      "N",
+      "W",
       "R",
-      "O",
       "L",
       "H",
-      "W",
-      "F",
-      "P",
-      "M",
+      "G",
+      "U",
+      "T",
+      "O",
       "D",
-      "N"
+      "M"
     ],
     "x86_64": [
       "C",
       "S",
       "Y",
+      "P",
+      "F",
+      "N",
+      "W",
       "R",
-      "O",
       "L",
       "H",
-      "W",
-      "F",
-      "P",
-      "M",
+      "G",
+      "U",
+      "T",
+      "X",
+      "O",
+      "A",
       "D",
-      "N"
+      "M"
+    ]
+  },
+  "methods": [
+    "C",
+    "S",
+    "Y",
+    "P",
+    "F",
+    "N",
+    "W",
+    "R",
+    "L",
+    "H",
+    "G",
+    "U",
+    "T",
+    "X",
+    "O",
+    "A",
+    "D",
+    "M"
+  ],
+  "method_natives": {
+    "_note": "native libraries a method needs in lib/<abi>/; methods not listed run on every ABI (Java/Kotlin or WebView)",
+    "C": [
+      "libpython.so"
     ],
-    "universal": [
-      "C",
-      "S",
-      "Y",
-      "R",
-      "O",
-      "L",
-      "H",
-      "W",
-      "F",
-      "P",
-      "M",
-      "D",
-      "N"
+    "S": [],
+    "Y": [
+      "libpython.so"
+    ],
+    "N": [
+      "libpython.so",
+      "libqjs.so"
+    ],
+    "F": [
+      "libffmpeg.so"
+    ],
+    "G": [
+      "libpython.so"
+    ],
+    "U": [
+      "libpython.so",
+      "libqjs.so"
+    ],
+    "T": [
+      "libpython.so",
+      "libffmpeg.so"
+    ],
+    "X": [
+      "liblux.so"
+    ],
+    "A": [
+      "libaria2c.so"
     ]
   }
 }

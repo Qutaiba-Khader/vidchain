@@ -13,6 +13,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 gradle = (ROOT / "app" / "build.gradle").read_text()
 vendored = dict(l.split(": ", 1) for l in (ROOT / "VENDORED_FROM").read_text().splitlines() if ": " in l)
 wrapper = re.search(r"distributionUrl=.*gradle-(.+)-(?:bin|all)\.zip", (ROOT / "gradle" / "wrapper" / "gradle-wrapper.properties").read_text())
+sys.path.insert(0, str(ROOT / "tools" / "release"))
+import method_matrix  # noqa: E402
+matrix, bad = method_matrix.check(d)
+if bad:
+    sys.exit("\n".join(bad))
 files = []
 for f in sorted(d.iterdir()):
     if f.is_file() and f.name != "bill-of-lading.json":
@@ -29,5 +34,6 @@ print(json.dumps({
     "toolchain": {"gradle_wrapper": wrapper.group(1) if wrapper else None,
                   "java": subprocess.run(["java", "-version"], capture_output=True, text=True).stderr.splitlines()[0]},
     "natives": json.loads((ROOT / "natives.lock").read_text()) if (ROOT / "natives.lock").exists() else {},
+    "methods_per_apk": matrix,
     "files": files,
 }, indent=2))

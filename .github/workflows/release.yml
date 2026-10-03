@@ -127,6 +127,7 @@ jobs:
         run: |
           tools/apk_check.sh signed
           python3 tools/size_budget.py signed
+          python3 tools/release/method_matrix.py signed
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: apk-signed

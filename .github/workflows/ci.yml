@@ -128,6 +128,13 @@ jobs:
 
       - name: Size budget per ABI
         run: python3 tools/size_budget.py app/build/outputs/apk/release
+      - name: Per-ABI method matrix (release-contract.json)
+        run: python3 tools/release/method_matrix.py app/build/outputs/apk/release
+      - name: Method matrix gate catches an APK without lux
+        run: |
+          mkdir -p "$RUNNER_TEMP/negm" && cp app/build/outputs/apk/release/*arm64-v8a*.apk "$RUNNER_TEMP/negm/"
+          zip -q -d "$RUNNER_TEMP"/negm/*.apk "lib/arm64-v8a/liblux.so"
+          if python3 tools/release/method_matrix.py "$RUNNER_TEMP/negm" >/dev/null; then echo "::error::method matrix missed a missing native"; exit 1; fi
 
       - name: Keep the x86_64 and arm64 APKs for the emulator jobs
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
