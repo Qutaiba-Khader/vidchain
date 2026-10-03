@@ -36,6 +36,9 @@ interface AttemptLedger {
 	/** attempts of one parent, in attempt order */
 	fun attempts(parentId: String): List<AttemptRow>
 
+	/** parents with at least one attempt, most recent first */
+	fun recentParents(limit: Int): List<String>
+
 	fun mapChild(childId: String, parentId: String)
 	fun parentOf(childId: String): String?
 }

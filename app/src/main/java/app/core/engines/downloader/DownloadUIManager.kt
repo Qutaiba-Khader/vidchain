@@ -161,5 +161,6 @@ class DownloadUIManager(private val downloadSystem: DownloadSystem) {
 		}
 
 		rowUIManager.apply { updateView(downloadModel) }
+		org.websnake.vidchain.fallback.core.FallbackSeams.decorateRow(rowUI, downloadModel.downloadId, com.aio.R.id.txt_download_status) // FALLBACK-SEAM:row
 	}
 }

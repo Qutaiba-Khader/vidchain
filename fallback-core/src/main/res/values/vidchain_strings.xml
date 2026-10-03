@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="vidchain_settings_title">VidChain fallbacks</string>
+	<string name="vidchain_fallbacks_enabled">Try other methods when a download fails</string>
+	<string name="vidchain_fallbacks_help">Your download always starts with the app\'s own method. Only when it fails does VidChain try the methods below, one by one. \"Try another method\" in a download\'s menu works even when this is off.</string>
+	<string name="vidchain_trace_enabled">Trace log (for finding problems)</string>
+	<string name="vidchain_trace_help">Records which method ran and how it ended. Stays on this phone. Never records cookies, logins or tokens.</string>
+	<string name="vidchain_trace_open">Open trace log</string>
+	<string name="vidchain_trace_share">Share trace log</string>
+	<string name="vidchain_trace_title">Trace log</string>
+	<string name="vidchain_trace_empty">The trace log is empty</string>
+	<string name="vidchain_methods_title">Methods</string>
+	<string name="vidchain_method_not_built">%1$s (not in this build yet)</string>
+	<string name="vidchain_engines_title">Engines</string>
+	<string name="vidchain_self_test">Run engine self-test</string>
+	<string name="vidchain_self_test_running">Running…</string>
+	<string name="vidchain_self_test_export">Export result</string>
+	<string name="vidchain_self_test_first">Run the self-test first</string>
+</resources>

@@ -132,6 +132,7 @@ class SettingsFragment : BaseFragment(), AuthOperationsListener {
 					registerAuthOperationListener(fragmentRef)
 					hideActualLayout()
 					setupViewsOnClickEvents(fragmentRef, layoutRef)
+					org.websnake.vidchain.fallback.core.FallbackSeams.addSettingsEntry(layoutRef, com.aio.R.id.btn_adv_downloads_settings, com.aio.R.id.txt_adv_downloads_settings) // FALLBACK-SEAM:settings
 				}
 			}
 		} catch (error: Exception) {

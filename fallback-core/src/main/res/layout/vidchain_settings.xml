@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:fillViewport="true">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:padding="16dp">
+
+		<androidx.appcompat.widget.SwitchCompat
+			android:id="@+id/vidchain_fallbacks_enabled"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:minHeight="48dp"
+			android:text="@string/vidchain_fallbacks_enabled" />
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="16dp"
+			android:text="@string/vidchain_fallbacks_help"
+			android:textAppearance="?android:attr/textAppearanceSmall" />
+
+		<androidx.appcompat.widget.SwitchCompat
+			android:id="@+id/vidchain_trace_enabled"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:minHeight="48dp"
+			android:text="@string/vidchain_trace_enabled" />
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="@string/vidchain_trace_help"
+			android:textAppearance="?android:attr/textAppearanceSmall" />
+
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="16dp"
+			android:orientation="horizontal">
+
+			<Button
+				android:id="@+id/vidchain_trace_open"
+				style="?android:attr/buttonBarButtonStyle"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/vidchain_trace_open" />
+
+			<Button
+				android:id="@+id/vidchain_trace_share"
+				style="?android:attr/buttonBarButtonStyle"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/vidchain_trace_share" />
+		</LinearLayout>
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="4dp"
+			android:text="@string/vidchain_methods_title"
+			android:textAppearance="?android:attr/textAppearanceMedium"
+			android:textStyle="bold" />
+
+		<LinearLayout
+			android:id="@+id/vidchain_methods"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="16dp"
+			android:orientation="vertical" />
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="@string/vidchain_engines_title"
+			android:textAppearance="?android:attr/textAppearanceMedium"
+			android:textStyle="bold" />
+
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal">
+
+			<Button
+				android:id="@+id/vidchain_self_test"
+				style="?android:attr/buttonBarButtonStyle"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/vidchain_self_test" />
+
+			<Button
+				android:id="@+id/vidchain_self_test_export"
+				style="?android:attr/buttonBarButtonStyle"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/vidchain_self_test_export" />
+		</LinearLayout>
+
+		<TextView
+			android:id="@+id/vidchain_self_test_result"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:fontFamily="monospace"
+			android:textIsSelectable="true"
+			android:textSize="12sp" />
+	</LinearLayout>
+</ScrollView>

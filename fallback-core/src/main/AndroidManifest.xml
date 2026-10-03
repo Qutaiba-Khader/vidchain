@@ -1,2 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<application>
+		<!-- Settings -> VidChain fallbacks (T1.10) -->
+		<activity
+			android:name="org.websnake.vidchain.fallback.ui.VidChainSettingsActivity"
+			android:exported="false"
+			android:label="@string/vidchain_settings_title"
+			android:theme="@style/Theme.AppCompat.DayNight" />
+
+		<!-- shares the trace log file (cache/vidchain-share only) -->
+		<provider
+			android:name="org.websnake.vidchain.fallback.ui.VidChainFileProvider"
+			android:authorities="${applicationId}.vidchain.files"
+			android:exported="false"
+			android:grantUriPermissions="true">
+			<meta-data
+				android:name="android.support.FILE_PROVIDER_PATHS"
+				android:resource="@xml/vidchain_file_paths" />
+		</provider>
+	</application>
+</manifest>

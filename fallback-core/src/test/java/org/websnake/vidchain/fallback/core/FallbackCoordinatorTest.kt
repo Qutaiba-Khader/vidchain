@@ -256,6 +256,53 @@ class FallbackCoordinatorTest {
 		assertTrue(dest.isFile && dest.length() > 3000)
 	}
 
+	@Test fun boardFollowsTheChain() = runBlocking {
+		org.websnake.vidchain.fallback.ui.TrailBoard.clear()
+		val r = Counting("R") { MethodOutcome.Failed("x") }
+		val o = Counting("O") { MethodOutcome.Resolved(Candidate("https://cdn.example/v.mp4")) }
+		val w = World(this, listOf(r, o), stub = false)
+		w.host.set("1", running(), url = fileUrl); w.tick()
+		w.host.set("1", failed()); w.tick()
+		val t = org.websnake.vidchain.fallback.ui.TrailBoard.of("1")!!
+		assertEquals("O", t.method); assertEquals(2, t.step); assertEquals(2, t.total)
+		assertEquals(org.websnake.vidchain.fallback.ui.Trail.State.WAITING_CHILD, t.state)
+		val child = w.ledger.attempts("1")[1].childId!!
+		assertEquals("1", org.websnake.vidchain.fallback.ui.TrailBoard.parentOf(child))
+		assertEquals("O", org.websnake.vidchain.fallback.ui.TrailBoard.methodOfChild(child))
+		w.host.set(child, running()); w.tick()
+		w.host.set(child, done, path = goodMp4()); w.tick(); w.tick()
+		assertEquals(org.websnake.vidchain.fallback.ui.Trail.State.DELIVERED, org.websnake.vidchain.fallback.ui.TrailBoard.of("1")!!.state)
+	}
+
+	@Test fun tryAnotherRunsTheNextMethodWithoutTouchingTheCurrentDownload() = runBlocking {
+		val r = Counting("R") { MethodOutcome.Failed("x") }
+		val o = Counting("O") { MethodOutcome.Resolved(Candidate("https://cdn.example/v.mp4")) }
+		val a = Counting("A") { MethodOutcome.Failed("y") }
+		val w = World(this, listOf(r, o, a), enabled = false, stub = false)   // automatic fallbacks off
+		w.host.set("1", running(), url = fileUrl); w.tick()
+		assertEquals(FallbackCoordinator.Manual.STARTED, w.c.tryAnother("1")); w.c.drain()
+		assertEquals(listOf("R", "O"), w.ledger.attempts("1").map { it.method })
+		assertEquals(running(), w.host.list["1"]!!.snapshot)                   // the current download is untouched
+		// asking again gives up the queued child and moves on
+		assertEquals(FallbackCoordinator.Manual.STARTED, w.c.tryAnother(w.ledger.attempts("1")[1].childId!!)); w.c.drain()
+		assertEquals(listOf(AttemptState.FAILED, AttemptState.FAILED, AttemptState.FAILED), w.ledger.attempts("1").map { it.state })
+		assertEquals(FallbackCoordinator.Manual.NOTHING_LEFT, w.c.tryAnother("1"))
+		assertEquals(FallbackCoordinator.Manual.NOT_FOUND, w.c.tryAnother("404"))
+	}
+
+	@Test fun boardIsRestoredFromTheLedgerAfterARestart() = runBlocking {
+		org.websnake.vidchain.fallback.ui.TrailBoard.clear()
+		val w = World(this, listOf(stub))
+		w.ledger.claim("5", 1, "O", 10); w.ledger.update("5", 1, AttemptState.FAILED, null, "x", 11)
+		w.ledger.claim("5", 2, "A", 20); w.ledger.update("5", 2, AttemptState.CHILD, "77", null, 21)
+		w.ledger.claim("6", 1, "R", 30); w.ledger.update("6", 1, AttemptState.FAILED, null, "x", 31)
+		w.c.restoreBoard()
+		assertEquals(org.websnake.vidchain.fallback.ui.Trail.State.WAITING_CHILD, org.websnake.vidchain.fallback.ui.TrailBoard.of("5")!!.state)
+		assertEquals("5", org.websnake.vidchain.fallback.ui.TrailBoard.parentOf("77"))
+		assertEquals(org.websnake.vidchain.fallback.ui.Trail.State.EXHAUSTED, org.websnake.vidchain.fallback.ui.TrailBoard.of("6")!!.state)
+		assertEquals(listOf("6", "5"), w.ledger.recentParents(10))
+	}
+
 	@Test fun claimIsAtomicUnderConcurrency() {
 		val ledger = InMemoryLedger()
 		val pool = Executors.newFixedThreadPool(16)

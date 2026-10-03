@@ -17,6 +17,8 @@ import org.websnake.vidchain.fallback.ledger.AttemptLedger
 import org.websnake.vidchain.fallback.ledger.AttemptState
 import org.websnake.vidchain.fallback.trace.Trace
 import org.websnake.vidchain.fallback.trace.TraceEvent
+import org.websnake.vidchain.fallback.ui.Trail
+import org.websnake.vidchain.fallback.ui.TrailBoard
 import org.websnake.vidchain.fallback.verify.Check
 import org.websnake.vidchain.fallback.verify.Delivery
 import org.websnake.vidchain.fallback.verify.DeliveryVerifier
@@ -156,6 +158,7 @@ class FallbackCoordinator(
 		val row = ledger.attempts(parentId).lastOrNull { it.childId == d.id && it.state == AttemptState.CHILD } ?: return
 		val root = list.firstOrNull { it.id == parentId }
 		val previous = running[parentId]
+		TrailBoard.update(parentId) { it.copy(state = Trail.State.VERIFYING) }
 		running[parentId] = scope.launch {
 			previous?.join()
 			val path = d.filePath
@@ -176,6 +179,11 @@ class FallbackCoordinator(
 	/** Write a verifier result into the ledger. PASS -> DELIVERED, FAIL -> FAILED, UNSURE -> UNSURE (best so far, the chain goes on). */
 	private fun record(parentId: String, attemptNo: Int, method: String, r: Delivery, what: String): AttemptState {
 		val state = when (r.check) { Check.PASS -> AttemptState.DELIVERED; Check.FAIL -> AttemptState.FAILED; Check.UNSURE -> AttemptState.UNSURE }
+		when (state) {
+			AttemptState.DELIVERED -> TrailBoard.update(parentId) { it.copy(method = method, state = Trail.State.DELIVERED) }
+			AttemptState.UNSURE -> TrailBoard.update(parentId) { it.copy(method = method, state = Trail.State.BEST_SO_FAR) }
+			else -> Unit
+		}
 		ledger.update(parentId, attemptNo, state, null, "verify ${r.check.name} ${r.kind.name}: ${r.reason}", clock())
 		Trace.event { TraceEvent("verify", downloadId = parentId, method = method, result = r.check.name.lowercase(), reason = "$what ${r.kind.name}: ${r.reason}", durationMs = r.durationMs) }
 		return state
@@ -197,6 +205,9 @@ class FallbackCoordinator(
 			val next = ChainSpec.nextMethod(steps, done.map { it.method }) { it in methods && config.methodOn(it) }
 			if (next == null) {
 				val best = done.lastOrNull { it.state == AttemptState.UNSURE }
+				val available = steps.count { it in methods && config.methodOn(it) }
+				if (best != null) TrailBoard.put(Trail(root.id, urlClass.chain, available, available, best.method, Trail.State.BEST_SO_FAR))
+				else TrailBoard.put(Trail(root.id, urlClass.chain, available, available, done.lastOrNull()?.method ?: "-", Trail.State.EXHAUSTED))
 				Trace.event { TraceEvent("chain.exhausted", downloadId = root.id, chain = urlClass.chain, failureClass = failureClass,
 					result = if (best != null) "best-so-far" else "nothing", reason = "${done.size} attempts" + (best?.let { ", keeping attempt ${it.attemptNo} (${it.method}, unsure)" } ?: "")) }
 				return
@@ -210,6 +221,8 @@ class FallbackCoordinator(
 			val ctx = FallbackContext(parentId = root.id, url = root.url, mediaUrl = root.mediaUrl, urlClass = urlClass, referer = root.referer,
 				userAgent = root.userAgent, fileName = root.fileName, failureClass = failureClass, attemptNo = no)
 			Trace.event { TraceEvent("attempt.start", downloadId = root.id, chain = urlClass.chain, step = step, method = next, failureClass = failureClass) }
+			val runnable = steps.filter { it in methods && config.methodOn(it) }
+			TrailBoard.put(Trail(root.id, urlClass.chain, runnable.indexOf(next) + 1, runnable.size, next, Trail.State.RUNNING))
 			val t0 = clock()
 			val outcome = try {
 				methods.getValue(next).attempt(ctx)
@@ -234,6 +247,8 @@ class FallbackCoordinator(
 							null
 						}
 						if (id != null) {
+							TrailBoard.linkChild(id, root.id, next)
+							TrailBoard.update(root.id) { it.copy(state = Trail.State.WAITING_CHILD) }
 							ledger.mapChild(id, root.id)
 							ledger.update(root.id, no, AttemptState.CHILD, id, null, clock())
 						}
@@ -261,6 +276,49 @@ class FallbackCoordinator(
 				is MethodOutcome.Unsupported -> { ledger.update(root.id, no, AttemptState.UNSUPPORTED, null, outcome.reason, clock()); end("unsupported", outcome.reason) }
 			}
 		}
+	}
+
+	/** After a restart: put the last known state of recent chains back on the card board (from the ledger). */
+	fun restoreBoard(limit: Int = 200) {
+		for (parentId in ledger.recentParents(limit)) {
+			val rows = ledger.attempts(parentId).ifEmpty { continue }
+			rows.forEach { r -> r.childId?.let { TrailBoard.linkChild(it, parentId, r.method) } }
+			val last = rows.last()
+			val best = rows.lastOrNull { it.state == AttemptState.UNSURE }
+			val delivered = rows.lastOrNull { it.state == AttemptState.DELIVERED }
+			val state = when {
+				delivered != null -> Trail.State.DELIVERED
+				last.state == AttemptState.CHILD -> Trail.State.WAITING_CHILD
+				best != null -> Trail.State.BEST_SO_FAR
+				else -> Trail.State.EXHAUSTED
+			}
+			val method = (delivered ?: best ?: last).method
+			TrailBoard.put(Trail(parentId, "?", rows.size, rows.size, method, state))
+		}
+	}
+
+	enum class Manual { STARTED, BUSY, ALREADY_DELIVERED, NOTHING_LEFT, NOT_FOUND }
+
+	/**
+	 * The user asked for another method ("Try another method"): runs the next method of the chain now, whether or not
+	 * the current method has failed (the current download is left alone). A child still downloading is given up as an
+	 * attempt. Works even when automatic fallbacks are switched off.
+	 */
+	suspend fun tryAnother(downloadId: String): Manual = lock.withLock {
+		val rootId = ledger.parentOf(downloadId) ?: downloadId
+		val list = try { withContext(hostContext) { host.downloads() } } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
+		val root = list.firstOrNull { it.id == rootId } ?: return@withLock Manual.NOT_FOUND
+		if (running[rootId]?.isActive == true) return@withLock Manual.BUSY
+		val rows = ledger.attempts(rootId)
+		if (rows.any { it.state == AttemptState.DELIVERED }) return@withLock Manual.ALREADY_DELIVERED
+		val steps = ChainSpec.stepsFor(UrlClass.of(root.url), config.includeStub)
+		if (ChainSpec.nextMethod(steps, rows.map { it.method }) { it in methods && config.methodOn(it) } == null) return@withLock Manual.NOTHING_LEFT
+		rows.filter { it.state == AttemptState.CHILD }.forEach {
+			ledger.update(rootId, it.attemptNo, AttemptState.FAILED, null, "user asked for another method", clock())
+		}
+		Trace.event { TraceEvent("decision", downloadId = rootId, result = "user-try-another") }
+		running[rootId] = scope.launch { runChain(root, "USER_REQUEST") }
+		Manual.STARTED
 	}
 
 	/** Wait until no chain is running (tests, shutdown). */

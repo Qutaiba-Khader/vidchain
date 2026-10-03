@@ -79,6 +79,7 @@ class ActiveTasksOptions(private val motherActivity: MotherActivity?) {
 		this@ActiveTasksOptions.downloadDataModel = dataModel
 		dialogBuilder.setView(layout.frag_down_3_active_1_onclick_1)
 		setupDialogClickListeners()
+		org.websnake.vidchain.fallback.core.FallbackSeams.decorateOptions(dialogBuilder.view, dataModel.downloadId, com.aio.R.id.btn_resume_download) { dialogBuilder.close() } // FALLBACK-SEAM:options
 		if (dialogBuilder.isShowing == false) {
 			dialogBuilder.show()
 			updateDialogFileInfo()

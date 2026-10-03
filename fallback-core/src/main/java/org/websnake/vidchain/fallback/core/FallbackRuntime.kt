@@ -55,6 +55,7 @@ object FallbackRuntime {
 		ledger = l; coordinator = c; this.host = host; scope = s
 		engines = EngineKit(app)
 		s.launch {
+			runCatching { c.restoreBoard() }
 			delay(TICK_MS)
 			while (isActive) {
 				val busy = try { c.tick() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) {

@@ -3,7 +3,7 @@
 # file below differs from upstream/ ONLY by such added lines (no removed or changed upstream line).
 # Format of the paths block: <modified|added> <repo-relative path>
 #
-# Seams (T1.5, T1.7, T1.9):
+# Seams (T1.5, T1.7, T1.9, T1.10):
 #   settings.gradle            module        include ':fallback-core'
 #   settings.gradle            module-engine include ':engines:engine-process' (T1.9)
 #   app/build.gradle           dep           implementation project(':fallback-core')   (file declared in BRANDING.md)
@@ -15,6 +15,9 @@
 #   ActiveTasksOptions.kt      clear         user intent CLEAR before downloadSystem.clearDownload
 #   ActiveTasksOptions.kt      delete        user intent DELETE before downloadSystem.deleteDownload
 #   DownloadFileRenamer.kt     rename-pause  intent RENAME_PAUSE before the app pauses a download to rename it
+#   DownloadUIManager.kt       row           fallback trail line on a download card, after the row is updated
+#   ActiveTasksOptions.kt      options       "Try another method" + "Methods tried" in the options dialog
+#   SettingsFragment.kt        settings      the "VidChain fallbacks" row, cloned after the advanced-downloads row
 # The added adapter VidChainFallbackHost.kt (new file inside the upstream source tree) only reads the download
 # lists and adds child downloads through DownloadSystem.addDownload.
 ```paths
@@ -22,5 +25,7 @@ modified settings.gradle
 modified app/src/main/java/app/core/AIOApp.kt
 modified app/src/main/java/app/ui/main/fragments/downloads/fragments/active/ActiveTasksOptions.kt
 modified app/src/main/java/app/ui/main/fragments/downloads/dialogs/DownloadFileRenamer.kt
+modified app/src/main/java/app/core/engines/downloader/DownloadUIManager.kt
+modified app/src/main/java/app/ui/main/fragments/settings/SettingsFragment.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainFallbackHost.kt
 ```

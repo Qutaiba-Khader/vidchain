@@ -95,6 +95,11 @@ class SqliteLedger(context: Context) : AttemptLedger {
 			}
 		}
 
+	override fun recentParents(limit: Int): List<String> =
+		db.rawQuery("SELECT parent_id FROM attempts GROUP BY parent_id ORDER BY MAX(started) DESC LIMIT ?", arrayOf(limit.toString())).use { c ->
+			buildList { while (c.moveToNext()) add(c.getString(0)) }
+		}
+
 	override fun mapChild(childId: String, parentId: String) {
 		childCache[childId] = parentId
 		db.insertWithOnConflict("children", null, ContentValues().apply { put("child_id", childId); put("parent_id", parentId) },

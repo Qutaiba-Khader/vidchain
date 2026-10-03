@@ -35,6 +35,9 @@ class InMemoryLedger : AttemptLedger {
 	@Synchronized override fun attempts(parentId: String) =
 		attempts.values.filter { it.parentId == parentId }.sortedBy { it.attemptNo }
 
+	@Synchronized override fun recentParents(limit: Int) =
+		attempts.values.groupBy { it.parentId }.mapValues { (_, v) -> v.maxOf { it.startedMs } }.entries.sortedByDescending { it.value }.take(limit).map { it.key }
+
 	@Synchronized override fun mapChild(childId: String, parentId: String) { children[childId] = parentId }
 	@Synchronized override fun parentOf(childId: String) = children[childId]
 }
