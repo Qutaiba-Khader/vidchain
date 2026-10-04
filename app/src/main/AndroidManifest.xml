@@ -84,19 +84,6 @@
 			</intent-filter>
 		</activity>
 		
-		<!--
-			OPENING ACTIVITY: Initial splash/loading screen
-			No history means it won't appear in back stack
-			Exclude from recents prevents showing in recent apps list
-		-->
-		<activity
-			android:name="app.ui.others.startup.OpeningActivity"
-			android:excludeFromRecents="true"
-			android:launchMode="singleTop"
-			android:noHistory="true"
-			android:resizeableActivity="true"
-			android:taskAffinity=""
-			android:windowSoftInputMode="adjustResize" />
 		
 		<!--
 			INTENT INTERCEPT ACTIVITY: Handles shared text/content from other apps

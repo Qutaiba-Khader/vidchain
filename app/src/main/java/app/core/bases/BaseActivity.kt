@@ -1123,7 +1123,6 @@ abstract class BaseActivity : LocaleActivityImpl(), BaseActivityInf {
 	 *
 	 * Key features:
 	 * - 1-second delay to avoid overlapping with activity startup animations
-	 * - Automatic skipping for OpeningActivity to prevent permission fatigue
 	 * - Comprehensive permission checking across different Android versions
 	 * - State tracking to prevent duplicate permission requests
 	 * - Delegates result handling to permissionCheckListener for modularity
@@ -1143,15 +1142,6 @@ abstract class BaseActivity : LocaleActivityImpl(), BaseActivityInf {
 				delay(timeInMile = 1000, listener = object : OnTaskFinishListener {
 					override fun afterDelay() {
 						logger.d("Delayed permission check triggered after 1000ms")
-						
-						// Skip permission check for OpeningActivity to avoid overwhelming new users
-						if (activity is OpeningActivity) {
-							logger.d(
-								"Activity is OpeningActivity — " +
-									"skipping permission request to improve first-run experience"
-							)
-							return
-						}
 						
 						val permissions = getRequiredPermissionsBySDKVersion()
 						logger.d("Permissions required by SDK version: $permissions")

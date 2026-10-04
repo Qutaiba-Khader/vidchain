@@ -19,7 +19,7 @@ class LauncherActivity : BaseActivity() {
 	
 	override fun onAfterLayoutRender() {
 		if (aioSettings.hasAppCrashedRecently) launchFeedbackActivity()
-		else launchOpeningActivity()
+		else launchMotherActivity()
 	}
 	
 	override fun onBackPressActivity() {
@@ -61,17 +61,4 @@ class LauncherActivity : BaseActivity() {
 		}
 	}
 	
-	private fun launchOpeningActivity() {
-		getActivity()?.let { activity ->
-			Intent(
-				activity,
-				OpeningActivity::class.java
-			).apply {
-				flags = FLAG_ACTIVITY_CLEAR_TOP or FLAG_ACTIVITY_SINGLE_TOP
-				startActivity(this)
-				finish()
-				animActivityFade(getActivity())
-			}
-		}
-	}
 }

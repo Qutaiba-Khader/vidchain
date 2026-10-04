@@ -116,6 +116,11 @@ jobs:
           for _ in $(seq 1 30); do [ -f ~/.mitmproxy/mitmproxy-ca-cert.pem ] && break; sleep 1; done
           cp ~/.mitmproxy/mitmproxy-ca-cert.pem "$RUNNER_TEMP/fixture-ca.pem"
 
+      - name: Previous release for the cold-start comparison (T8.5)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download v1.0.1 --repo "$GITHUB_REPOSITORY" --pattern vidchain-x86_64.apk --dir before
+
       - name: Hardware acceleration check (evidence for the run log)
         run: |
           "$ANDROID_HOME/emulator/emulator" -accel-check || true
@@ -130,6 +135,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -writable-system -http-proxy http://127.0.0.1:8080
           script: |
+            python3 ci/emulator/coldstart.py coldstart.json v1.0.1=before/vidchain-x86_64.apk this-build=apk/app-x86_64-release.apk || true
             bash ci/emulator/fixture_env.sh apk/app-x86_64-release.apk ${{ runner.temp }}/fixture-ca.pem
             python3 ci/emulator/drive.py ci/golden/scenarios-golden.json off-out ${{ runner.temp }}/faults.json --fallbacks off
             python3 ci/emulator/drive.py ci/golden/scenarios-golden.json off-out2 ${{ runner.temp }}/faults.json --fallbacks off
@@ -151,12 +157,14 @@ jobs:
           python3 ci/golden/full_compare.py ci/golden/golden.json ci/golden/fault-matrix.json ci/golden/fallback-expect.json \
             off-out/off.json on-out/on.json on-out/outcomes.json faults-out/faults.json faults-out/outcomes.json full-test-report.md off-out/off2.json faults-out/faults-off.json
           cat full-test-report.md >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Cold start (launcher tap to main screen drawn, ms)"; echo '```'; cat coldstart.json 2>/dev/null || echo "no measurement"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
         with:
           name: golden-twin
           path: |
+            coldstart.json
             off-out/
             off-out2/outcomes.json
             faults-off-out/outcomes.json
