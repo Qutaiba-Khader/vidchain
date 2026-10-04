@@ -159,6 +159,8 @@ for sc in scenarios:
         tap = None
         picker = "Download The File To Private Folder" in texts or "Pick Video Resolution To Generate File Name" in texts
         quality = next((t for t in texts if re.fullmatch(r"\d{3,4}p.*", t)), None) or ("unknown" if picker and "unknown" in texts else None)
+        if QUALITY_FIRST and picker:
+            deadline = max(deadline, time.time() + 25)    # a picker on screen: give the user time to choose and confirm
         if QUALITY_FIRST and picker and not quality:
             quality = picker_option(texts)           # a format without a resolution ("0", a format id): still an option
         if "Not Now" in texts and "Not Now" not in actions:
