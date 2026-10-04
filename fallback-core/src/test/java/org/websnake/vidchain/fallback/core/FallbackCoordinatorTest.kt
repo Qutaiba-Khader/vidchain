@@ -172,6 +172,16 @@ class FallbackCoordinatorTest {
 		assertEquals(1, r.calls.get())   // the chain was exhausted; resuming does not re-run R
 	}
 
+	@Test fun downloadCreatedAndFailedBeforeTheFirstLookStillCounts() = runBlocking {
+		// pass 11: the app creates a download and fails it while its lists are still loading (no baseline yet)
+		val w = World(this, listOf(stub))
+		w.host.list["9"] = HostDownload("9", fileUrl, fileUrl, failed(), startedAtMs = w.now + 5_000)       // after VidChain started
+		w.host.list["10"] = HostDownload("10", fileUrl, fileUrl, failed(), startedAtMs = w.now - 60_000)    // before: old state
+		w.tick()
+		assertEquals(1, w.ledger.attempts("9").size)
+		assertTrue(w.ledger.attempts("10").isEmpty())
+	}
+
 	@Test fun newDownloadAfterStartupWithExplicitFailureCounts() = runBlocking {
 		val w = World(this, listOf(stub))
 		w.tick()                                   // startup baseline (empty)

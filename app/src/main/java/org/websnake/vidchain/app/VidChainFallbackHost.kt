@@ -154,6 +154,7 @@ object VidChainFallbackHost : FallbackHost {
 			expectMedia = viaExtractor || isMediaName(m.fileName, m.fileMimeType),
 			preferredHeight = m.videoFormat?.formatResolution?.let(::heightOf),
 			audioOnly = m.videoFormat?.let { it.formatVcodec == "none" || it.formatResolution.contains("audio", ignoreCase = true) } ?: false,
+			startedAtMs = m.startTimeDate.takeIf { it > 0 },
 			snapshot = DownloadSnapshot(
 				engine = if (viaExtractor) Engine.M3U8 else Engine.REGULAR,
 				status = m.status,

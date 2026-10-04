@@ -19,6 +19,7 @@ data class HostDownload(
 	val preferredHeight: Int? = null,      // height of the format the user picked, when known
 	val audioOnly: Boolean = false,
 	val keepNames: Boolean = false,        // a shared torrent: delivered files keep their own names in filePath's folder
+	val startedAtMs: Long? = null,         // wall-clock time the app created the download (null = unknown)
 )
 
 /** The app side (VidChainFallbackHost): reads the upstream download lists and queues child downloads. Calls run on the coordinator's host context (main thread in the app). */

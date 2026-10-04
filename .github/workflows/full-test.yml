@@ -5,6 +5,11 @@ name: Full test (manual)
 #   golden-twin         the app driven through every fixture and fault in the CI emulator, compared later with ci/golden
 on:
   workflow_dispatch:
+    inputs:
+      only:
+        description: "diagnostic run: comma-separated scenario ids only (empty = the full pass)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -127,6 +132,8 @@ jobs:
           ls -l /dev/kvm
 
       - name: Drive every fixture with fallbacks off and on, then every fault with fallbacks on (T6.2)
+        env:
+          VIDCHAIN_ONLY: ${{ inputs.only }}
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 33

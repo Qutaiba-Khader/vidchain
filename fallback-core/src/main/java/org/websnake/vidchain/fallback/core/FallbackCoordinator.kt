@@ -63,6 +63,8 @@ class FallbackCoordinator(
 		var armedAtMs: Long = 0, var startedSinceArm: Boolean = true)
 	private val seen = HashMap<String, Seen>()
 	private var baselined = false
+	/** downloads the app created after this moment are new, also when the first look (the baseline) finds them failed */
+	private val startedAtMs = clock()
 	private val running = HashMap<String, Job>()
 	private val lock = Mutex()
 
@@ -122,7 +124,10 @@ class FallbackCoordinator(
 			is Verdict.Failure -> {
 				// resumed but not started yet (queued behind other downloads, or between our ticks): give it time
 				if (st.armed && !st.startedSinceArm && !isExplicit(snap) && now - st.armedAtMs < RESUME_GRACE_MS) return
-				val trigger = st.armed || (prev == null && baselined && isExplicit(snap))
+				// first look: a failure found at startup is old state (never a chain), unless the app created the download
+				// since VidChain started (it can start and fail while the app is still loading its lists, before the baseline)
+				val isNew = baselined || (d.startedAtMs != null && d.startedAtMs >= startedAtMs)
+				val trigger = st.armed || (prev == null && isNew && isExplicit(snap))
 				st.armed = false
 				if (trigger) onFailure(d, v, list, now)
 			}

@@ -11,6 +11,7 @@ end (trace events "commit result=ok" or "chain.exhausted" in the app's trace fil
 usage: drive.py <scenarios.json> <out-dir> <faults-control-file> [--fallbacks on|off] [--picker quality-first]"""
 import hashlib
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -128,6 +129,10 @@ def chain_state(lines):
 set_fallbacks(FALLBACKS == "on")
 results = []
 scenarios = SCEN["scenarios"]
+# a diagnostic run of a few scenarios (VIDCHAIN_ONLY=id1,id2): not a full pass
+ONLY = [x for x in os.environ.get("VIDCHAIN_ONLY", "").split(",") if x]
+if ONLY:
+    scenarios = [sc for sc in scenarios if sc["id"] in ONLY]
 if SCEN.get("warmup", True):
     # the first share after a fresh install is slower (first start work); run one throw-away scenario first
     scenarios = [{**scenarios[0], "id": "_warmup", "wait": 45}] + scenarios
@@ -215,8 +220,18 @@ for sc in scenarios:
             hashes[f] = (sh(f"sha256sum '{f}'").split() or [""])[0]
     adb("shell", "screencap", "-p", "/sdcard/s.png"); adb("pull", "/sdcard/s.png", str(OUT / f"{sid}.png"))
     crashes = {f: sh(f"head -c 4000 '{f}'") for f in new if "crash_log" in f}
+    # the app's own record of each download it made (status, its text, bytes): shows where a download ended
+    downloads = []
+    for f in new:
+        if re.search(r"/\d+_download\.json$", f):
+            try:
+                d = json.loads(sh(f"cat '{f}'"))
+                downloads.append({k: d.get(k) for k in ("fileName", "status", "statusInfo", "isRunning", "isComplete",
+                                                         "isUnknownFileSize", "fileSize", "downloadedByte")})
+            except ValueError:
+                downloads.append({"unreadable": f.split("/")[-1]})
     rec = {"id": sid, "url": url, "crash_texts": list(crashes.values()), "faults": sc.get("faults", {}), "t_start": round(t0, 3), "t_end": round(t2, 3), "t_current_end": round(t1, 3),
-           "fallbacks": FALLBACKS, "chain": state, "trace": lines[-200:],
+           "fallbacks": FALLBACKS, "chain": state, "trace": lines[-200:], "downloads": downloads,
            "current_files": sorted(f.replace("/storage/emulated/0/Download", "<Download>").replace(f"/data/data/{PKG}/files", "<private>") for f in current_files),
            "front_activity": front(), "actions": actions, "texts_seen": seen[:60],
            "files": [{"path": f.replace("/storage/emulated/0/Download", "<Download>").replace(f"/data/data/{PKG}/files", "<private>"), "bytes": s, "sha256": hashes.get(f, "")} for f, s in sorted(new.items())]}
