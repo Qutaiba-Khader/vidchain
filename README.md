@@ -47,16 +47,17 @@ blocked or hidden.
 - VidChain installs next to the original AIO Video Downloader (different package: `org.websnake.vidchain`).
 - Every release carries its complete source (`SOURCES-<tag>.tar.zst`) and a `bill-of-lading.json` with checksums.
 
-## Trace log (development)
+## Trace log (off by default)
 
 VidChain writes a trace of every fallback decision and method attempt (chain, step, method, result, duration,
 failure class and reason) to logcat (tag `VidChainTrace`) and to a small rotating file on the phone that you can open
 or share from the app. Cookies, auth headers, tokens and account data are never logged, and nothing uploads it.
 
 - **Master switch:** `TraceConfig.DEFAULT_ENABLED` in
-  `fallback-core/src/main/java/org/websnake/vidchain/fallback/trace/TraceConfig.kt` - ON during development; a release
-  ships with tracing OFF by changing only that flag.
-- **On the phone:** Settings -> VidChain fallbacks -> Trace log turns it off (or on) without a rebuild.
+  `fallback-core/src/main/java/org/websnake/vidchain/fallback/trace/TraceConfig.kt` - OFF from v1.0.0 (it was ON during
+  development); changing only that flag turns it on for a build.
+- **On the phone:** Settings -> VidChain fallbacks -> Trace log turns it on (or off) without a rebuild; *Open* and
+  *Share* show or send the file when you want to report a failed download.
 
 Signing certificate SHA-256 (every VidChain APK is signed with it):
 `c4497a1304b54773de0c2c961e89c0b0c832c09b21eac45b2053de3c52c320c2`

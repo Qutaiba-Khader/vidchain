@@ -3,13 +3,14 @@ package org.websnake.vidchain.fallback.trace
 /**
  * THE trace-log master switch (owner decision INBOX #3).
  *
- * [DEFAULT_ENABLED] is the one flag: ON during development; to ship with tracing OFF, change only this line.
+ * [DEFAULT_ENABLED] is the one flag: it was ON during development and is OFF from v1.0.0 (the owner's rule: ship with
+ * tracing OFF by changing only this line).
  * The Settings switch (Settings -> VidChain fallbacks -> Trace log) stores the owner's choice and wins over the
  * default on that phone. When tracing is off, nothing is logged, no file is written and every call site returns
  * at once without building its message.
  */
 object TraceConfig {
-	const val DEFAULT_ENABLED: Boolean = true
+	const val DEFAULT_ENABLED: Boolean = false
 
 	/** logcat tag of every trace line */
 	const val TAG = "VidChainTrace"

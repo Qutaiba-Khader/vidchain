@@ -90,7 +90,11 @@ def set_fallbacks(on):
                      f"    <boolean name=\"fallbacks_enabled\" value=\"{'true' if on else 'false'}\" />\n</map>\n")
     sh(f"mkdir -p {d}")
     adb("push", str(local), f"{d}/vidchain_fallback.xml")
-    sh(f"chown $(stat -c %u:%g /data/data/{PKG}) {d} {d}/vidchain_fallback.xml && chmod 660 {d}/vidchain_fallback.xml && restorecon -R {d}")
+    # the trace log is off by default from v1.0.0: the test turns it on like Settings -> Trace log (the chains are read from it)
+    trace_xml = OUT / "vidchain_trace.xml"
+    trace_xml.write_text("<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n    <boolean name=\"enabled\" value=\"true\" />\n</map>\n")
+    adb("push", str(trace_xml), f"{d}/vidchain_trace.xml")
+    sh(f"chown $(stat -c %u:%g /data/data/{PKG}) {d} {d}/vidchain_fallback.xml {d}/vidchain_trace.xml && chmod 660 {d}/vidchain_fallback.xml {d}/vidchain_trace.xml && restorecon -R {d}")
     print("fallbacks:", "on" if on else "off", "->", sh(f"cat {d}/vidchain_fallback.xml").strip().replace("\n", " "), flush=True)
 
 
