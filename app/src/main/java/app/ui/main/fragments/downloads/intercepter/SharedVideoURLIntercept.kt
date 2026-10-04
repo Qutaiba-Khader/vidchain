@@ -277,6 +277,7 @@ class SharedVideoURLIntercept(
 				logger.d("Fetching video formats via yt-dlp for: $videoUrl")
 				ArrayList(getYtdlpVideoFormatsWithRetry(videoUrl, videoCookie))
 			}
+			org.websnake.vidchain.app.VidChainFormats.refineYouTube(videoUrl, videoCookie, videoFormats) // FALLBACK-SEAM:yt-sizes
 			
 			// Step 4: Build video information model for display
 			val videoInfo = VideoInfo(

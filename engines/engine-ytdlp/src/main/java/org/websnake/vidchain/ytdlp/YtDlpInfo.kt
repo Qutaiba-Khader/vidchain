@@ -16,6 +16,7 @@ data class YtDlpFormat(
 	val protocol: String?,
 	val url: String?,
 	val note: String?,
+	val sizeApprox: Boolean = false,      // fileSize came from filesize_approx (yt-dlp's own estimate)
 ) {
 	val hasVideo get() = vcodec != null && vcodec != "none"
 	val hasAudio get() = acodec != null && acodec != "none"
@@ -55,6 +56,7 @@ data class YtDlpInfo(
 			id = f.str("format_id") ?: "", ext = f.str("ext") ?: "", width = f.int("width"), height = f.int("height"),
 			vcodec = f.str("vcodec"), acodec = f.str("acodec"), tbrKbps = f.optDouble("tbr").takeIf { !it.isNaN() },
 			fileSize = (f.long("filesize") ?: f.long("filesize_approx")), protocol = f.str("protocol"), url = f.str("url"), note = f.str("format_note"),
+			sizeApprox = f.long("filesize") == null && f.long("filesize_approx") != null,
 		)
 
 		private fun JSONObject.str(k: String) = if (has(k) && !isNull(k)) optString(k).takeIf { it.isNotEmpty() } else null
@@ -87,4 +89,31 @@ object YtDlpFormats {
 	}
 
 	fun tbr(f: YtDlpFormat): String = f.tbrKbps?.let { "${it.toInt()}k" } ?: ""
+
+	/** One row of the app's quality picker: "Audio" or "<height>p", and its size when it can be known. */
+	data class PickerRow(val label: String, val height: Int?, val bytes: Long?, val approximate: Boolean)
+
+	/**
+	 * The picker rows a video really has (T7.1): best audio first, then every height its video formats offer, highest
+	 * first. Size = the video format plus the best audio when the video has none (that is what the download merges);
+	 * exact from `filesize`, approximate from `filesize_approx` or bitrate x duration; null only when nothing is known.
+	 */
+	fun pickerRows(info: YtDlpInfo): List<PickerRow> {
+		val durationSec = info.durationSec?.takeIf { it > 0 }
+		fun bytesOf(f: YtDlpFormat): Pair<Long, Boolean>? =
+			f.fileSize?.let { it to f.sizeApprox }
+				?: if (f.tbrKbps != null && durationSec != null) (f.tbrKbps * 1000 / 8 * durationSec).toLong().takeIf { it > 0 }?.let { it to true } else null
+		fun sum(a: Pair<Long, Boolean>?, b: Pair<Long, Boolean>?): Pair<Long, Boolean>? =
+			if (a == null) null else if (b == null) a else (a.first + b.first) to (a.second || b.second)
+		val rows = ArrayList<PickerRow>()
+		val audio = info.formats.filter { it.audioOnly }.maxWithOrNull(compareBy<YtDlpFormat> { it.tbrKbps ?: 0.0 }.thenBy { it.fileSize ?: 0L })
+		val audioSize = audio?.let(::bytesOf)
+		if (audio != null) rows += PickerRow("Audio", null, audioSize?.first, audioSize?.second ?: false)
+		info.formats.filter { it.hasVideo && (it.height ?: 0) > 0 }.groupBy { it.height!! }.toSortedMap(compareByDescending { it }).forEach { (h, fs) ->
+			val best = fs.maxWithOrNull(compareBy<YtDlpFormat> { it.tbrKbps ?: 0.0 }.thenBy { it.fileSize ?: 0L })!!
+			val size = if (best.hasAudio) bytesOf(best) else sum(bytesOf(best), audioSize)
+			rows += PickerRow("${h}p", h, size?.first, size?.second ?: false)
+		}
+		return rows
+	}
 }

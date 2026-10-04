@@ -28,6 +28,7 @@
 #   IntentInterceptActivity.kt share-entry   a shared magnet / torrent link (chain B6, aria2c) or a text with a link in it
 #                                            (re-shared as that link), before the app rejects it as "Invalid URL" (T6.2)
 #   VideoLinkPasteEditor.kt    paste         the same for pasted text in the "download a link" dialog (T6.2)
+#   SharedVideoURLIntercept.kt yt-sizes      YouTube picker: only this video's resolutions, each with its size (T7.1, owner's phone test)
 #   DownloadFileRenamer.kt     rename-resume intent RESUME when the app resumes the download it paused to rename it (T6.2)
 #   app/build.gradle           abi-natives   packaging: aria2c on 64-bit ABIs only (Q8 = A) (file declared in BRANDING.md)
 # The added adapter VidChainFallbackHost.kt (new file inside the upstream source tree) only reads the download
@@ -44,4 +45,5 @@ modified app/src/main/java/app/ui/others/information/IntentInterceptActivity.kt
 modified app/src/main/java/app/core/engines/video_parser/dialogs/VideoLinkPasteEditor.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainFallbackHost.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainShareRescue.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainFormats.kt
 ```
