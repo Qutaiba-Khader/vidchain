@@ -40,12 +40,19 @@ time.sleep(10)
 shot("1-main")
 print("settings tab:", tap_text("Settings"))
 time.sleep(3)
-for i in range(4):
+w, h = map(int, re.search(r"(\d+)x(\d+)", adb("shell", "wm", "size").split("Override")[-1]).groups())
+for i in range(5):
     shot(f"2-settings-{i}")
     dump(f"2-settings-{i}")
-    adb("shell", "input", "swipe", "540", "1700", "540", "500", "400")
+    adb("shell", "input", "swipe", str(w // 2), str(h * 7 // 10), str(w // 2), str(h * 3 // 10), "600")
     time.sleep(1.5)
-print("vidchain row:", tap_text("VidChain fallbacks"))
+found = False
+for _ in range(6):                       # scroll back up until the VidChain row is on screen, then open it
+    if tap_text("VidChain fallbacks"):
+        found = True; break
+    adb("shell", "input", "swipe", str(w // 2), str(h * 4 // 10), str(w // 2), str(h * 6 // 10), "600")
+    time.sleep(1)
+print("vidchain row:", found)
 time.sleep(3)
 shot("3-vidchain-settings")
 adb("shell", "input", "keyevent", "4")

@@ -25,18 +25,18 @@
 
 	<!-- one line each, written from what the code does -->
 	<string name="vc_settings_desc_dark">Dark colours across the app</string>
-	<string name="vc_settings_desc_language">App language (the app restarts)</string>
-	<string name="vc_settings_desc_region">Sent to YouTube when reading video details</string>
-	<string name="vc_settings_desc_location">Phone\'s public Downloads or a private app folder</string>
-	<string name="vc_settings_desc_wifi">Stop downloads when not on Wi-Fi</string>
-	<string name="vc_settings_desc_hide_notif">No notifications while downloading</string>
-	<string name="vc_settings_desc_sound">Play a sound when a download finishes</string>
-	<string name="vc_settings_desc_single_click">Tap a finished download to play it</string>
+	<string name="vc_settings_desc_language">App language (restarts the app)</string>
+	<string name="vc_settings_desc_region">Used when reading YouTube details</string>
+	<string name="vc_settings_desc_location">Public Downloads or private folder</string>
+	<string name="vc_settings_desc_wifi">Stop downloads off Wi-Fi</string>
+	<string name="vc_settings_desc_hide_notif">No download notifications</string>
+	<string name="vc_settings_desc_sound">Sound when a download finishes</string>
+	<string name="vc_settings_desc_single_click">Tap a finished file to play it</string>
 	<string name="vc_settings_desc_homepage">Page the browser opens with</string>
-	<string name="vc_settings_desc_popups">Stop pages from opening pop-up windows</string>
+	<string name="vc_settings_desc_popups">Stop pages opening pop-ups</string>
 	<string name="vc_settings_desc_images">Load images on web pages</string>
-	<string name="vc_settings_desc_grabber">Find videos on pages and offer to download</string>
-	<string name="vc_settings_desc_vidchain">When a download fails, try other methods</string>
+	<string name="vc_settings_desc_grabber">Offer to download page videos</string>
+	<string name="vc_settings_desc_vidchain">Try other methods if one fails</string>
 	<string name="vc_settings_desc_feedback">Report a problem on GitHub</string>
 	<string name="vc_settings_desc_share">Send someone the VidChain link</string>
 	<string name="vc_settings_desc_app_info">Android app info and permissions</string>
@@ -44,6 +44,12 @@
 	<string name="vc_settings_desc_terms">The licence VidChain is shared under</string>
 
 	<style name="VcSettings" />
+
+	<!-- theme overlay for the settings screen: the app theme sets fitsSystemWindows on every view, which replaces each
+	     view's start/end padding with the (zero) window insets -->
+	<style name="VcSettings.Overlay" parent="">
+		<item name="android:fitsSystemWindows">false</item>
+	</style>
 
 	<style name="VcSettings.Section">
 		<item name="android:layout_width">match_parent</item>
@@ -124,7 +130,7 @@
 		<item name="android:layout_width">20dp</item>
 		<item name="android:layout_height">20dp</item>
 		<item name="android:layout_marginStart">12dp</item>
-		<item name="android:src">@drawable/ic_button_arrow_next</item>
+		<item name="android:src">@drawable/vc_settings_chevron</item>
 		<item name="android:importantForAccessibility">no</item>
 		<item name="android:tint">@color/vc_settings_text3</item>
 	</style>

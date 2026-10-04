@@ -34,6 +34,7 @@ added app/src/main/res/drawable/vc_settings_switch_track.xml
 added app/src/main/res/drawable/vc_settings_card.xml
 added app/src/main/res/drawable/vc_settings_row_bg.xml
 added app/src/main/res/drawable/vc_settings_outline_button.xml
+added app/src/main/res/drawable/vc_settings_chevron.xml
 deleted app/src/main/java/app/ui/others/startup/OpeningActivity.kt
 deleted app/src/main/res/layout/activity_opening_1.xml
 ```
