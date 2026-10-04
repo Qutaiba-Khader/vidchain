@@ -38,24 +38,30 @@ object VidChainDefaults {
 	/** VidChain's own screens follow the app's switch, also when Android restores one of them first after process death */
 	fun darkUi(context: Context): Boolean = darkFlag(context).exists()
 
-	/** started once from the host: waits (off the main thread) until the app has loaded its settings, then applies the rule */
+	/**
+	 * started once from the host: waits (off the main thread) until the app has loaded its settings, then applies
+	 * the T7.3 download-location rule (once) and keeps "daily suggestions" off (T8.3: the setting is removed; the
+	 * original app reads it nowhere else, so this only makes the stored value match the removed switch)
+	 */
 	fun applyWhenReady(context: Context) {
 		val app = context.applicationContext
 		Thread({
 			val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-			if (prefs.getBoolean(APPLIED, false)) return@Thread
+			val applied = prefs.getBoolean(APPLIED, false)
 			val pkg = runCatching { app.packageManager.getPackageInfo(app.packageName, 0) }.getOrNull() ?: return@Thread
 			val fresh = pkg.firstInstallTime == pkg.lastUpdateTime
 			repeat(120) {
 				val settings = try { AIOApp.aioSettings } catch (e: UninitializedPropertyAccessException) { null }
 				if (settings != null) {
-					val switch = DownloadDefaults.shouldSwitch(fresh, false, settings.defaultDownloadLocation == AIOSettings.PRIVATE_FOLDER)
-					if (switch) {
-						settings.defaultDownloadLocation = AIOSettings.SYSTEM_GALLERY
-						settings.updateInStorage()
+					var changed = false
+					if (settings.enableDailyContentSuggestion) { settings.enableDailyContentSuggestion = false; changed = true }
+					if (!applied) {
+						val switch = DownloadDefaults.shouldSwitch(fresh, false, settings.defaultDownloadLocation == AIOSettings.PRIVATE_FOLDER)
+						if (switch) { settings.defaultDownloadLocation = AIOSettings.SYSTEM_GALLERY; changed = true }
+						prefs.edit().putBoolean(APPLIED, true).apply()
+						Trace.event { TraceEvent("defaults", result = if (switch) "public-downloads" else "kept", reason = "fresh install: $fresh") }
 					}
-					prefs.edit().putBoolean(APPLIED, true).apply()
-					Trace.event { TraceEvent("defaults", result = if (switch) "public-downloads" else "kept", reason = "fresh install: $fresh") }
+					if (changed) settings.updateInStorage()
 					return@Thread
 				}
 				Thread.sleep(500)

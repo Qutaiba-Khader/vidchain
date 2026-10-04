@@ -1114,64 +1114,6 @@ abstract class BaseActivity : LocaleActivityImpl(), BaseActivityInf {
 	}
 	
 	/**
-	 * Displays a user-friendly dialog to inform users that a selected feature
-	 * is not yet implemented or currently unavailable.
-	 *
-	 * This method provides a consistent user experience when users attempt to
-	 * access upcoming or in-development features. It includes haptic feedback
-	 * for better user acknowledgment and uses custom styling to maintain
-	 * the app's visual identity while delivering the message.
-	 *
-	 * The dialog features:
-	 * - A green-colored title for positive visual association
-	 * - An icon-enhanced "Okay" button for clear call-to-action
-	 * - Brief vibration feedback to confirm user interaction
-	 * - Safe activity reference checking to prevent crashes
-	 */
-	fun showUpcomingFeatures() {
-		logger.d("showUpcomingFeatures() called — displaying upcoming feature dialog")
-		
-		// Trigger short vibration for haptic feedback to acknowledge user interaction
-		doSomeVibration(20)
-		
-		getActivity()?.let { safeActivityRef ->
-			logger.d("Safe activity reference found — preparing dialog")
-			
-			showMessageDialog(
-				baseActivityInf = safeActivityRef,
-				isTitleVisible = true,
-				titleText = getString(R.string.title_feature_isnt_implemented),
-				isNegativeButtonVisible = false, // Single action flow - only "Okay" option
-				positiveButtonText = getString(R.string.title_okay),
-				
-				// Customize message text view with the upcoming feature explanation
-				messageTextViewCustomize = { messageTextView ->
-					logger.d("Setting message text for upcoming features")
-					messageTextView.setText(R.string.text_feature_isnt_available_yet)
-				},
-				
-				// Customize title text view with green color for positive visual indication
-				titleTextViewCustomize = { titleTextView ->
-					val colorResId = R.color.color_green
-					val color = safeActivityRef.resources.getColor(colorResId, null)
-					titleTextView.setTextColor(color)
-					logger.d("Title text color set to green - indicating informational message")
-				},
-				
-				// Customize positive button with an icon for enhanced visual appeal
-				positiveButtonTextCustomize = { positiveButton: TextView ->
-					val drawable = getDrawable(applicationContext, R.drawable.ic_okay_done)
-					drawable?.setBounds(0, 0, drawable.intrinsicWidth, drawable.intrinsicHeight)
-					positiveButton.setCompoundDrawables(drawable, null, null, null)
-					logger.d("Positive button customized with drawable icon for better UX")
-				}
-			)
-			
-			logger.d("Upcoming feature dialog displayed successfully")
-		} ?: logger.d("showUpcomingFeatures() skipped — safeBaseActivityRef is null")
-	}
-	
-	/**
 	 * Requests runtime permissions if required by the app and not yet granted.
 	 *
 	 * This method orchestrates the permission request flow with careful timing

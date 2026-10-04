@@ -33,6 +33,12 @@ expect_fail "seam gate: upstream line changed in a seamed file" python3 "$d/tool
 d=$(fresh seamstray); echo "// FALLBACK-SEAM:stray" >> "$d/app/src/main/java/app/core/engines/downloader/DownloadSystem.kt"
 expect_fail "seam gate: seam in an undeclared upstream file" python3 "$d/tools/seam_check.py"
 
+d=$(fresh seammixed); sed -i '/FALLBACK-SEAM:settings/d' "$d/app/src/main/java/app/ui/main/fragments/settings/SettingsFragment.kt"
+expect_fail "seam gate: a seamed file with owner changes (CHANGES.md) lost its seam" python3 "$d/tools/seam_check.py"
+
+d=$(fresh dupdecl); printf '```paths\nmodified app/src/main/java/app/core/AIOApp.kt\n```\n' >> "$d/REMOVED.md"; printf '```paths\nmodified app/src/main/java/app/core/AIOApp.kt\n```\n' >> "$d/CHANGES.md"
+expect_fail "drift check: a file declared in two explaining ledgers" python3 "$d/tools/drift_check.py"
+
 mkdir -p "$work/elf/lib/arm64-v8a"; python3 -c "import sys; sys.path.insert(0, '$ROOT/tools'); import elf; open('$work/elf/lib/arm64-v8a/libseed.so','wb').write(elf.make_seed(0x1000))"
 expect_fail "ELF gate: a 4 KB aligned library" python3 "$ROOT/tools/elf_gate.py" "$work/elf"
 

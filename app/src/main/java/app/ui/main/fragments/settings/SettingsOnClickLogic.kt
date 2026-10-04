@@ -11,7 +11,6 @@ import app.core.AIOApp.Companion.aioUserProfile
 import app.core.engines.settings.AIOSettings.Companion.AIO_SETTING_DARK_MODE_FILE_NAME
 import app.core.engines.supabase.*
 import app.core.engines.updater.*
-import app.ui.main.fragments.settings.activities.browser.*
 import app.ui.main.fragments.settings.dialogs.*
 import app.ui.others.information.*
 import com.aio.*
@@ -66,82 +65,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 	
 	private val safeSettingsFragmentRef: SettingsFragment?
 		get() = weakReferenceOfSettingFragment.get()
-	
-	/**
-	 * Launches the username editor interface with haptic feedback and feature availability notice.
-	 *
-	 * This method currently serves as a placeholder for future username editing functionality.
-	 * It provides immediate user feedback through vibration and informs users that this feature
-	 * is planned for future releases. The implementation demonstrates the pattern for handling
-	 * upcoming features while maintaining consistent user experience.
-	 *
-	 * Future Implementation:
-	 * - Username validation and availability checking
-	 * - Real-time editing interface with character limits
-	 * - Save/cancel workflow with confirmation dialogs
-	 * - Integration with user profile synchronization
-	 */
-	fun showUsernameEditor() {
-		safeSettingsFragmentRef?.safeMotherActivityRef?.apply {
-			// Provide tactile feedback to acknowledge user interaction
-			doSomeVibration()
-			// Inform user that username editing is coming soon
-			showUpcomingFeatures()
-		}
-	}
-	
-	/**
-	 * Opens the authentication dialog for user login or new account registration, with region-specific behavior.
-	 *
-	 * For users in India, this function initiates the phone number-based authentication flow. If the user is
-	 * not already logged in, it presents the `SupabasePhoneNumberLogIn` dialog. Upon successful registration
-	 * or login, the user's profile is updated, and the settings UI is refreshed. If the user is already
-	 * verified, a toast message confirms their logged-in status.
-	 *
-	 * For users outside of India, the feature is disabled. A dialog is shown informing them that login and
-	 * registration are currently available only in India.
-	 *
-	 * @see SupabasePhoneNumberLogIn The authentication component used for the login/registration process.
-	 * @see aioUserProfile For checking the user's current account verification status.
-	 * @see DeviceUtility.isUserFromIndia To determine the user's geographical region.
-	 */
-	fun showLoginOrRegistrationDialog() {
-		safeSettingsFragmentRef?.let { fragmentRef ->
-			fragmentRef.safeFragmentLayoutRef?.let { fragmentLayoutRef ->
-				fragmentRef.safeMotherActivityRef?.let { motherActivity ->
-					if (DeviceUtility.isUserFromIndia(motherActivity)) {
-						if (!aioUserProfile.isUserAccountVerified) {
-							SupabasePhoneNumberLogIn(
-								baseActivity = motherActivity,
-								onAccountSuccessfullyRegistered = {
-									logger.d("User logged in: ${aioUserProfile.uniqueUserServerId}")
-									fragmentRef.updateUserAccountCard(fragmentLayoutRef)
-								},
-								onAccountRegistrationFailed = {
-									logger.d("Registration failed")
-									fragmentRef.updateUserAccountCard(fragmentLayoutRef)
-								})
-								.initialize()
-								.show()
-						} else {
-							logger.d("Opening user account details activity for id: ${aioUserProfile.uniqueUserServerId}")
-							motherActivity.openActivity(UserAccountDetailsActivity::class.java, true)
-						}
-					} else {
-						logger.d("Login or registration is only available in India")
-						motherActivity.doSomeVibration()
-						MsgDialogUtils.showMessageDialog(
-							baseActivityInf = motherActivity,
-							isTitleVisible = true,
-							titleText = getText(R.string.title_feature_isnt_implemented),
-							messageTextViewCustomize = { it.text = getText(R.string.text_feature_only_available_in_india) },
-							isNegativeButtonVisible = false
-						)
-					}
-				}
-			}
-		}
-	}
 	
 	/**
 	 * Opens the download location selector dialog for choosing where downloaded files are stored.
@@ -270,43 +193,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 				}
 			}.show()
 		} ?: logger.d("Failed: Activity null (Region Selector) - Cannot access regional content preferences")
-	}
-	
-	/**
-	 * Toggles daily content suggestion notifications for personalized user recommendations.
-	 *
-	 * This method manages the user's preference for receiving daily content suggestions
-	 * through notifications. The setting is immediately persisted to storage and the UI
-	 * is updated to reflect the current state. The toggle provides users with control
-	 * over notification frequency and content discovery features.
-	 *
-	 * User Experience Benefits:
-	 * - Reduces notification fatigue when disabled
-	 * - Enhances content discovery when enabled
-	 * - Immediate feedback through UI state updates
-	 * - Persistent preference across app sessions
-	 *
-	 * Notification Content:
-	 * - Personalized media recommendations
-	 * - Trending content in user's preferred categories
-	 * - New content from followed sources or creators
-	 */
-	fun toggleDailyContentSuggestions() {
-		logger.d("Toggle Daily Suggestions - Updating content recommendation preferences")
-		safeSettingsFragmentRef?.safeMotherActivityRef?.apply {
-			try {
-				// Get current state and invert for toggle behavior
-				val contentSuggestion = aioSettings.enableDailyContentSuggestion
-				aioSettings.enableDailyContentSuggestion = !contentSuggestion
-				// Persist the updated notification preference
-				aioSettings.updateInStorage()
-				logger.d("✔ Daily suggestions: $contentSuggestion")
-				// Refresh UI to show current toggle state
-				updateSettingStateUI()
-			} catch (error: Exception) {
-				logger.e("Error toggling suggestions: ${error.message}", error)
-			}
-		} ?: logger.d("Failed: Activity null (Daily Suggestions) - Cannot update notification settings")
 	}
 	
 	/**
@@ -514,42 +400,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 	}
 	
 	/**
-	 * Displays a placeholder dialog for advanced download settings currently under development.
-	 *
-	 * This method serves as a temporary implementation for the advanced downloads settings
-	 * section, informing users that additional configuration options are planned for future
-	 * releases. It provides haptic feedback and a clear message about feature availability.
-	 *
-	 * Planned Advanced Features:
-	 * - Download speed limiting and bandwidth management
-	 * - Scheduled download timing and automation
-	 * - Parallel download configuration and thread management
-	 * - File type-specific download behaviors
-	 * - Network condition detection and adaptive downloading
-	 *
-	 * Future Implementation:
-	 * - Comprehensive settings interface with categorized options
-	 * - Real-time download performance monitoring
-	 * - Advanced network configuration and protocol settings
-	 */
-	fun openAdvanceDownloadsSettings() {
-		logger.d("Opening Advanced Downloads Settings (not implemented) - Showing feature roadmap")
-		safeSettingsFragmentRef?.safeMotherActivityRef.let {
-			// Provide tactile feedback to acknowledge user interaction
-			it?.doSomeVibration(20)
-			// Inform users about upcoming advanced features
-			MsgDialogUtils.showMessageDialog(
-				baseActivityInf = it,
-				isTitleVisible = true,
-				titleText = getText(R.string.title_feature_isnt_implemented),
-				messageTextViewCustomize = { msgTextView ->
-					msgTextView.setText(R.string.text_feature_isnt_available_yet)
-				}, isNegativeButtonVisible = false // Single action to acknowledge
-			)
-		} ?: run { logger.d("Failed: null activity - Cannot display feature roadmap") }
-	}
-	
-	/**
 	 * Prompts users to configure a custom browser homepage URL with comprehensive validation
 	 * and user experience optimization.
 	 *
@@ -690,18 +540,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 	}
 	
 	/**
-	 * Opens advanced browser settings activity.
-	 */
-	fun openAdvanceBrowserSettings() {
-		logger.d("Opening Advanced Settings For Browser")
-		this@SettingsOnClickLogic.safeSettingsFragmentRef?.safeMotherActivityRef
-			?.openActivity(
-				targetActivity = AdvBrowserSettingsActivity::class.java,
-				shouldAnimate = true
-			) ?: run { logger.d("Failed: null activity") }
-	}
-	
-	/**
 	 * Initiates an intent to share the app with other users.
 	 */
 	fun shareApplicationWithFriends() {
@@ -826,7 +664,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 		safeSettingsFragmentRef?.safeFragmentLayoutRef?.let { layout ->
 			listOf(
 				SettingViewConfig(R.id.txt_dark_mode_ui, darkModeTempConfigFile.exists()),
-				SettingViewConfig(R.id.txt_daily_suggestions, aioSettings.enableDailyContentSuggestion),
 				SettingViewConfig(R.id.txt_play_notification_sound, aioSettings.downloadPlayNotificationSound),
 				SettingViewConfig(R.id.txt_wifi_only_downloads, aioSettings.downloadWifiOnly),
 				SettingViewConfig(R.id.txt_single_click_open, aioSettings.openDownloadedFileOnSingleClick),

@@ -5,10 +5,6 @@ import android.view.*
 import android.widget.*
 import androidx.lifecycle.*
 import app.core.bases.*
-import app.core.engines.supabase.*
-import app.core.engines.supabase.SupabaseCloudServer.registerAuthOperationListener
-import app.core.engines.supabase.SupabaseCloudServer.unregisterAuthOperationListener
-import app.core.engines.user_profile.*
 import app.ui.main.*
 import com.aio.*
 import kotlinx.coroutines.*
@@ -17,8 +13,6 @@ import lib.device.AppVersionUtility.versionName
 import lib.process.*
 import lib.texts.CommonTextUtils.fromHtmlStringToSpanned
 import lib.ui.*
-import lib.ui.ViewUtility.setLeftSideDrawable
-import lib.ui.ViewUtility.setRightSideDrawable
 import java.lang.ref.*
 
 /**
@@ -42,7 +36,7 @@ import java.lang.ref.*
  * The implementation leverages weak references to safely interact with the parent activity and
  * other components, minimizing the risk of context leaks.
  */
-class SettingsFragment : BaseFragment(), AuthOperationsListener {
+class SettingsFragment : BaseFragment() {
 	
 	/**
 	 * Logger utility for internal debugging, tracing component lifecycles, and
@@ -129,7 +123,6 @@ class SettingsFragment : BaseFragment(), AuthOperationsListener {
 			safeSettingsFragmentRef?.let { fragmentRef ->
 				safeFragmentLayoutRef?.let { layoutRef ->
 					registerSelfReferenceInMotherActivity()
-					registerAuthOperationListener(fragmentRef)
 					hideActualLayout()
 					setupViewsOnClickEvents(fragmentRef, layoutRef)
 					org.websnake.vidchain.fallback.core.FallbackSeams.addSettingsEntry(layoutRef, com.aio.R.id.btn_adv_downloads_settings, com.aio.R.id.txt_adv_downloads_settings) // FALLBACK-SEAM:settings
@@ -209,40 +202,10 @@ class SettingsFragment : BaseFragment(), AuthOperationsListener {
 	override fun onDestroyView() {
 		logger.d("onDestroyView() called: Cleaning up fragment references")
 		unregisterSelfReferenceInMotherActivity()
-		unregisterAuthOperationListener(safeSettingsFragmentRef)
 		settingsOnClickLogic = null
 		super.onDestroyView()
 	}
 	
-	/**
-	 * Callback triggered when the user's authentication session is removed (i.e., they are logged out).
-	 *
-	 * This method is invoked by the authentication engine when a logout event occurs. It ensures
-	 * the settings UI is updated to reflect the change in authentication state. Specifically, it
-	 * calls [updateUserAccountCard] to switch from displaying user-specific details to showing
-	 * the "Login/Register" prompt.
-	 */
-	override fun onAuthenticationRemoved() {
-		safeFragmentLayoutRef?.let { layoutRef ->
-			updateUserAccountCard(layoutRef)
-		}
-	}
-	
-	/**
-	 * Callback triggered when a user successfully signs in or registers a new account.
-	 *
-	 * This method is part of the [AuthOperationsListener] interface and is invoked by the
-	 * authentication flow upon successful completion. Its primary role is to refresh the
-	 * settings UI to reflect the user's new authenticated state.
-	 *
-	 * It ensures that the user account card is updated to display the user's name and
-	 * replaces the "Login/Register" button with options relevant to a logged-in user.
-	 */
-	override fun onSuccessfulAuthentication() {
-		safeFragmentLayoutRef?.let { layoutRef ->
-			updateUserAccountCard(layoutRef)
-		}
-	}
 	
 	/**
 	 * Establishes a communication link with the parent [MotherActivity].
@@ -308,13 +271,10 @@ class SettingsFragment : BaseFragment(), AuthOperationsListener {
 			
 			val clickActions = mapOf(
 				// Application settings
-				R.id.btn_user_info to { settingsOnClickLogic?.showUsernameEditor() },
-				R.id.btn_login_register_to_cloud to { settingsOnClickLogic?.showLoginOrRegistrationDialog() },
 				R.id.btn_default_download_location to { settingsOnClickLogic?.showDownloadLocationPicker() },
 				R.id.btn_language_picker to { settingsOnClickLogic?.showLanguageChanger() },
 				R.id.btn_dark_mode_ui to { settingsOnClickLogic?.togglesDarkModeUISettings() },
 				R.id.btn_content_location to { settingsOnClickLogic?.changeDefaultContentRegion() },
-				R.id.btn_daily_suggestions to { settingsOnClickLogic?.toggleDailyContentSuggestions() },
 				
 				// Download settings
 				R.id.btn_default_download_folder to { settingsOnClickLogic?.changeDefaultDownloadFolder() },
@@ -322,7 +282,6 @@ class SettingsFragment : BaseFragment(), AuthOperationsListener {
 				R.id.btn_wifi_only_downloads to { settingsOnClickLogic?.toggleWifiOnlyDownload() },
 				R.id.btn_single_click_open to { settingsOnClickLogic?.toggleSingleClickToOpenFile() },
 				R.id.btn_play_notification_sound to { settingsOnClickLogic?.toggleDownloadNotificationSound() },
-				R.id.btn_adv_downloads_settings to { settingsOnClickLogic?.openAdvanceDownloadsSettings() },
 				
 				// Browser settings
 				R.id.btn_browser_homepage to { settingsOnClickLogic?.setBrowserDefaultHomepage() },
@@ -330,7 +289,6 @@ class SettingsFragment : BaseFragment(), AuthOperationsListener {
 				R.id.btn_enable_popup_blocker to { settingsOnClickLogic?.toggleBrowserPopupAdBlocker() },
 				R.id.btn_show_image_on_web to { settingsOnClickLogic?.toggleBrowserWebImages() },
 				R.id.btn_enable_video_grabber to { settingsOnClickLogic?.toggleBrowserVideoGrabber() },
-				R.id.btn_adv_browser_settings to { settingsOnClickLogic?.openAdvanceBrowserSettings() },
 				
 				// Custom services
 				R.id.btn_share_with_friends to { settingsOnClickLogic?.shareApplicationWithFriends() },
@@ -385,40 +343,8 @@ class SettingsFragment : BaseFragment(), AuthOperationsListener {
 	 */
 	fun updateViewsWithCurrentData(fragmentLayout: View) {
 		displayApplicationVersion(fragmentLayout)
-		updateUserAccountCard(fragmentLayout)
 	}
 	
-	/**
-	 * Updates the user account information card in the UI based on the user's login status.
-	 *
-	 * This function dynamically adjusts the visibility and content of several UI elements related
-	 * to the user account:
-	 * - If a non-null `username` is provided, it displays the user's name, shows the "PRO" badge
-	 *   if `isPro` is true, and reveals the "User Info" button while hiding the "Login/Register" button.
-	 * - If `username` is null, it indicates a logged-out state by hiding the "User Info" button and
-	 *   displaying the "Login/Register" button instead.
-	 *
-	 * This allows the settings screen to reflect the current authentication state in real-time.
-	 *
-	 * @param username The display name of the logged-in user, or `null` if the user is not logged in.
-	 * @param isPro A boolean flag indicating whether the user has a "PRO" subscription. This is only
-	 *              relevant if `username` is not null.
-	 */
-	fun updateUserAccountCard(fragmentLayout: View) {
-		safeMotherActivityRef?.activityScope?.launch(Dispatchers.Main) {
-			fragmentLayout.findViewById<TextView>(R.id.txt_connect_to_cloud).let {
-				if (AIOUserProfileManager.getAIOUserProfile().isUserAccountVerified) {
-					it.text = getText(R.string.title_view_account_details)
-					it.setLeftSideDrawable(R.drawable.ic_button_account)
-					it.setRightSideDrawable(R.drawable.ic_button_arrow_next, true)
-				} else {
-					it.text = getText(R.string.title_sign_in_register)
-					it.setCompoundDrawables(null, null, null, null)
-					it.setLeftSideDrawable(R.drawable.ic_button_connect)
-				}
-			}
-		}
-	}
 	
 	/**
 	 * Populates the designated `TextView` with the application's version information.

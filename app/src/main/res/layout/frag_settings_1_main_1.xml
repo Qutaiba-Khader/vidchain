@@ -62,7 +62,7 @@
 				android:layout_marginTop="@dimen/_10"
 				android:layout_marginBottom="@dimen/_0"
 				android:orientation="vertical"
-				android:visibility="visible"
+				android:visibility="gone"
 				app:cardBackgroundColor="@color/color_cardview_bg"
 				app:cardCornerRadius="@dimen/_10"
 				>
@@ -378,7 +378,7 @@
 						android:background="@drawable/ic_button_negative_selector"
 						android:clickable="true"
 						android:orientation="vertical"
-						android:visibility="visible"
+						android:visibility="gone"
 						tools:ignore="TouchTargetSizeCheck"
 						>
 						
@@ -614,6 +614,7 @@
 					
 					<LinearLayout
 						android:id="@+id/btn_adv_downloads_settings"
+						android:visibility="gone"
 						android:layout_width="match_parent"
 						android:layout_height="match_parent"
 						android:layout_marginStart="@dimen/_10"
@@ -868,6 +869,7 @@
 					
 					<LinearLayout
 						android:id="@+id/btn_adv_browser_settings"
+						android:visibility="gone"
 						android:layout_width="match_parent"
 						android:layout_height="match_parent"
 						android:layout_marginStart="@dimen/_10"

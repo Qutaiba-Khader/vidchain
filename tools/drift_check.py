@@ -7,6 +7,9 @@ deleted) must be declared in one of the change ledgers:
   BRANDING.md     the new app identity (package, name, icon, links)
   REMOVED.md      removals of ads, tracking, self-updater, kill switch, developer sync
   seams.lock      one-line FALLBACK-SEAM calls into upstream-origin files
+  CHANGES.md      owner-requested changes to the original app (INBOX #8: removals, defaults, settings screen)
+A file may be declared in seams.lock AND in one other ledger (both `modified`): its seam lines are then checked
+by tools/seam_check.py and every other difference is the change that other ledger declares and explains.
 Each ledger declares paths in a fenced block that starts with ```paths, one per line:
   <modified|added|deleted> <repo-relative path>
 New top-level areas that do not exist upstream (tools/, fallback-core/, ...) are ours
@@ -20,14 +23,14 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 UP = ROOT / "upstream"
-LEDGERS = ["BUILD-FIXES.md", "BRANDING.md", "REMOVED.md", "seams.lock"]
+LEDGERS = ["BUILD-FIXES.md", "BRANDING.md", "REMOVED.md", "CHANGES.md", "seams.lock"]
 # Our own areas and files (never compared, even if upstream has a file of the same name);
 # everything else is compared with upstream/.
 OURS_TOP = {".git", "upstream", "tools", "fallback-core", "engines", "natives", "python", "ci",
             ".github", "docs", "signing", "VENDORED_FROM", "NOTICE", "THIRD_PARTY_NOTICES.md",
             "ATTRIBUTION.md", "PROVENANCE.md", "BUILD-FIXES.md", "REMOVED.md", "seams.lock",
             "natives.lock", "release-contract.json", ".gitleaks.toml", "README.md",
-            "BRANDING.md", "PRIVACY.md", "CHANGELOG.md"}
+            "BRANDING.md", "PRIVACY.md", "CHANGELOG.md", "CHANGES.md"}
 # Build output and local machine files never count as drift.
 IGNORE = re.compile(r"(^|/)(build|\.gradle|\.idea|\.kotlin|captures)(/|$)|(^|/)local\.properties$|\.iml$")
 
@@ -47,6 +50,9 @@ def declared():
                 if kind not in ("modified", "added", "deleted"):
                     sys.exit(f"{name}: bad kind {kind!r} in line {line!r}")
                 if path in out:
+                    # allowed once: seams.lock + one explaining ledger, both "modified" (seams.lock is read last)
+                    if name == "seams.lock" and kind == "modified" and out[path][0] == "modified" and out[path][1] != "seams.lock":
+                        continue
                     sys.exit(f"{name}: {path} declared twice")
                 out[path] = (kind, name)
     return out

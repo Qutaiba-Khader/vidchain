@@ -158,11 +158,6 @@
 			SETTINGS ACTIVITIES: Various settings and configuration screens
 			All are internal activities (exported=false) for security
 		-->
-		<activity
-			android:name="app.ui.main.fragments.settings.activities.browser.AdvBrowserSettingsActivity"
-			android:exported="false"
-			android:launchMode="singleTop"
-			android:windowSoftInputMode="adjustPan" />
 		
 		<activity
 			android:name="app.ui.others.information.UserFeedbackActivity"
@@ -170,11 +165,6 @@
 			android:launchMode="singleTop"
 			android:windowSoftInputMode="adjustPan" />
 		
-		<activity
-			android:name="app.ui.others.information.UserAccountDetailsActivity"
-			android:exported="false"
-			android:launchMode="singleTop"
-			android:windowSoftInputMode="adjustPan" />
 		
 		
 		<activity
