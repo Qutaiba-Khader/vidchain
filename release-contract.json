@@ -1,10 +1,10 @@
 {
   "_note": "Release contract (T0.6). release.yml publishes `release.version` once: when CI is green on main and the tag v<version> does not exist yet, and only if app/build.gradle carries the same versionName/versionCode. null = nothing to release. Asset names stay version-free so README links to releases/latest work; the tag carries the version. `fully_tested: false` adds the 'not fully tested yet' line to the notes (INBOX #3: intermediate releases before the one full test pass).",
   "release": {
-    "version": "1.0.0",
-    "version_code": 10000,
-    "fully_tested": true,
-    "full_test_run": "https://github.com/Qutaiba-Khader/vidchain/actions/runs/37168907909"
+    "version": "1.0.1",
+    "version_code": 10001,
+    "fully_tested": false,
+    "notes_extra": "Changes since v1.0.0 (fully tested, full emulator pass 55/55), from the owner's first phone test: the quality picker shows each option's size and only the resolutions the video has; the battery-optimization request appears at most once and never when it is already off; new installs download to the public Downloads folder. Checked by the fast gates and the short emulator traffic test; the long full test was not rerun because no download or chain code changed."
   },
   "package": "org.websnake.vidchain",
   "assets": {

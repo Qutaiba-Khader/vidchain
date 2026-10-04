@@ -228,10 +228,15 @@ jobs:
           tested=$(python3 -c 'import json; print(json.load(open("release-contract.json"))["release"].get("fully_tested", True))')
           {
             if [ "$tested" = "False" ]; then
-              echo "> **Not fully tested yet.** This build passed the fast checks and the short emulator traffic test below. The full emulator test pass runs once, before v1.0.0."
+              echo "> **Not fully tested yet.** This build passed the fast checks and the short emulator traffic test below."
               echo
             fi
             run=$(python3 -c 'import json; print(json.load(open("release-contract.json"))["release"].get("full_test_run", ""))')
+            extra=$(python3 -c 'import json; print(json.load(open("release-contract.json"))["release"].get("notes_extra", ""))')
+            if [ -n "$extra" ]; then
+              echo "$extra"
+              echo
+            fi
             if [ "$tested" = "True" ] && [ -n "$run" ]; then
               echo "> **Fully tested:** the full emulator test pass is clean (55 / 55): with fallbacks off the app behaves exactly like the recording of the original app on all 22 test links; with fallbacks on, and under 11 injected faults, every link ends as expected. Run: $run"
               echo

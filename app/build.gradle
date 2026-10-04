@@ -66,10 +66,10 @@ android {
 		targetSdk 36
 
 		// Internal version used by Google Play for update ordering.
-		versionCode 10000
+		versionCode 10001
 
 		// User-visible app version string.
-		versionName "1.0.0"
+		versionName "1.0.1"
 
 		// Enables backward-compatible vector drawable support.
 		vectorDrawables.useSupportLibrary = true
