@@ -4,9 +4,10 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
-## 1.0.0 (not released yet)
-- Checked by the one full emulator test pass: fallbacks off compared with the recording of the original app, fallbacks
-  on and 11 faults compared with the expected outcome of every test link (results in the release notes).
+## 1.0.0
+- Checked by the one full emulator test pass ([run 37168907909](https://github.com/Qutaiba-Khader/vidchain/actions/runs/37168907909),
+  55 / 55): fallbacks off identical to the recording of the original app on all 22 test links, fallbacks on and 11
+  faults as expected for every link.
 - Review fixes: a deleted download's id (reused by the app) no longer inherits its old fallback state; deleting a
   download stops its fallbacks; a resumed download waiting for a slot and a yt-dlp download that is still merging are
   not failures; files count as delivered only once saved and listed; fallbacks the system interrupted continue with
