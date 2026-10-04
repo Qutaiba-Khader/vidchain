@@ -23,6 +23,9 @@ import java.util.Locale
  * Called on the main thread (the coordinator's host context).
  */
 object VidChainFallbackHost : FallbackHost {
+	// created by the start seam (right after AIOApp.INSTANCE is set): the fresh-install defaults (T7.3)
+	init { runCatching { VidChainDefaults.applyWhenReady(AIOApp.INSTANCE) } }
+
 
 	override fun downloads(): List<HostDownload> {
 		val system = AIOApp.downloadSystem

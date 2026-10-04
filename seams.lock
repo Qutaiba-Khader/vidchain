@@ -47,6 +47,7 @@ modified app/src/main/java/app/ui/others/information/IntentInterceptActivity.kt
 modified app/src/main/java/app/core/engines/video_parser/dialogs/VideoLinkPasteEditor.kt
 modified app/src/main/java/app/core/bases/BaseActivity.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainFallbackHost.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainDefaults.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainShareRescue.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainFormats.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainBattery.kt
