@@ -139,7 +139,10 @@ def main():
         sys.exit(1)
     if "--check" in sys.argv:
         if not out.exists() or out.read_text() != text_out:
+            import difflib
+            old = out.read_text().splitlines() if out.exists() else []
             print(f"{out} is out of date: run tools/licences.py {deps} {out}")
+            print("\n".join(list(difflib.unified_diff(old, text_out.splitlines(), "committed", "generated", n=1, lineterm=""))[:80]))
             sys.exit(1)
         print(f"OK: {len(libs)} libraries + {len(doc['native_and_python'])} native / Python components, asset up to date")
         return
