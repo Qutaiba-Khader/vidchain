@@ -1,0 +1,782 @@
+{
+ "_note": "Native and Python components of the APK that Gradle does not list (T6.3). Hand-kept: youtubedl-android's runtimes (from the library AARs' usr/lib), lux and the Go modules linked into liblux.so (read from its build info), VidChain's Python stand-ins. Python wheels are added by tools/licences.py from python/requirements.lock (each wheel's own METADATA).",
+ "original_app": {
+  "name": "AIO Video Downloader",
+  "author": "shibaFoss",
+  "url": "https://github.com/shibaFoss/AIO-Video-Downloader",
+  "licence": "Non-Commercial Use Free License (LICENSE.md)",
+  "note": "VidChain is an independent, non-commercial derivative; not the official app"
+ },
+ "components": [
+  {
+   "name": "youtubedl-android (library, ffmpeg, aria2c modules)",
+   "licence": "GPL-3.0-only",
+   "kind": "youtubedl-android 0.18.1 runtime",
+   "url": "https://github.com/JunkFood02/youtubedl-android"
+  },
+  {
+   "name": "yt-dlp",
+   "licence": "Unlicense",
+   "kind": "youtubedl-android 0.18.1 runtime",
+   "url": "https://github.com/yt-dlp/yt-dlp",
+   "note": "downloaded and updated at runtime by the library"
+  },
+  {
+   "name": "CPython 3.12",
+   "licence": "PSF-2.0",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://www.python.org/"
+  },
+  {
+   "name": "OpenSSL 3",
+   "licence": "Apache-2.0",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://www.openssl.org/"
+  },
+  {
+   "name": "SQLite",
+   "licence": "blessing (public domain)",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://sqlite.org/"
+  },
+  {
+   "name": "zlib",
+   "licence": "Zlib",
+   "kind": "Python runtime (libpython.zip.so), ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://zlib.net/"
+  },
+  {
+   "name": "bzip2",
+   "licence": "bzip2-1.0.6",
+   "kind": "Python runtime (libpython.zip.so), ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://sourceware.org/bzip2/"
+  },
+  {
+   "name": "XZ Utils (liblzma)",
+   "licence": "0BSD",
+   "kind": "Python runtime (libpython.zip.so), ffmpeg runtime (libffmpeg.zip.so), aria2c runtime (libaria2c.zip.so)",
+   "url": "https://tukaani.org/xz/"
+  },
+  {
+   "name": "libffi",
+   "licence": "MIT",
+   "kind": "Python runtime (libpython.zip.so), ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://sourceware.org/libffi/"
+  },
+  {
+   "name": "Expat",
+   "licence": "MIT",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://libexpat.github.io/"
+  },
+  {
+   "name": "ncurses",
+   "licence": "X11 (MIT-like)",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://invisible-island.net/ncurses/"
+  },
+  {
+   "name": "GNU Readline",
+   "licence": "GPL-3.0-or-later",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://tiswww.case.edu/php/chet/readline/rltop.html"
+  },
+  {
+   "name": "GNU gdbm",
+   "licence": "GPL-3.0-or-later",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://www.gnu.org.ua/software/gdbm/"
+  },
+  {
+   "name": "libxcrypt",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://github.com/besser82/libxcrypt"
+  },
+  {
+   "name": "libandroid-support, libandroid-posix-semaphore, libandroid-glob (Termux)",
+   "licence": "Apache-2.0 / BSD",
+   "kind": "Python runtime (libpython.zip.so), ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/termux/termux-packages"
+  },
+  {
+   "name": "PyCryptodome (Cryptodome)",
+   "licence": "BSD-2-Clause AND Unlicense",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://www.pycryptodome.org/"
+  },
+  {
+   "name": "Mutagen",
+   "licence": "GPL-2.0-or-later",
+   "kind": "Python runtime (libpython.zip.so)",
+   "url": "https://github.com/quodlibet/mutagen"
+  },
+  {
+   "name": "QuickJS",
+   "licence": "MIT",
+   "kind": "youtubedl-android 0.18.1 runtime",
+   "url": "https://bellard.org/quickjs/"
+  },
+  {
+   "name": "FFmpeg (this build links x264, x265, Xvid, Rubber Band, vid.stab: GPL)",
+   "licence": "GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://ffmpeg.org/"
+  },
+  {
+   "name": "x264",
+   "licence": "GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.videolan.org/developers/x264.html"
+  },
+  {
+   "name": "x265",
+   "licence": "GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.videolan.org/developers/x265.html"
+  },
+  {
+   "name": "Xvid (xvidcore)",
+   "licence": "GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.xvid.com/"
+  },
+  {
+   "name": "Rubber Band",
+   "licence": "GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://breakfastquay.com/rubberband/"
+  },
+  {
+   "name": "vid.stab",
+   "licence": "GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/georgmartius/vid.stab"
+  },
+  {
+   "name": "FFTW",
+   "licence": "GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.fftw.org/"
+  },
+  {
+   "name": "libaom",
+   "licence": "BSD-2-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://aomedia.googlesource.com/aom/"
+  },
+  {
+   "name": "dav1d",
+   "licence": "BSD-2-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://code.videolan.org/videolan/dav1d"
+  },
+  {
+   "name": "rav1e",
+   "licence": "BSD-2-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/xiph/rav1e"
+  },
+  {
+   "name": "SVT-AV1",
+   "licence": "BSD-3-Clause-Clear",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://gitlab.com/AOMediaCodec/SVT-AV1"
+  },
+  {
+   "name": "libvpx",
+   "licence": "BSD-3-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://chromium.googlesource.com/webm/libvpx"
+  },
+  {
+   "name": "libwebp",
+   "licence": "BSD-3-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://chromium.googlesource.com/webm/libwebp"
+  },
+  {
+   "name": "LAME (libmp3lame)",
+   "licence": "LGPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://lame.sourceforge.io/"
+  },
+  {
+   "name": "mpg123 (libmpg123, libout123, libsyn123)",
+   "licence": "LGPL-2.1-only",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.mpg123.de/"
+  },
+  {
+   "name": "Opus",
+   "licence": "BSD-3-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://opus-codec.org/"
+  },
+  {
+   "name": "Ogg, Vorbis, Theora",
+   "licence": "BSD-3-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://xiph.org/"
+  },
+  {
+   "name": "opencore-amr, vo-amrwbenc",
+   "licence": "Apache-2.0",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://sourceforge.net/projects/opencore-amr/"
+  },
+  {
+   "name": "libass",
+   "licence": "ISC",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/libass/libass"
+  },
+  {
+   "name": "FreeType",
+   "licence": "FTL OR GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://freetype.org/"
+  },
+  {
+   "name": "Fontconfig",
+   "licence": "MIT",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.freedesktop.org/wiki/Software/fontconfig/"
+  },
+  {
+   "name": "GNU FriBidi",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/fribidi/fribidi"
+  },
+  {
+   "name": "HarfBuzz",
+   "licence": "MIT",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://harfbuzz.github.io/"
+  },
+  {
+   "name": "Graphite2",
+   "licence": "LGPL-2.1-or-later OR MPL-2.0 OR GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/silnrsi/graphite"
+  },
+  {
+   "name": "GLib (glib, gio, gobject, gmodule, gthread, girepository)",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://gitlab.gnome.org/GNOME/glib"
+  },
+  {
+   "name": "PCRE2",
+   "licence": "BSD-3-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/PCRE2Project/pcre2"
+  },
+  {
+   "name": "libpng",
+   "licence": "Libpng-2.0",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "http://www.libpng.org/pub/png/libpng.html"
+  },
+  {
+   "name": "Brotli",
+   "licence": "MIT",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/google/brotli"
+  },
+  {
+   "name": "Little CMS (lcms2)",
+   "licence": "MIT",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.littlecms.com/"
+  },
+  {
+   "name": "libsamplerate",
+   "licence": "BSD-2-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/libsndfile/libsamplerate"
+  },
+  {
+   "name": "SoX Resampler (libsoxr)",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://sourceforge.net/projects/soxr/"
+  },
+  {
+   "name": "libbluray, libudfread",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.videolan.org/developers/libbluray.html"
+  },
+  {
+   "name": "Game Music Emu (libgme)",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/libgme/game-music-emu"
+  },
+  {
+   "name": "libopenmpt",
+   "licence": "BSD-3-Clause",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://lib.openmpt.org/"
+  },
+  {
+   "name": "SRT",
+   "licence": "MPL-2.0",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/Haivision/srt"
+  },
+  {
+   "name": "libssh",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://www.libssh.org/"
+  },
+  {
+   "name": "libsodium",
+   "licence": "ISC",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://libsodium.org/"
+  },
+  {
+   "name": "zimg",
+   "licence": "WTFPL",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/sekrit-twc/zimg"
+  },
+  {
+   "name": "ZeroMQ (libzmq)",
+   "licence": "MPL-2.0",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://zeromq.org/"
+  },
+  {
+   "name": "VMAF (libvmaf)",
+   "licence": "BSD-2-Clause-Patent",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/Netflix/vmaf"
+  },
+  {
+   "name": "v4l-utils (libv4l)",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://git.linuxtv.org/v4l-utils.git"
+  },
+  {
+   "name": "OpenCL ICD loader",
+   "licence": "Apache-2.0",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so)",
+   "url": "https://github.com/KhronosGroup/OpenCL-ICD-Loader"
+  },
+  {
+   "name": "GnuTLS",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so), aria2c runtime (libaria2c.zip.so)",
+   "url": "https://www.gnutls.org/"
+  },
+  {
+   "name": "Nettle",
+   "licence": "LGPL-3.0-or-later OR GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so), aria2c runtime (libaria2c.zip.so)",
+   "url": "https://www.lysator.liu.se/~nisse/nettle/"
+  },
+  {
+   "name": "GMP",
+   "licence": "LGPL-3.0-or-later OR GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so), aria2c runtime (libaria2c.zip.so)",
+   "url": "https://gmplib.org/"
+  },
+  {
+   "name": "libidn2",
+   "licence": "LGPL-3.0-or-later OR GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so), aria2c runtime (libaria2c.zip.so)",
+   "url": "https://www.gnu.org/software/libidn/"
+  },
+  {
+   "name": "libunistring",
+   "licence": "LGPL-3.0-or-later OR GPL-2.0-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so), aria2c runtime (libaria2c.zip.so)",
+   "url": "https://www.gnu.org/software/libunistring/"
+  },
+  {
+   "name": "GNU libiconv",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so), aria2c runtime (libaria2c.zip.so)",
+   "url": "https://www.gnu.org/software/libiconv/"
+  },
+  {
+   "name": "libxml2",
+   "licence": "MIT",
+   "kind": "ffmpeg runtime (libffmpeg.zip.so), aria2c runtime (libaria2c.zip.so)",
+   "url": "https://gitlab.gnome.org/GNOME/libxml2"
+  },
+  {
+   "name": "aria2",
+   "licence": "GPL-2.0-or-later (with OpenSSL exception)",
+   "kind": "aria2c runtime (libaria2c.zip.so)",
+   "url": "https://aria2.github.io/"
+  },
+  {
+   "name": "c-ares",
+   "licence": "MIT",
+   "kind": "aria2c runtime (libaria2c.zip.so)",
+   "url": "https://c-ares.org/"
+  },
+  {
+   "name": "LLVM libc++ (libc++_shared)",
+   "licence": "Apache-2.0 WITH LLVM-exception",
+   "kind": "youtubedl-android 0.18.1 runtime",
+   "url": "https://libcxx.llvm.org/"
+  },
+  {
+   "name": "lux",
+   "licence": "MIT",
+   "kind": "liblux.so (built by natives.yml, 64-bit phones)",
+   "url": "https://github.com/iawia002/lux",
+   "note": "commit dd00f6d258d80b6684a0b9402d7124e5c18ef42f"
+  },
+  {
+   "name": "Go runtime and standard library",
+   "licence": "BSD-3-Clause",
+   "kind": "liblux.so",
+   "url": "https://go.dev/"
+  },
+  {
+   "name": "github.com/EDDYCJY/fake-useragent v0.2.0",
+   "licence": "Apache-2.0",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/EDDYCJY/fake-useragent"
+  },
+  {
+   "name": "github.com/MercuryEngineering/CookieMonster v0.0.0-20180304172713-1584578b3403",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/MercuryEngineering/CookieMonster"
+  },
+  {
+   "name": "github.com/PuerkitoBio/goquery v1.10.3",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/PuerkitoBio/goquery"
+  },
+  {
+   "name": "github.com/VividCortex/ewma v1.2.0",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/VividCortex/ewma"
+  },
+  {
+   "name": "github.com/andybalholm/cascadia v1.3.3",
+   "licence": "BSD-2-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/andybalholm/cascadia"
+  },
+  {
+   "name": "github.com/antchfx/htmlquery v1.3.4",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/antchfx/htmlquery"
+  },
+  {
+   "name": "github.com/antchfx/xmlquery v1.4.4",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/antchfx/xmlquery"
+  },
+  {
+   "name": "github.com/antchfx/xpath v1.3.4",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/antchfx/xpath"
+  },
+  {
+   "name": "github.com/bitly/go-simplejson v0.5.1",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/bitly/go-simplejson"
+  },
+  {
+   "name": "github.com/bits-and-blooms/bitset v1.22.0",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/bits-and-blooms/bitset"
+  },
+  {
+   "name": "github.com/buger/jsonparser v1.1.1",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/buger/jsonparser"
+  },
+  {
+   "name": "github.com/cheggaaa/pb/v3 v3.1.7",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/cheggaaa/pb"
+  },
+  {
+   "name": "github.com/cpuguy83/go-md2man/v2 v2.0.7",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/cpuguy83/go-md2man"
+  },
+  {
+   "name": "github.com/dlclark/regexp2 v1.11.5",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/dlclark/regexp2"
+  },
+  {
+   "name": "github.com/dop251/goja v0.0.0-20250624190929-4d26883d182a",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/dop251/goja"
+  },
+  {
+   "name": "github.com/fatih/color v1.18.0",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/fatih/color"
+  },
+  {
+   "name": "github.com/go-sourcemap/sourcemap v2.1.4+incompatible",
+   "licence": "BSD-2-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/go-sourcemap/sourcemap"
+  },
+  {
+   "name": "github.com/gobwas/glob v0.2.3",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/gobwas/glob"
+  },
+  {
+   "name": "github.com/gocolly/colly/v2 v2.2.0",
+   "licence": "Apache-2.0",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/gocolly/colly"
+  },
+  {
+   "name": "github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8",
+   "licence": "Apache-2.0",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/golang/groupcache"
+  },
+  {
+   "name": "github.com/golang/protobuf v1.5.4",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/golang/protobuf"
+  },
+  {
+   "name": "github.com/google/pprof v0.0.0-20250629210550-e611ec304b22",
+   "licence": "Apache-2.0",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/google/pprof"
+  },
+  {
+   "name": "github.com/itchyny/gojq v0.12.17",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/itchyny/gojq"
+  },
+  {
+   "name": "github.com/itchyny/timefmt-go v0.1.6",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/itchyny/timefmt-go"
+  },
+  {
+   "name": "github.com/json-iterator/go v1.1.12",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/json-iterator/go"
+  },
+  {
+   "name": "github.com/kennygrant/sanitize v1.2.4",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/kennygrant/sanitize"
+  },
+  {
+   "name": "github.com/kkdai/youtube/v2 v2.10.5",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/kkdai/youtube"
+  },
+  {
+   "name": "github.com/kr/pretty v0.3.1",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/kr/pretty"
+  },
+  {
+   "name": "github.com/kr/text v0.2.0",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/kr/text"
+  },
+  {
+   "name": "github.com/mattn/go-colorable v0.1.14",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/mattn/go-colorable"
+  },
+  {
+   "name": "github.com/mattn/go-isatty v0.0.20",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/mattn/go-isatty"
+  },
+  {
+   "name": "github.com/mattn/go-runewidth v0.0.16",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/mattn/go-runewidth"
+  },
+  {
+   "name": "github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd",
+   "licence": "Apache-2.0",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/modern-go/concurrent"
+  },
+  {
+   "name": "github.com/modern-go/reflect2 v1.0.2",
+   "licence": "Apache-2.0",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/modern-go/reflect2"
+  },
+  {
+   "name": "github.com/nlnwa/whatwg-url v0.6.2",
+   "licence": "Apache-2.0",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/nlnwa/whatwg-url"
+  },
+  {
+   "name": "github.com/pkg/errors v0.9.1",
+   "licence": "BSD-2-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/pkg/errors"
+  },
+  {
+   "name": "github.com/rivo/uniseg v0.4.7",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/rivo/uniseg"
+  },
+  {
+   "name": "github.com/robertkrimen/otto v0.5.1",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/robertkrimen/otto"
+  },
+  {
+   "name": "github.com/rogpeppe/go-internal v1.14.1",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/rogpeppe/go-internal"
+  },
+  {
+   "name": "github.com/russross/blackfriday/v2 v2.1.0",
+   "licence": "BSD-2-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/russross/blackfriday"
+  },
+  {
+   "name": "github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/saintfish/chardet"
+  },
+  {
+   "name": "github.com/temoto/robotstxt v1.1.2",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/temoto/robotstxt"
+  },
+  {
+   "name": "github.com/urfave/cli/v2 v2.27.7",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/urfave/cli"
+  },
+  {
+   "name": "github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1",
+   "licence": "MIT",
+   "kind": "Go module in liblux.so",
+   "url": "https://github.com/xrash/smetrics"
+  },
+  {
+   "name": "golang.org/x/net v0.41.0",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://golang.org/x/net"
+  },
+  {
+   "name": "golang.org/x/sys v0.33.0",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://golang.org/x/sys"
+  },
+  {
+   "name": "golang.org/x/text v0.26.0",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://golang.org/x/text"
+  },
+  {
+   "name": "google.golang.org/appengine v1.6.8",
+   "licence": "Apache-2.0",
+   "kind": "Go module in liblux.so",
+   "url": "https://google.golang.org/appengine"
+  },
+  {
+   "name": "google.golang.org/protobuf v1.36.6",
+   "licence": "BSD-3-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://google.golang.org/protobuf"
+  },
+  {
+   "name": "gopkg.in/sourcemap.v1 v1.0.5",
+   "licence": "BSD-2-Clause",
+   "kind": "Go module in liblux.so",
+   "url": "https://gopkg.in/sourcemap.v1"
+  },
+  {
+   "name": "pycountry ISO tables (VidChain's pycountry stand-in)",
+   "licence": "LGPL-2.1-or-later",
+   "kind": "Python stand-in data",
+   "url": "https://github.com/pycountry/pycountry",
+   "note": "ISO 3166 / 639 tables generated from pycountry (Debian iso-codes)"
+  },
+  {
+   "name": "dukpy-compatible shim and lxml stand-in",
+   "licence": "same as VidChain",
+   "kind": "VidChain Python code",
+   "url": "",
+   "note": "VidChain's own code; the APIs follow dukpy (MIT) and lxml (BSD-3-Clause)"
+  }
+ ],
+ "libraries_without_pom_licence": [
+  {
+   "id": "com.github.parse-community.Parse-SDK-Android:parse",
+   "licences": [
+    {
+     "name": "BSD-3-Clause",
+     "url": "https://github.com/parse-community/Parse-SDK-Android/blob/master/LICENSE"
+    }
+   ],
+   "note": "the POM says Other"
+  },
+  {
+   "id": "com.github.parse-community.Parse-SDK-Android:bolts-tasks",
+   "licences": [
+    {
+     "name": "BSD-3-Clause",
+     "url": "https://github.com/parse-community/Parse-SDK-Android/blob/master/LICENSE"
+    }
+   ],
+   "note": "the POM says Other"
+  }
+ ]
+}

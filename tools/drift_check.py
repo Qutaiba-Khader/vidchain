@@ -27,7 +27,7 @@ OURS_TOP = {".git", "upstream", "tools", "fallback-core", "engines", "natives", 
             ".github", "docs", "signing", "VENDORED_FROM", "NOTICE", "THIRD_PARTY_NOTICES.md",
             "ATTRIBUTION.md", "PROVENANCE.md", "BUILD-FIXES.md", "REMOVED.md", "seams.lock",
             "natives.lock", "release-contract.json", ".gitleaks.toml", "README.md",
-            "BRANDING.md", "PRIVACY.md"}
+            "BRANDING.md", "PRIVACY.md", "CHANGELOG.md"}
 # Build output and local machine files never count as drift.
 IGNORE = re.compile(r"(^|/)(build|\.gradle|\.idea|\.kotlin|captures)(/|$)|(^|/)local\.properties$|\.iml$")
 

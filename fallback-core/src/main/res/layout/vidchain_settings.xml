@@ -111,5 +111,13 @@
 			android:fontFamily="monospace"
 			android:textIsSelectable="true"
 			android:textSize="12sp" />
+
+		<Button
+			android:id="@+id/vidchain_licences"
+			style="?android:attr/buttonBarButtonStyle"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="16dp"
+			android:text="@string/vidchain_licences_title" />
 	</LinearLayout>
 </ScrollView>

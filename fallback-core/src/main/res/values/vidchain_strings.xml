@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="vidchain_settings_title">VidChain fallbacks</string>
+	<string name="vidchain_licences_title">Open-source licences</string>
 	<string name="vidchain_fallbacks_enabled">Try other methods when a download fails</string>
 	<string name="vidchain_fallbacks_help">Your download always starts with the app\'s own method. Only when it fails does VidChain try the methods below, one by one. \"Try another method\" in a download\'s menu works even when this is off.</string>
 	<string name="vidchain_trace_enabled">Trace log (for finding problems)</string>

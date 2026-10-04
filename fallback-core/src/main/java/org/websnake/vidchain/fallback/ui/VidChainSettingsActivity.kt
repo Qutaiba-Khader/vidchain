@@ -47,6 +47,7 @@ class VidChainSettingsActivity : AppCompatActivity() {
 		}
 		buildMethodSwitches(findViewById(R.id.vidchain_methods))
 		findViewById<Button>(R.id.vidchain_self_test).setOnClickListener { runSelfTest() }
+		findViewById<Button>(R.id.vidchain_licences).setOnClickListener { startActivity(Intent(this, VidChainLicencesActivity::class.java)) }
 		findViewById<Button>(R.id.vidchain_self_test_export).setOnClickListener {
 			val r = lastReport ?: return@setOnClickListener Toast.makeText(this, R.string.vidchain_self_test_first, Toast.LENGTH_SHORT).show()
 			startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, r), getString(R.string.vidchain_self_test_export)))

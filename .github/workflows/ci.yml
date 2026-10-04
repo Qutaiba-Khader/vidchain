@@ -127,6 +127,11 @@ jobs:
           if tools/apk_check.sh "$RUNNER_TEMP/neg"; then echo "::error::APK gate missed a planted host"; exit 1; fi
           echo "caught: planted developer host"
 
+      - name: Open-source licences list matches the release classpath (T6.3)
+        run: |
+          ./gradlew --no-daemon -q :app:dependencies --configuration releaseRuntimeClasspath > "$RUNNER_TEMP/deps.txt"
+          python3 tools/licences.py "$RUNNER_TEMP/deps.txt" fallback-core/src/main/assets/vidchain-licences.json --check
+
       - name: Size budget per ABI
         run: python3 tools/size_budget.py app/build/outputs/apk/release
       - name: Per-ABI method matrix (release-contract.json)
