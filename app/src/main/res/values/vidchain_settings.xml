@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- VidChain settings screen (T8.6, owner's design, INBOX #8). Dark values in values-night; the accent is the app's own
      color_secondary everywhere (#FF9800 dark, #F0570B light); the design's #F5A00F is not used. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+	<!-- English only: the app falls back to these in its other languages -->
 	<color name="vc_settings_bg">#F6F6F6</color>
 	<color name="vc_settings_card">#FFFFFF</color>
 	<color name="vc_settings_pressed">#ECECEE</color>
