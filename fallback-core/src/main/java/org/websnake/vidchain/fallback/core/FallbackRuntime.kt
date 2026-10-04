@@ -135,6 +135,9 @@ object FallbackRuntime {
 	@Volatile var engines: EngineKit? = null
 		private set
 	@Volatile private var host: FallbackHost? = null
+
+	/** the app's dark-UI switch for VidChain's own screens (null before start or when the app does not say) */
+	fun darkUi(): Boolean? = runCatching { host?.darkUi() }.getOrNull()
 	@Volatile private var appContext: Context? = null
 	private var scope: CoroutineScope? = null
 
@@ -143,6 +146,7 @@ object FallbackRuntime {
 		if (scope != null) return
 		val app = context.applicationContext
 		appContext = app
+		this.host = host
 		// the database is opened once here; if it cannot be (storage full, corrupt file) the chains still run, unrecorded
 		val l: AttemptLedger = runCatching { SqliteLedger(app).also { it.recentParents(1) } }.getOrElse { e ->
 			Trace.event { TraceEvent("runtime.error", reason = "ledger database unavailable, using memory: ${e.javaClass.simpleName}: ${e.message}") }

@@ -12,6 +12,7 @@ import org.json.JSONObject
  */
 class VidChainLicencesActivity : AppCompatActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
+		VidChainTheme.apply(this)
 		super.onCreate(savedInstanceState)
 		val text = runCatching { LicencesText.render(JSONObject(assets.open(LicencesText.ASSET).bufferedReader().use { it.readText() })) }
 			.getOrElse { "The licence list could not be read: ${it.javaClass.simpleName}" }

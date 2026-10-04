@@ -1,6 +1,6 @@
 package org.websnake.vidchain.fallback.ui
 
-import android.app.AlertDialog
+import androidx.appcompat.app.AlertDialog
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
@@ -29,6 +29,7 @@ class VidChainSettingsActivity : AppCompatActivity() {
 	private var lastReport: String? = null
 
 	override fun onCreate(savedInstanceState: Bundle?) {
+		VidChainTheme.apply(this)
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.vidchain_settings)
 		title = getString(R.string.vidchain_settings_title)

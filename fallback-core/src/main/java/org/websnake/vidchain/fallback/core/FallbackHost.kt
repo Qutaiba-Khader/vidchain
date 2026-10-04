@@ -39,4 +39,7 @@ interface FallbackHost {
 
 	/** re-draw [downloadId]'s card (its fallback line changed) */
 	fun refresh(downloadId: String) {}
+
+	/** the app's "Enable Dark UI Mode" switch (null = unknown: follow the system) */
+	fun darkUi(): Boolean? = null
 }

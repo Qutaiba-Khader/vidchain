@@ -10,14 +10,14 @@
 			android:name="org.websnake.vidchain.fallback.ui.VidChainSettingsActivity"
 			android:exported="false"
 			android:label="@string/vidchain_settings_title"
-			android:theme="@style/Theme.AppCompat.DayNight" />
+			android:theme="@style/Theme.VidChain" />
 
 		<!-- Settings -> VidChain fallbacks -> Open-source licences (T6.3) -->
 		<activity
 			android:name="org.websnake.vidchain.fallback.ui.VidChainLicencesActivity"
 			android:exported="false"
 			android:label="@string/vidchain_licences_title"
-			android:theme="@style/Theme.AppCompat.DayNight" />
+			android:theme="@style/Theme.VidChain" />
 
 		<!-- shares the trace log file (cache/vidchain-share only) -->
 		<provider

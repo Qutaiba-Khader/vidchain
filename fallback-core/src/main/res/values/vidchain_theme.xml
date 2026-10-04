@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- The app's accent (upstream color_secondary): #F0570B light, #FF9800 dark (values-night). T8.1 / T8.6 -->
+	<color name="vidchain_accent">#F0570B</color>
+
+	<!-- VidChain's own screens: the app's day/night switch (VidChainTheme) with the app's accent -->
+	<style name="Theme.VidChain" parent="Theme.AppCompat.DayNight">
+		<item name="colorAccent">@color/vidchain_accent</item>
+		<item name="colorControlActivated">@color/vidchain_accent</item>
+		<item name="android:textColorLink">@color/vidchain_accent</item>
+	</style>
+</resources>

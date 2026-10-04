@@ -148,8 +148,16 @@ object FallbackUi {
 				val pad = dp(this, 16)
 				setPadding(pad, pad, pad, pad)
 			}
-			AlertDialog.Builder(ctx).setTitle("Methods tried").setView(ScrollView(ctx).apply { addView(tv) })
-				.setPositiveButton(android.R.string.ok, null).show()
+			val scroll = ScrollView(ctx).apply { addView(tv) }
+			// the AppCompat dialog follows the app's dark switch and accent (T8.1); the platform one if the context is not AppCompat
+			runCatching {
+				androidx.appcompat.app.AlertDialog.Builder(ctx).setTitle("Methods tried").setView(scroll)
+					.setPositiveButton(android.R.string.ok, null).show()
+			}.onFailure {
+				(scroll.parent as? ViewGroup)?.removeView(scroll)
+				AlertDialog.Builder(ctx).setTitle("Methods tried").setView(scroll)
+					.setPositiveButton(android.R.string.ok, null).show()
+			}
 		}
 	}
 

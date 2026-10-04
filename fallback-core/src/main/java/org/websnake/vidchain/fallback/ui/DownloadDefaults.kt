@@ -10,3 +10,13 @@ object DownloadDefaults {
 	fun shouldSwitch(freshInstall: Boolean, appliedBefore: Boolean, stillOriginalDefault: Boolean): Boolean =
 		freshInstall && !appliedBefore && stillOriginalDefault
 }
+
+/**
+ * T8.1, owner's second round: a fresh install starts with "Enable Dark UI Mode" on (the original app starts light).
+ * Same once-only, fresh-install-only rule as [DownloadDefaults]: an existing install keeps the user's choice.
+ */
+object ThemeDefaults {
+	/** pure rule (JVM-tested) */
+	fun shouldEnableDark(freshInstall: Boolean, appliedBefore: Boolean, alreadyDark: Boolean): Boolean =
+		DownloadDefaults.shouldSwitch(freshInstall, appliedBefore, stillOriginalDefault = !alreadyDark)
+}

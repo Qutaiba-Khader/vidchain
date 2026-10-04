@@ -23,8 +23,13 @@ import java.util.Locale
  * Called on the main thread (the coordinator's host context).
  */
 object VidChainFallbackHost : FallbackHost {
-	// created by the start seam (right after AIOApp.INSTANCE is set): the fresh-install defaults (T7.3)
-	init { runCatching { VidChainDefaults.applyWhenReady(AIOApp.INSTANCE) } }
+	// created by the start seam (right after AIOApp.INSTANCE is set): the fresh-install defaults (T7.3, T8.1)
+	init {
+		runCatching { VidChainDefaults.applyThemeNow(AIOApp.INSTANCE) }
+		runCatching { VidChainDefaults.applyWhenReady(AIOApp.INSTANCE) }
+	}
+
+	override fun darkUi(): Boolean? = runCatching { VidChainDefaults.darkUi(AIOApp.INSTANCE) }.getOrNull()
 
 
 	override fun downloads(): List<HostDownload> {
