@@ -4,6 +4,26 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## 1.1.0
+- Checked by the full emulator test pass ([run 37225016775](https://github.com/Qutaiba-Khader/vidchain/actions/runs/37225016775), 55 / 55).
+
+From the owner's second round (INBOX #8):
+- New installs start in dark mode; an existing choice is kept. VidChain's own screens follow the switch.
+- Settings redesigned: cards per section, a switch showing the real state of every on/off setting, one-line
+  descriptions of what each setting does. Removed what could not work or did nothing: the account / sign-in block
+  and the account screen, every "This feature is currently not available" entry, "Enable Daily Suggestions" (kept
+  off), both "Other Advanced Settings" (and the browser screen behind it, whose rows did nothing), "Default Download
+  Folder" (its folder picker saved nothing; "Download Location" is the setting that works), "Enable Adblocker" (it
+  changed nothing in the app).
+- No splash screen: the app opens its main screen directly (the splash only waited 1.2 s on an animation).
+- Fixed bugs inherited from the original app: a page that answers 404 is no longer fetched thousands of times a minute,
+  and an HLS link whose playlist fails no longer crashes the app on every start; a downloaded web page, empty file or
+  cut-off file is no longer called "Completed" (it fails, and VidChain's fallbacks can try other methods); after one
+  shared link opened in the browser, later shares work again without restarting; picking a page's single "Generic"
+  format downloads it instead of failing; cookies reach yt-dlp; the Referer keeps the page address on the same site.
+- VidChain also notices a download that fails within seconds of the app starting, and a new download that the app
+  gives an old download's number.
+
 ## 1.0.1
 From the owner's first phone test of 1.0.0:
 - The quality picker shows each option's size (exact, or approximate marked with ≈) and only the resolutions the video
