@@ -766,7 +766,8 @@
      "url": "https://github.com/parse-community/Parse-SDK-Android/blob/master/LICENSE"
     }
    ],
-   "note": "the POM says Other"
+   "note": "the POM says Other",
+   "url": "https://parseplatform.org/"
   },
   {
    "id": "com.github.parse-community.Parse-SDK-Android:bolts-tasks",
@@ -776,7 +777,8 @@
      "url": "https://github.com/parse-community/Parse-SDK-Android/blob/master/LICENSE"
     }
    ],
-   "note": "the POM says Other"
+   "note": "the POM says Other",
+   "url": "https://parseplatform.org/"
   }
  ]
 }
