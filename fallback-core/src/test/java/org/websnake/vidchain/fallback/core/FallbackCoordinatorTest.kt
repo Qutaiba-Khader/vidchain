@@ -182,6 +182,18 @@ class FallbackCoordinatorTest {
 		assertTrue(w.ledger.attempts("10").isEmpty())
 	}
 
+	@Test fun reusedIdOfANewDownloadDropsTheOldChainHistory() = runBlocking {
+		// pass 11 diagnostic: id 7's old chain (an earlier download) made the new download 7 "already handled"
+		val w = World(this, listOf(stub))
+		w.ledger.markHandled("7", "HTTP_OR_SERVER#0", 1)
+		check(w.ledger.claim("7", 0, stub.id, 1))
+		w.host.list["7"] = HostDownload("7", fileUrl, fileUrl, failed(), startedAtMs = w.now + 1_000)
+		w.tick()
+		val rows = w.ledger.attempts("7")
+		assertEquals(1, rows.size)
+		assertTrue(rows[0].startedMs >= w.now)        // a fresh attempt, not the old one
+	}
+
 	@Test fun newDownloadAfterStartupWithExplicitFailureCounts() = runBlocking {
 		val w = World(this, listOf(stub))
 		w.tick()                                   // startup baseline (empty)

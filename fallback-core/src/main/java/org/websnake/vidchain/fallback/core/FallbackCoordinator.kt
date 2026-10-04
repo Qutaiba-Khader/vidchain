@@ -97,6 +97,10 @@ class FallbackCoordinator(
 		val prev = seen[d.id]
 		// a download id the ledger knows as deleted / cleared, now on a new download: the app reused the id
 		if (prev == null && ledger.intentOf(d.id) in REMOVAL && running[d.id]?.isActive != true) forgetLocked(d.id)
+		// the app also reuses an id when its record went away without a user action (pass 11: a failed download's
+		// record dropped on restart): a download created since VidChain started cannot have chain history of its own
+		else if (prev == null && d.startedAtMs != null && d.startedAtMs >= startedAtMs && ledger.parentOf(d.id) == null &&
+			running[d.id]?.isActive != true && ledger.attempts(d.id).isNotEmpty()) forgetLocked(d.id, "id reused by a new download")
 		val st = prev ?: Seen(d.bytes, d.snapshot.status, now, armed = false, intentSeq = ledger.intentSeq(d.id)).also { seen[d.id] = it }
 		if (d.bytes != st.bytes || d.snapshot.status != st.status) {
 			st.bytes = d.bytes; st.status = d.snapshot.status; st.lastChangeMs = now
@@ -420,11 +424,11 @@ class FallbackCoordinator(
 	}
 
 	/** must hold [lock] */
-	private fun forgetLocked(id: String) {
+	private fun forgetLocked(id: String, why: String = "removed by the user") {
 		ledger.forget(id)
 		TrailBoard.remove(id)
 		seen.remove(id)
-		Trace.event { TraceEvent("decision", downloadId = id, result = "forgotten", reason = "removed by the user") }
+		Trace.event { TraceEvent("decision", downloadId = id, result = "forgotten", reason = why) }
 	}
 
 	/**
