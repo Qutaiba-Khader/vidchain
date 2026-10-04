@@ -110,9 +110,8 @@ for sid, want in sorted(expect["faults"].items()):
     if added:
         probs.append(f"VidChain saved {added} although the fault persists")
     base_crashes = max(fm["outcome"]["crash_logs"], faults_off.get(sid, {}).get("outcome", {}).get("crash_logs", 0))
-    ours = [t for t in raw.get("crash_texts", []) if "org.websnake" in t or "vidchain" in t.lower()]
-    # where the unchanged app crashes by itself the count follows timing (2-5 seen for the same fault): judge the texts
-    if ours or (base_crashes == 0 and o["outcome"]["crash_logs"] > 0):
+    # the count is judged (owner rule, INBOX #6: no failing scenario relabelled without the owner); texts go in the report
+    if o["outcome"]["crash_logs"] > base_crashes:
         probs.append(f"{o['outcome']['crash_logs']} crash log(s), unchanged app {base_crashes} (fault matrix {fm['outcome']['crash_logs']}, "
                      f"fallbacks off this run {faults_off.get(sid, {}).get('outcome', {}).get('crash_logs', '-')}): " + crash(raw))
     ok, got, tried = judge(raw, o, fm, want)
