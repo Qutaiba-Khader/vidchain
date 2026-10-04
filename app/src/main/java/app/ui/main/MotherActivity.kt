@@ -103,6 +103,15 @@ class MotherActivity : BaseActivity() {
 	}
 	
 	/**
+	 * T8.7 d: a shared link that arrives while this screen exists (singleTop) becomes the current intent, so
+	 * handleIntentURL in onResume sees the new link instead of the first one (the original kept the first forever)
+	 */
+	override fun onNewIntent(intent: Intent) {
+		super.onNewIntent(intent)
+		setIntent(intent)
+	}
+	
+	/**
 	 * Handles back press events
 	 */
 	override fun onBackPressActivity() {

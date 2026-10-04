@@ -146,7 +146,7 @@ object VideoParserUtility {
 			
 			// If a cookie is provided, format it and save it to the temporary file.
 			if (!videoCookie.isNullOrEmpty()) {
-				val cookieString = generateNetscapeFormattedCookieString(videoCookie)
+				val cookieString = generateNetscapeFormattedCookieString(videoCookie, videoURL) // T8.7 f
 				if (saveStringToInternalStorage(cookieTempFile.name, cookieString)) {
 					logger.d("Cookie file created successfully at '${cookieTempFile.absolutePath}'.")
 				}
@@ -229,7 +229,7 @@ object VideoParserUtility {
 			
 			// If a cookie is provided, format and save it to the file.
 			if (!cookie.isNullOrEmpty()) {
-				val cookieString = generateNetscapeFormattedCookieString(cookie)
+				val cookieString = generateNetscapeFormattedCookieString(cookie, url) // T8.7 f
 				saveStringToInternalStorage(temporaryCookieFile.name, cookieString)
 				logger.d("Cookie file created at '${temporaryCookieFile.absolutePath}'.")
 			}
@@ -355,7 +355,9 @@ object VideoParserUtility {
 	 */
 	@JvmStatic
 	fun getVideoTitleFromURL(videoUrl: String): String {
-		val title = getWebpageTitleOrDescription(videoUrl) { result -> result.toString() }
-		return title.toString()
+		// T8.7: the original returned the callback's Unit ("kotlin.Unit") instead of the title it received
+		var title = ""
+		getWebpageTitleOrDescription(videoUrl) { result -> title = result.orEmpty() }
+		return title
 	}
 }

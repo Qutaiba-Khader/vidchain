@@ -198,7 +198,7 @@ object VidChainShareRescue {
 							VideoFormat(
 								formatId = f.id, formatExtension = f.ext, formatResolution = YtDlpFormats.resolution(f),
 								formatFileSize = YtDlpFormats.size(f.fileSize), formatTBR = YtDlpFormats.tbr(f),
-								formatVcodec = f.vcodec ?: "", formatAcodec = f.acodec ?: "", formatProtocol = f.protocol ?: "",
+								formatVcodec = f.vcodec ?: "", formatAcodec = YtDlpFormats.appAcodec(f.acodec), formatProtocol = f.protocol ?: "",
 							)
 						},
 					)

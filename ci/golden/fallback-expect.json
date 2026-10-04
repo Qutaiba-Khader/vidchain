@@ -9,7 +9,7 @@
     "extensionless": "untouched",
     "redirect-chain": "untouched",
     "meta-refresh": "untouched",
-    "trap-html-as-mp4": "untouched",
+    "trap-html-as-mp4": "nothing",
     "trap-truncated": "untouched",
     "no-head": "rescued",
     "unknown-length": "rescued",
@@ -25,6 +25,7 @@
     "drive-interstitial": "either"
   },
   "reasons": {
+    "trap-html-as-mp4": "T8.7 b (owner INBOX #8, changed on purpose from untouched): the app now ends a saved HTML page as Download Failed and removes it; the chain that starts finds only the same HTML, so nothing is saved",
     "drive-interstitial": "an invented host: L only knows the real Google Drive; a page scraper may still follow the confirm link",
     "cookie-gated": "the share carries no cookie and no browser session exists for the host",
     "referer-gated": "the share carries no referer and the page that would supply it was never opened",

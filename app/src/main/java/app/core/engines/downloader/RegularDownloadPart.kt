@@ -511,7 +511,8 @@ open class RegularDownloadPart(private val regularDownloader: RegularDownloader)
 		if (!response.isSuccessful) {
 			logger.e("Failed to open stream, HTTP ${response.code} (${response.message})")
 			response.close()
-			return null
+			// T8.7 b: keep the status (the original returned null and lost it); RegularDownloader fails on a permanent one
+			throw org.websnake.vidchain.fallback.fixes.HttpStatusException(response.code)
 		}
 
 		logger.d("Opened remote input stream successfully for file: ${downloadDataModel.fileURL}")

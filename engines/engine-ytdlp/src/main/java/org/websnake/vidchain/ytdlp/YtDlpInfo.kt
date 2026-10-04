@@ -67,6 +67,18 @@ data class YtDlpInfo(
 
 /** Format selection and the strings the upstream picker shows (it parses `yt-dlp -F` tables into these). */
 object YtDlpFormats {
+	/**
+	 * T8.7 e: the audio codec as the original app's picker needs it. The app downloads a format "video only"
+	 * (`-f <id>+ba`) when this is empty: yt-dlp's "none" (known silent video) must become empty, and an unknown codec
+	 * (a "Generic" page's single file) must not, or `+ba` asks for an audio stream that does not exist and the
+	 * download fails, leaving an empty placeholder file.
+	 */
+	fun appAcodec(acodec: String?): String = when {
+		acodec == null || acodec.isBlank() -> "unknown"
+		acodec.equals("none", ignoreCase = true) -> ""
+		else -> acodec
+	}
+
 	/** best video at or below [height] with the best audio; plain best when nothing fits */
 	fun selector(height: Int?, audioOnly: Boolean): String = when {
 		audioOnly -> "ba/b"

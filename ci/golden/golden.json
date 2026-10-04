@@ -1007,16 +1007,10 @@
    "actions": [
     "Download Now"
    ],
+   "changed_on_purpose": "T8.7 b (owner INBOX #8): the app no longer keeps an HTML page saved as .mp4; it ends the download as failed and removes the file (recorded golden had fake.mp4, 55 bytes)",
    "crash_logs": 0,
    "download_records": 1,
-   "files": [
-    {
-     "bytes": 55,
-     "dir": "/storage/emulated/0/Android/data/org.websnake.vidchain/files/VidChain Videos",
-     "name": "fake.mp4",
-     "sha256": "32e5eb45b199ce36854d171cced55cf01262088738602497ab243f94f5334f81"
-    }
-   ],
+   "files": [],
    "front": "app.ui.main.MotherActivity",
    "texts": [
     "https://dash.vidchain.test/manifest.mpd",

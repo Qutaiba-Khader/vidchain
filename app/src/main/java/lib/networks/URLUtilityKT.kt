@@ -9,6 +9,7 @@ import java.io.*
 import java.net.*
 import java.net.HttpURLConnection.*
 import java.util.concurrent.*
+import org.websnake.vidchain.fallback.fixes.BoundedRetry
 
 /**
  * A collection of helper methods for working with URLs and web content.
@@ -40,6 +41,15 @@ object URLUtilityKT {
 	 * Used for logging debugging information, warnings, and errors related to network operations.
 	 */
 	private val logger = LogHelperUtils.from(javaClass)
+
+	/** T8.7 a/c: one client for page fetches (shared connection pool and threads) */
+	private val pageClient: OkHttpClient by lazy {
+		OkHttpClient.Builder()
+			.connectTimeout(30, TimeUnit.SECONDS)
+			.readTimeout(30, TimeUnit.SECONDS)
+			.writeTimeout(30, TimeUnit.SECONDS)
+			.build()
+	}
 
 	/**
 	 * Extracts the scheme and host from a URL string, constructing the base URL.
@@ -583,14 +593,14 @@ object URLUtilityKT {
 					"(KHTML, like Gecko) Version/4.0 Mobile Safari/533.1"
 		)
 
-		// Reuse the same OkHttpClient to benefit from connection pooling
-		val client = OkHttpClient.Builder()
+		// T8.7 a/c: one shared client (the original built a new one per call, and its idle connections piled up)
+		val client = if (timeoutSeconds == 30) pageClient else pageClient.newBuilder()
 			.connectTimeout(timeoutSeconds.toLong(), TimeUnit.SECONDS)
 			.readTimeout(timeoutSeconds.toLong(), TimeUnit.SECONDS)
 			.writeTimeout(timeoutSeconds.toLong(), TimeUnit.SECONDS)
 			.build()
 
-		fun attemptFetch(attempt: Int): String? {
+		fun attemptFetch(attempt: Int): Pair<String?, Int> {
 			val request = Request.Builder()
 				.url(url)
 				.header("User-Agent", oldMobileUserAgents[attempt % oldMobileUserAgents.size])
@@ -605,25 +615,17 @@ object URLUtilityKT {
 
 			return try {
 				client.newCall(request).execute().use { response ->
-					if (response.isSuccessful) response.body.string().takeIf { it.isNotEmpty() }
-					else null
+					(if (response.isSuccessful) response.body.string().takeIf { it.isNotEmpty() } else null) to response.code
 				}
 			} catch (error: Exception) {
 				logger.e("Error found fetching mobile webpage content from a url:", error)
-				null
+				null to 0
 			}
 		}
 
-		// Retry logic
-		val maxAttempts = if (retry && numOfRetry > 0) numOfRetry else 1
-		for (attempt in 0 until maxAttempts) {
-			val result = attemptFetch(attempt)
-			if (result != null) return result
-			if (retry && attempt < maxAttempts - 1) {
-				Thread.sleep(200L * (attempt + 1)) // smaller backoff to speed things up
-			}
-		}
-		return null
+		// T8.7 a/c: at most 4 attempts, 0.5-4 s apart, none after a 4xx that a retry cannot change
+		val attempts = if (retry && numOfRetry > 0) BoundedRetry.attempts(numOfRetry) else 1
+		return BoundedRetry.run(attempts) { attempt -> attemptFetch(attempt) }
 	}
 
 	/**
@@ -647,17 +649,9 @@ object URLUtilityKT {
 		retry: Boolean = false,
 		numOfRetry: Int = 0
 	): String? {
-		if (retry && numOfRetry > 0) {
-			var index = 0
-			var htmlBody: String? = ""
-			while (index < numOfRetry || htmlBody.isNullOrEmpty()) {
-				htmlBody = fetchMobileWebPageContent(url)
-				if (!htmlBody.isNullOrEmpty()) return htmlBody
-				index++
-			}
-		}
-
-		return fetchMobileWebPageContent(url)
+		// T8.7 a/c: the original looped `while (index < numOfRetry || htmlBody.isNullOrEmpty())`, i.e. forever while
+		// the page failed; now the bounded retry of fetchMobileWebPageContent
+		return fetchMobileWebPageContent(url, retry = retry && numOfRetry > 0, numOfRetry = numOfRetry)
 	}
 
 	/**

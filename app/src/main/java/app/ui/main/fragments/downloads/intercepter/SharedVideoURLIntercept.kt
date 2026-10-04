@@ -213,6 +213,7 @@ class SharedVideoURLIntercept(
 					logger.d("URL not supported by yt-dlp: $targetVideoUrl")
 					ThreadsUtility.executeOnMain {
 						waitingDialog.close()
+						isInterceptingInProcess = false // T8.7 d: the original never cleared it on this path
 						safeBaseActivityRef?.doSomeVibration(50)
 						showToast(
 							activityInf = safeBaseActivityRef,

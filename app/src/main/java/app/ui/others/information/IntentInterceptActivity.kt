@@ -373,7 +373,9 @@ class IntentInterceptActivity : BaseActivity() {
 				setDataAndType(originalIntent.data, originalIntent.type)
 				putExtras(originalIntent)
 				putExtra(DONT_PARSE_URL_ANYMORE, dontParseURLAnymore)
-				flags = FLAG_ACTIVITY_CLEAR_TOP or FLAG_ACTIVITY_SINGLE_TOP
+				// T8.7 d: NEW_TASK sends the link to the app's own task; without it the main screen stayed inside the
+				// share's task, and the next share only brought that old task (and its old link) back to the front
+				flags = FLAG_ACTIVITY_CLEAR_TOP or FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
 			}
 
 			// Launch MotherActivity with the processed intent

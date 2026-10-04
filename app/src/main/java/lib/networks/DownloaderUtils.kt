@@ -341,11 +341,14 @@ object DownloaderUtils {
 	 * @return Formatted Netscape cookie file content
 	 */
 	@JvmStatic
-	fun generateNetscapeFormattedCookieString(cookieString: String): String {
+	@JvmOverloads
+	fun generateNetscapeFormattedCookieString(cookieString: String, forUrl: String? = null): String {
 		val cookies = cookieString.split(";").map { it.trim() }
-		val domain = ""
+		// T8.7 f (baseline finding 8): yt-dlp drops cookie lines without a domain, so the original's cookies never
+		// reached it; the line now names the exact host of the page they belong to (host-only: not its subdomains)
+		val domain = forUrl?.let { runCatching { java.net.URI(it).host }.getOrNull() }.orEmpty()
 		val path = "/"
-		val secure = "FALSE"
+		val secure = if (forUrl?.startsWith("https:", ignoreCase = true) == true) "TRUE" else "FALSE"
 		val expiry = "2147483647"
 
 		val stringBuilder = StringBuilder()

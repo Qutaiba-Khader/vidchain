@@ -208,6 +208,16 @@ class RegularDownloader(
 		coroutineScope.launch {
 			if (downloadPart.isPartCanceledByUser) return@launch
 
+			// T8.7 b: a refusal a retry cannot change (403, 404, 410...) ends the download as failed; the original
+			// waited for the network forever and left an empty or partial file behind
+			val refused = downloadPart.partDownloadErrorException as? org.websnake.vidchain.fallback.fixes.HttpStatusException
+			// (416 is left to the original handling: a resumed part that already has every byte gets it)
+			if (refused != null && refused.code != 416 && org.websnake.vidchain.fallback.fixes.BoundedRetry.permanent(refused.code)) {
+				logger.d("Server refused the download permanently (HTTP ${refused.code}): failing it")
+				failBadDownload("HTTP ${refused.code}")
+				return@launch
+			}
+
 			if (isCriticalErrorFoundInDownloadPart(downloadPart)) {
 				when {
 					downloadDataModel.isFileUrlExpired -> {
@@ -242,6 +252,17 @@ class RegularDownloader(
 	}
 
 	/**
+	 * T8.7 b (inherited bug fix): end a download whose result is unusable as "Download Failed" (so VidChain's chain may
+	 * start) and remove the unusable file, so that a good copy can take the original name.
+	 */
+	private suspend fun failBadDownload(why: String) {
+		logger.d("Failing download: $why")
+		runCatching { if (destinationOutputFile.exists()) destinationOutputFile.delete() }
+		downloadDataModel.isRunning = false
+		cancelDownload(cancelReason = getText(string.title_download_failed))
+	}
+
+	/**
 	 * Handles the event when a download part completes.
 	 *
 	 * Responsibilities:
@@ -258,6 +279,7 @@ class RegularDownloader(
 
 		coroutineScope.launch {
 			var allPartsCompleted = true
+			var shortPart = false
 
 			for ((index, part) in allDownloadParts.withIndex()) {
 				if (!allPartsCompleted) break
@@ -268,6 +290,8 @@ class RegularDownloader(
 					val actualSize = part.partDownloadedByte
 					if (actualSize < expectedSize) {
 						allPartsCompleted = false
+						// T8.7 b: the server ended this part early; the original waited here forever
+						shortPart = part.partDownloadStatus == COMPLETE
 						logger.d("Part $index incomplete: expected $expectedSize, actual $actualSize")
 						break
 					}
@@ -281,7 +305,16 @@ class RegularDownloader(
 				}
 			}
 
+			if (shortPart) { failBadDownload("short file"); return@launch }
 			if (!allPartsCompleted) return@launch
+
+			// T8.7 b: a file named as video/audio that is an HTML page, empty or short ends as failed, not completed
+			val expected = if (downloadDataModel.isUnknownFileSize) null else downloadDataModel.fileSize
+			org.websnake.vidchain.fallback.fixes.BadFile.reason(destinationOutputFile, expected)?.let { why ->
+				logger.d("Saved file is not what was asked for ($why): failing it")
+				failBadDownload(why)
+				return@launch
+			}
 
 			logger.d("All download parts completed successfully")
 

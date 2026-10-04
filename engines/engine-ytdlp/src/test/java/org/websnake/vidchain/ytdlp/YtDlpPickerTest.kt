@@ -35,4 +35,11 @@ class YtDlpPickerTest {
 		val u = YtDlpFormats.pickerRows(YtDlpInfo.parse(unknown))
 		assertEquals(listOf("480p"), u.map { it.label }); assertNull(u[0].bytes)
 	}
+
+	@Test fun audioCodecForTheAppsPicker() {
+		assertEquals("unknown", YtDlpFormats.appAcodec(null))   // Generic single file: download the format itself
+		assertEquals("unknown", YtDlpFormats.appAcodec(""))
+		assertEquals("", YtDlpFormats.appAcodec("none"))        // silent video: the app adds the best audio
+		assertEquals("mp4a.40.2", YtDlpFormats.appAcodec("mp4a.40.2"))
+	}
 }

@@ -235,7 +235,10 @@ object DownloadURLHelper {
 
 		// Include Referer if provided (often needed to bypass hotlink protection)
 		if (!siteReferer.isNullOrEmpty()) {
-			requestBuilder.addHeader(REFERER, extractHostUrl(siteReferer))
+			// T8.7 f (baseline finding 9): the whole page address when the file is on the same host (as a browser
+			// sends it), only the origin when it is elsewhere; the original always cut it to the origin
+			val sameHost = runCatching { java.net.URI(siteReferer).host.equals(java.net.URI(fileUrl).host, ignoreCase = true) }.getOrDefault(false)
+			requestBuilder.addHeader(REFERER, if (sameHost) siteReferer else extractHostUrl(siteReferer))
 		}
 
 		// Include site cookie if provided from the browser webview
