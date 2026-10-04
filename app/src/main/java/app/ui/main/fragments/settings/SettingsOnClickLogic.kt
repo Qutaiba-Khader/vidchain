@@ -10,14 +10,11 @@ import app.core.AIOApp.Companion.aioSettings
 import app.core.AIOApp.Companion.aioUserProfile
 import app.core.engines.settings.AIOSettings.Companion.AIO_SETTING_DARK_MODE_FILE_NAME
 import app.core.engines.supabase.*
-import app.core.engines.updater.*
 import app.ui.main.fragments.settings.dialogs.*
 import app.ui.others.information.*
 import com.aio.*
 import kotlinx.coroutines.*
 import lib.device.*
-import lib.files.FileSystemUtility.hasFullFileSystemAccess
-import lib.files.FileSystemUtility.openAllFilesAccessSettings
 import lib.networks.URLUtility.*
 import lib.process.*
 import lib.process.CommonTimeUtils.OnTaskFinishListener
@@ -200,81 +197,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 	 * This state management ensures only one file picker is open at a time, preventing UI conflicts
 	 * and confusing user experiences with multiple overlapping dialogs.
 	 */
-	private var isFileFolderPickerActive = false
-	
-	/**
-	 * Opens a custom download folder selector with comprehensive storage permission handling
-	 * and user guidance for file system access requirements.
-	 *
-	 * This method implements a complete workflow for selecting custom download directories:
-	 * 1. Checks for necessary file system permissions
-	 * 2. Guides users to enable permissions if missing
-	 * 3. Launches folder picker with appropriate configuration
-	 * 4. Prevents multiple picker instances through state tracking
-	 *
-	 * Permission Handling:
-	 * - Detects MANAGE_EXTERNAL_STORAGE permission status
-	 * - Provides educational dialog when permission is missing
-	 * - Directs users to system settings for permission grant
-	 * - Ensures legal compliance with scoped storage requirements
-	 *
-	 * Picker Configuration:
-	 * - Folder-only selection mode (no individual files)
-	 * - Single selection for clear directory targeting
-	 * - Non-cancellable to ensure download location is set
-	 * - Custom title and button text for clear purpose
-	 */
-	fun changeDefaultDownloadFolder() {
-		logger.d("Custom Download Folder Selector - Initiating directory selection workflow")
-		safeSettingsFragmentRef?.safeMotherActivityRef?.let { activityRef ->
-			// Step 1: Check for required file system access permissions
-			if (!hasFullFileSystemAccess(activityRef)) {
-				// Step 2: Show permission education dialog when access is limited
-				getMessageDialog(
-					baseActivityInf = activityRef,
-					isTitleVisible = true,
-					isCancelable = false, // Force users to address permission requirement
-					isNegativeButtonVisible = false, // Single action flow
-					titleText = activityRef.getString(R.string.title_storage_permission_needed),
-					// Explain why file system access is required for folder selection
-					messageTextViewCustomize = { it.setText(R.string.text_file_system_permission_needed) },
-					positiveButtonTextCustomize = { it.setText(R.string.title_allow_now_in_settings) }
-				)?.apply {
-					// Direct users to system settings for permission management
-					setOnClickForPositiveButton {
-						openAllFilesAccessSettings(activityRef)
-						close()
-					}
-				}?.show()
-			} else {
-				if (isFileFolderPickerActive) return
-				
-				// Step 3: Launch folder picker when permissions are granted
-				FileFolderPicker(
-					activityRef,
-					isCancellable = false, // Ensure download location is always set
-					isFolderPickerOnly = true, // Restrict to directory selection only
-					isFilePickerOnly = false, // Explicitly disable file selection
-					isMultiSelection = false, // Single folder selection for clarity
-					titleText = getText(R.string.title_select_download_folder),
-					positiveButtonText = getText(R.string.title_select_folder),
-					onUserAbortedProcess = {
-						// Handle user cancellation or back navigation
-						isFileFolderPickerActive = false
-					},
-					onFileSelection = {
-						// Process selected folder path for download destination
-						// Implementation would handle the selected directory path
-						isFileFolderPickerActive = false
-					}).show()
-				// Update state to prevent duplicate picker instances
-				isFileFolderPickerActive = true
-			}
-		} ?: logger.d(
-			"Failed: Activity null (Folder Selector) - " +
-				"Cannot access file system without activity context"
-		)
-	}
 	
 	/**
 	 * Toggles the visibility of download progress and completion notifications in the system status bar.
@@ -477,22 +399,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 	}
 	
 	/**
-	 * Toggles ad blocker preference for the browser.
-	 */
-	fun toggleBrowserBrowserAdBlocker() {
-		logger.d("Toggling Browser Ad Blocker")
-		try {
-			val browserEnableAdblocker = aioSettings.browserEnableAdblocker
-			aioSettings.browserEnableAdblocker = !browserEnableAdblocker
-			aioSettings.updateInStorage()
-			logger.d("Browser Ad Blocker toggled: $browserEnableAdblocker")
-			updateSettingStateUI()
-		} catch (error: Exception) {
-			logger.e("Error toggling browser ad blocker: ${error.message}", error)
-		}
-	}
-	
-	/**
 	 * Toggles popup blocker preference for the browser.
 	 */
 	fun toggleBrowserPopupAdBlocker() {
@@ -616,46 +522,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 	}
 	
 	/**
-	 * Checks for an available update, shows loading UI, then shows site or toast as appropriate.
-	 */
-	fun checkForNewApkVersion() {
-		logger.d("Check for APK update")
-		this@SettingsOnClickLogic.safeSettingsFragmentRef?.safeBaseActivityRef?.let { activityRef ->
-			ThreadsUtility.executeInBackground(codeBlock = {
-				var waitingDialog: WaitingDialog? = null
-				ThreadsUtility.executeOnMain {
-					waitingDialog = WaitingDialog(
-						baseActivityInf = activityRef,
-						loadingMessage = getText(R.string.title_checking_for_new_update),
-						isCancelable = false,
-					)
-					waitingDialog.show()
-					delay(1000)
-				}
-				
-				if (AIOUpdater().isNewUpdateAvailable()) {
-					ThreadsUtility.executeOnMain { waitingDialog?.close() }
-					logger.d("Update found → opening site")
-					activityRef.openApplicationOfficialSite()
-				} else {
-					ThreadsUtility.executeOnMain { waitingDialog?.close() }
-					logger.d("Already latest version")
-					ThreadsUtility.executeOnMain {
-						activityRef.doSomeVibration(20)
-						val msgResId = R.string.title_you_using_latest_version
-						showToast(activityInf = activityRef, msgId = msgResId)
-					}
-				}
-			}, errorHandler = {
-				logger.d("Update check failed: ${it.message}")
-				activityRef.doSomeVibration(20)
-				val toastMsgId = R.string.title_something_went_wrong
-				showToast(activityInf = activityRef, msgId = toastMsgId)
-			})
-		} ?: run { logger.d("Update check failed: null activity") }
-	}
-	
-	/**
 	 * Refreshes settings UI by updating enabled/disabled indicator icons.
 	 */
 	fun updateSettingStateUI() {
@@ -663,17 +529,17 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 		val darkModeTempConfigFile = File(INSTANCE.filesDir, AIO_SETTING_DARK_MODE_FILE_NAME)
 		safeSettingsFragmentRef?.safeFragmentLayoutRef?.let { layout ->
 			listOf(
-				SettingViewConfig(R.id.txt_dark_mode_ui, darkModeTempConfigFile.exists()),
-				SettingViewConfig(R.id.txt_play_notification_sound, aioSettings.downloadPlayNotificationSound),
-				SettingViewConfig(R.id.txt_wifi_only_downloads, aioSettings.downloadWifiOnly),
-				SettingViewConfig(R.id.txt_single_click_open, aioSettings.openDownloadedFileOnSingleClick),
-				SettingViewConfig(R.id.txt_hide_task_notifications, aioSettings.downloadHideNotification),
-				SettingViewConfig(R.id.txt_enable_adblock, aioSettings.browserEnableAdblocker),
-				SettingViewConfig(R.id.txt_enable_popup_blocker, aioSettings.browserEnablePopupBlocker),
-				SettingViewConfig(R.id.txt_show_image_on_web, aioSettings.browserEnableImages),
-				SettingViewConfig(R.id.txt_enable_video_grabber, aioSettings.browserEnableVideoGrabber),
+				SettingViewConfig(R.id.sw_dark_mode_ui, darkModeTempConfigFile.exists()),
+				SettingViewConfig(R.id.sw_play_notification_sound, aioSettings.downloadPlayNotificationSound),
+				SettingViewConfig(R.id.sw_wifi_only_downloads, aioSettings.downloadWifiOnly),
+				SettingViewConfig(R.id.sw_single_click_open, aioSettings.openDownloadedFileOnSingleClick),
+				SettingViewConfig(R.id.sw_hide_task_notifications, aioSettings.downloadHideNotification),
+				SettingViewConfig(R.id.sw_enable_popup_blocker, aioSettings.browserEnablePopupBlocker),
+				SettingViewConfig(R.id.sw_show_image_on_web, aioSettings.browserEnableImages),
+				SettingViewConfig(R.id.sw_enable_video_grabber, aioSettings.browserEnableVideoGrabber),
 			).forEach { config ->
-				layout.findViewById<TextView>(config.viewId)?.updateEndDrawable(config.isEnabled)
+				// T8.6: the redesigned rows show each setting's real state in a switch
+				layout.findViewById<androidx.appcompat.widget.SwitchCompat>(config.viewId)?.isChecked = config.isEnabled
 			}
 		} ?: run {
 			logger.d("UI update failed")
@@ -719,36 +585,6 @@ class SettingsOnClickLogic(settingsFragment: SettingsFragment) {
 		}
 	}
 	
-	/**
-	 * Updates the end drawable (trailing icon) of a TextView to visually represent a toggle state.
-	 *
-	 * This utility method provides consistent visual feedback for toggleable settings by
-	 * dynamically switching between checked (enabled) and unchecked (disabled) icons at
-	 * the end of the text view. The approach maintains all existing drawables (start, top, bottom)
-	 * while only modifying the end drawable to preserve the complete view composition.
-	 *
-	 * Visual Design:
-	 * - Checked State: Filled circle icon indicating active/enabled setting
-	 * - Unchecked State: Hollow circle icon indicating inactive/disabled setting
-	 * - Position: Consistent end-aligned placement for predictable user scanning
-	 * - Preservation: Maintains existing layout and other drawable positions
-	 *
-	 * Usage Pattern:
-	 * Typically used in settings lists where each item has a toggle state that needs
-	 * immediate visual feedback without requiring complete view recreation.
-	 */
-	private fun TextView.updateEndDrawable(isEnabled: Boolean) {
-		// Select appropriate drawable resource based on toggle state
-		val endDrawableRes = if (isEnabled) R.drawable.ic_button_checked_circle_small
-		else R.drawable.ic_button_unchecked_circle_small
-		
-		// Preserve existing drawables to maintain view composition
-		val current = compoundDrawables
-		val checkedDrawable = getDrawable(context, endDrawableRes)
-		
-		// Update only the end drawable while preserving others
-		setCompoundDrawablesWithIntrinsicBounds(current[0], current[1], checkedDrawable, current[3])
-	}
 	
 	/**
 	 * Generates a localized and formatted share message containing application information

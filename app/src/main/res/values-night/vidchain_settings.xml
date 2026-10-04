@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- VidChain settings screen, dark (the owner's design values) -->
+<resources>
+	<color name="vc_settings_bg">#0E0E10</color>
+	<color name="vc_settings_card">#1A1A1D</color>
+	<color name="vc_settings_pressed">#232327</color>
+	<color name="vc_settings_text">#F2F2F3</color>
+	<color name="vc_settings_text2">#9B9BA1</color>
+	<color name="vc_settings_text3">#6E6E75</color>
+	<color name="vc_settings_divider">#2A2A2E</color>
+	<color name="vc_settings_track_off">#3A3A40</color>
+	<color name="vc_settings_knob_on">#1A1206</color>
+	<color name="vc_settings_knob_off">#8A8A91</color>
+</resources>

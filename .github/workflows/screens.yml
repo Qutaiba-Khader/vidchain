@@ -1,0 +1,101 @@
+name: Screens + cold start (manual)
+
+# A short emulator run for UI work (T8.5/T8.6, owner INBOX #8): screenshots of the main screen, the settings
+# screen and VidChain's settings on a fresh install (default theme), and cold start v1.0.1 vs this build.
+# No fixture world, no downloads: the full test stays the proof for download behaviour.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: screens
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the APK under test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: true
+      - name: Build release APKs (throwaway key)
+        run: |
+          mkdir -p ~/.gradle && echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8' >> ~/.gradle/gradle.properties
+          keytool -genkeypair -keystore "$RUNNER_TEMP/ci.jks" -storetype PKCS12 -storepass ci-only -keypass ci-only \
+            -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=VidChain CI throwaway" >/dev/null 2>&1
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/ci.jks" \
+            -Pandroid.injected.signing.store.password=ci-only \
+            -Pandroid.injected.signing.key.alias=ci \
+            -Pandroid.injected.signing.key.password=ci-only
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: apk-ci
+          path: |
+            app/build/outputs/apk/release/app-x86_64-release.apk
+            app/build/outputs/apk/release/app-arm64-v8a-release.apk
+          retention-days: 7
+          if-no-files-found: error
+
+  screens:
+    name: Screenshots and cold start in the CI emulator
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: apk-ci
+          path: apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Previous release for the cold-start comparison
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download v1.0.1 --repo "$GITHUB_REPOSITORY" --pattern vidchain-x86_64.apk --dir before
+      - name: Cold start, then screenshots of a fresh install
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 33
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            python3 ci/emulator/coldstart.py coldstart.json v1.0.1=before/vidchain-x86_64.apk this-build=apk/app-x86_64-release.apk || true
+            adb install -r -g apk/app-x86_64-release.apk
+            adb shell appops set org.websnake.vidchain MANAGE_EXTERNAL_STORAGE allow
+            adb shell dumpsys deviceidle whitelist +org.websnake.vidchain
+            python3 ci/emulator/screens.py screens || true
+      - name: Summary
+        if: always()
+        run: |
+          { echo "### Cold start (launcher tap to main screen drawn, ms)"; echo '```'; cat coldstart.json 2>/dev/null || echo "no measurement"; echo '```'; ls screens 2>/dev/null; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: screens
+          path: |
+            coldstart.json
+            screens/
+          retention-days: 14

@@ -26,7 +26,6 @@ import org.websnake.vidchain.fallback.core.FallbackRuntime
 object FallbackUi {
 	private const val TAG_TRAIL = "vidchain_trail"
 	private const val TAG_OPTIONS = "vidchain_options"
-	private const val TAG_SETTINGS = "vidchain_settings"
 	internal val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
 	/** download card: "Fallback: trying X (n/k)" under the status line; tap = methods tried */
@@ -92,31 +91,9 @@ object FallbackUi {
 		column.addView(box)
 	}
 
-	/** Settings: one row "VidChain fallbacks" right after the advanced-downloads row, cloned from it */
-	fun addSettingsEntry(layout: View, templateRowId: Int, templateTextId: Int) {
-		val template = layout.findViewById<ViewGroup>(templateRowId) ?: return
-		val templateText = layout.findViewById<TextView>(templateTextId) ?: return
-		val parent = template.parent as? ViewGroup ?: return
-		if (parent.findViewWithTag<View>(TAG_SETTINGS) != null) return
-		val ctx = layout.context
-		val row = LinearLayout(ctx).apply {
-			tag = TAG_SETTINGS
-			orientation = LinearLayout.VERTICAL
-			background = template.background?.constantState?.newDrawable()?.mutate()
-			isClickable = true
-			isFocusable = true
-			setOnClickListener { ctx.startActivity(Intent(ctx, VidChainSettingsActivity::class.java)) }
-		}
-		val text = TextView(ctx).apply {
-			copyStyle(templateText, this)
-			val d = templateText.compoundDrawablesRelative.map { it?.constantState?.newDrawable()?.mutate() }
-			setCompoundDrawablesRelativeWithIntrinsicBounds(d[0], d[1], d[2], d[3])
-			compoundDrawablePadding = templateText.compoundDrawablePadding
-			compoundDrawableTintList = templateText.compoundDrawableTintList
-			text = "VidChain fallbacks"
-		}
-		row.addView(text, LinearLayout.LayoutParams(templateText.layoutParams as ViewGroup.MarginLayoutParams))
-		parent.addView(row, parent.indexOfChild(template) + 1, LinearLayout.LayoutParams(template.layoutParams as ViewGroup.MarginLayoutParams))
+	fun bindSettingsEntry(layout: View, rowId: Int) {
+		val row = layout.findViewById<View>(rowId) ?: return
+		row.setOnClickListener { it.context.startActivity(Intent(it.context, VidChainSettingsActivity::class.java)) }
 	}
 
 	fun tryAnother(ctx: Context, downloadId: String) {

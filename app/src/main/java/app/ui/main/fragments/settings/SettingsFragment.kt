@@ -11,7 +11,6 @@ import kotlinx.coroutines.*
 import lib.device.AppVersionUtility.versionCode
 import lib.device.AppVersionUtility.versionName
 import lib.process.*
-import lib.texts.CommonTextUtils.fromHtmlStringToSpanned
 import lib.ui.*
 import java.lang.ref.*
 
@@ -123,9 +122,8 @@ class SettingsFragment : BaseFragment() {
 			safeSettingsFragmentRef?.let { fragmentRef ->
 				safeFragmentLayoutRef?.let { layoutRef ->
 					registerSelfReferenceInMotherActivity()
-					hideActualLayout()
 					setupViewsOnClickEvents(fragmentRef, layoutRef)
-					org.websnake.vidchain.fallback.core.FallbackSeams.addSettingsEntry(layoutRef, com.aio.R.id.btn_adv_downloads_settings, com.aio.R.id.txt_adv_downloads_settings) // FALLBACK-SEAM:settings
+					org.websnake.vidchain.fallback.core.FallbackSeams.bindSettingsEntry(layoutRef, com.aio.R.id.btn_vidchain_fallbacks) // FALLBACK-SEAM:settings
 				}
 			}
 		} catch (error: Exception) {
@@ -157,12 +155,6 @@ class SettingsFragment : BaseFragment() {
 				safeFragmentLayoutRef?.let { layoutRef ->
 					settingsOnClickLogic?.updateSettingStateUI()
 					updateViewsWithCurrentData(layoutRef)
-					fragmentRef.viewLifecycleOwner.lifecycleScope.launch {
-						delay(500)
-						if (fragmentRef.isResumed) {
-							releaseActualLayout()
-						}
-					}
 				}
 			}
 		} catch (error: Exception) {
@@ -181,7 +173,6 @@ class SettingsFragment : BaseFragment() {
 	 * only logs the event for debugging purposes.
 	 */
 	override fun onPauseFragment() {
-		hideActualLayout()
 		logger.d("onPauseFragment() called: No cleanup necessary")
 	}
 	
@@ -277,7 +268,6 @@ class SettingsFragment : BaseFragment() {
 				R.id.btn_content_location to { settingsOnClickLogic?.changeDefaultContentRegion() },
 				
 				// Download settings
-				R.id.btn_default_download_folder to { settingsOnClickLogic?.changeDefaultDownloadFolder() },
 				R.id.btn_hide_task_notifications to { settingsOnClickLogic?.toggleHideDownloadNotification() },
 				R.id.btn_wifi_only_downloads to { settingsOnClickLogic?.toggleWifiOnlyDownload() },
 				R.id.btn_single_click_open to { settingsOnClickLogic?.toggleSingleClickToOpenFile() },
@@ -285,7 +275,6 @@ class SettingsFragment : BaseFragment() {
 				
 				// Browser settings
 				R.id.btn_browser_homepage to { settingsOnClickLogic?.setBrowserDefaultHomepage() },
-				R.id.btn_enable_adblock to { settingsOnClickLogic?.toggleBrowserBrowserAdBlocker() },
 				R.id.btn_enable_popup_blocker to { settingsOnClickLogic?.toggleBrowserPopupAdBlocker() },
 				R.id.btn_show_image_on_web to { settingsOnClickLogic?.toggleBrowserWebImages() },
 				R.id.btn_enable_video_grabber to { settingsOnClickLogic?.toggleBrowserVideoGrabber() },
@@ -298,7 +287,6 @@ class SettingsFragment : BaseFragment() {
 				R.id.btn_open_terms_condition to { settingsOnClickLogic?.showTermsConditionActivity() },
 				
 				// Updates and reset
-				R.id.btn_check_new_update to { settingsOnClickLogic?.checkForNewApkVersion() },
 				R.id.btn_restart_application to { settingsOnClickLogic?.restartApplication() },
 				
 				// Developer acknowledgements
@@ -364,11 +352,8 @@ class SettingsFragment : BaseFragment() {
 		logger.d("Setting version display: versionName=$versionName, versionCode=$versionCode")
 		try {
 			with(fragmentLayout) {
-				findViewById<TextView>(R.id.txt_version_info)?.apply {
-					val versionNameText = "${getString(R.string.title_version_number)} $versionName"
-					val versionCodeText = "${getString(R.string.title_build_version)} $versionCode"
-					text = fromHtmlStringToSpanned("${versionNameText}<br/>${versionCodeText}")
-				}
+				findViewById<TextView>(R.id.txt_version_number_value)?.text = versionName
+				findViewById<TextView>(R.id.txt_build_version_value)?.text = versionCode.toString()
 			}
 		} catch (error: Exception) {
 			logger.e("Error initializing version info view", error)
@@ -401,51 +386,4 @@ class SettingsFragment : BaseFragment() {
 		}
 	}
 	
-	/**
-	 * Unbinds views and releases resources to prevent memory leaks when the fragment's
-	 * view is destroyed. This method is part of the `BaseFragment` lifecycle and is
-	 * called automatically to nullify references to the fragment's layout and its
-	 * associated click logic handler.
-	 *
-	 * Key actions performed:
-	 * - Nullifies the `settingsOnClickLogic` instance, breaking its reference to the
-	 *   fragment and allowing it to be garbage-collected.
-	 * - Calls the superclass implementation to perform standard `BaseFragment` cleanup,
-	 *   which includes releasing the reference to the fragment's layout view.
-	 *
-	 * This cleanup is crucial for fragments with complex view hierarchies and helper
-	 * classes to ensure that no context or view references are held beyond their
-	 * intended lifecycle, which is a common source of memory leaks in Android.
-	 */
-	private fun releaseActualLayout() {
-		safeFragmentLayoutRef?.let { fragLayout ->
-			fragLayout.findViewById<View>(R.id.container_layout_loading).let {
-				ViewUtility.hideView(it, true)
-			}
-			fragLayout.findViewById<View>(R.id.container_main_layout).let {
-				ViewUtility.showView(it, true)
-			}
-		}
-	}
-	
-	/**
-	 * Hides the main content layout and displays the loading indicator.
-	 *
-	 * This method is intended to be called when the fragment needs to perform a
-	 * background task and wants to provide visual feedback to the user that
-	 * something is happening. It makes the main settings container invisible
-	 * and shows a loading spinner in its place.
-	 *
-	 * It is the counterpart to [releaseActualLayout], which performs the opposite action.
-	 */
-	private fun hideActualLayout() {
-		safeFragmentLayoutRef?.let { fragLayout ->
-			fragLayout.findViewById<View>(R.id.container_layout_loading).let {
-				ViewUtility.showView(it, true)
-			}
-			fragLayout.findViewById<View>(R.id.container_main_layout).let {
-				ViewUtility.hideView(it, true)
-			}
-		}
-	}
 }

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- VidChain settings screen (T8.6, owner's design, INBOX #8). Dark values in values-night; the accent is the app's own
+     color_secondary everywhere (#FF9800 dark, #F0570B light); the design's #F5A00F is not used. -->
+<resources>
+	<color name="vc_settings_bg">#F6F6F6</color>
+	<color name="vc_settings_card">#FFFFFF</color>
+	<color name="vc_settings_pressed">#ECECEE</color>
+	<color name="vc_settings_text">#1F1F22</color>
+	<color name="vc_settings_text2">#5F5F66</color>
+	<color name="vc_settings_text3">#8A8A91</color>
+	<color name="vc_settings_divider">#E4E4E7</color>
+	<color name="vc_settings_track_off">#C9C9CE</color>
+	<color name="vc_settings_knob_on">#FFFFFF</color>
+	<color name="vc_settings_knob_off">#FFFFFF</color>
+
+	<string name="vc_settings_title">Settings</string>
+	<string name="vc_settings_section_appearance">Appearance &amp; region</string>
+	<string name="vc_settings_section_downloads">Downloads</string>
+	<string name="vc_settings_section_browser">Browser</string>
+	<string name="vc_settings_section_vidchain">VidChain fallbacks</string>
+	<string name="vc_settings_section_support">Support &amp; about</string>
+	<string name="vc_settings_vidchain">VidChain fallbacks</string>
+	<string name="vc_settings_follow">Follow Me On Instagram</string>
+	<string name="vc_settings_follow_handle">\@ShibaFoss</string>
+
+	<!-- one line each, written from what the code does -->
+	<string name="vc_settings_desc_dark">Dark colours across the app</string>
+	<string name="vc_settings_desc_language">App language (the app restarts)</string>
+	<string name="vc_settings_desc_region">Sent to YouTube when reading video details</string>
+	<string name="vc_settings_desc_location">Phone\'s public Downloads or a private app folder</string>
+	<string name="vc_settings_desc_wifi">Stop downloads when not on Wi-Fi</string>
+	<string name="vc_settings_desc_hide_notif">No notifications while downloading</string>
+	<string name="vc_settings_desc_sound">Play a sound when a download finishes</string>
+	<string name="vc_settings_desc_single_click">Tap a finished download to play it</string>
+	<string name="vc_settings_desc_homepage">Page the browser opens with</string>
+	<string name="vc_settings_desc_popups">Stop pages from opening pop-up windows</string>
+	<string name="vc_settings_desc_images">Load images on web pages</string>
+	<string name="vc_settings_desc_grabber">Find videos on pages and offer to download</string>
+	<string name="vc_settings_desc_vidchain">When a download fails, try other methods</string>
+	<string name="vc_settings_desc_feedback">Report a problem on GitHub</string>
+	<string name="vc_settings_desc_share">Send someone the VidChain link</string>
+	<string name="vc_settings_desc_app_info">Android app info and permissions</string>
+	<string name="vc_settings_desc_privacy">How VidChain handles data</string>
+	<string name="vc_settings_desc_terms">The licence VidChain is shared under</string>
+
+	<style name="VcSettings" />
+
+	<style name="VcSettings.Section">
+		<item name="android:layout_width">match_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+		<item name="android:paddingStart">32dp</item>
+		<item name="android:paddingEnd">32dp</item>
+		<item name="android:paddingTop">20dp</item>
+		<item name="android:paddingBottom">8dp</item>
+		<item name="android:textSize">13sp</item>
+		<item name="android:fontFamily">@font/font_family_medium</item>
+		<item name="android:textColor">@color/color_secondary</item>
+	</style>
+
+	<style name="VcSettings.Card">
+		<item name="android:layout_width">match_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+		<item name="android:layout_marginStart">16dp</item>
+		<item name="android:layout_marginEnd">16dp</item>
+		<item name="android:background">@drawable/vc_settings_card</item>
+		<item name="android:orientation">vertical</item>
+		<item name="android:clipToOutline">true</item>
+	</style>
+
+	<style name="VcSettings.Row">
+		<item name="android:layout_width">match_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+		<item name="android:minHeight">64dp</item>
+		<item name="android:paddingStart">16dp</item>
+		<item name="android:paddingEnd">16dp</item>
+		<item name="android:paddingTop">10dp</item>
+		<item name="android:paddingBottom">10dp</item>
+		<item name="android:gravity">center_vertical</item>
+		<item name="android:orientation">horizontal</item>
+		<item name="android:background">@drawable/vc_settings_row_bg</item>
+		<item name="android:clickable">true</item>
+		<item name="android:focusable">true</item>
+	</style>
+
+	<style name="VcSettings.Icon">
+		<item name="android:layout_width">24dp</item>
+		<item name="android:layout_height">24dp</item>
+		<item name="android:layout_marginEnd">16dp</item>
+		<item name="android:scaleType">fitCenter</item>
+		<item name="android:importantForAccessibility">no</item>
+		<item name="android:tint">@color/color_secondary</item>
+	</style>
+
+	<style name="VcSettings.Texts">
+		<item name="android:layout_width">0dp</item>
+		<item name="android:layout_height">wrap_content</item>
+		<item name="android:layout_weight">1</item>
+		<item name="android:orientation">vertical</item>
+	</style>
+
+	<style name="VcSettings.RowTitle">
+		<item name="android:layout_width">match_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+		<item name="android:textSize">16sp</item>
+		<item name="android:lineSpacingExtra">4sp</item>
+		<item name="android:fontFamily">@font/font_family_regular</item>
+		<item name="android:textColor">@color/vc_settings_text</item>
+		<item name="android:maxLines">2</item>
+		<item name="android:ellipsize">end</item>
+	</style>
+
+	<style name="VcSettings.RowDesc">
+		<item name="android:layout_width">match_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+		<item name="android:textSize">13sp</item>
+		<item name="android:lineSpacingExtra">3sp</item>
+		<item name="android:fontFamily">@font/font_family_regular</item>
+		<item name="android:textColor">@color/vc_settings_text2</item>
+		<item name="android:maxLines">1</item>
+		<item name="android:ellipsize">end</item>
+	</style>
+
+	<style name="VcSettings.Chevron">
+		<item name="android:layout_width">20dp</item>
+		<item name="android:layout_height">20dp</item>
+		<item name="android:layout_marginStart">12dp</item>
+		<item name="android:src">@drawable/ic_button_arrow_next</item>
+		<item name="android:importantForAccessibility">no</item>
+		<item name="android:tint">@color/vc_settings_text3</item>
+	</style>
+
+	<!-- styled SwitchCompat (the app has no Material library): 48x24 track, 18 dp knob; the row handles the tap -->
+	<style name="VcSettings.Switch">
+		<item name="android:layout_width">wrap_content</item>
+		<item name="android:layout_height">wrap_content</item>
+		<item name="android:layout_marginStart">12dp</item>
+		<item name="android:clickable">false</item>
+		<item name="android:focusable">false</item>
+		<item name="android:importantForAccessibility">no</item>
+		<item name="android:thumb">@drawable/vc_settings_switch_thumb</item>
+		<item name="track">@drawable/vc_settings_switch_track</item>
+		<item name="thumbTint">@color/vc_settings_switch_thumb</item>
+		<item name="trackTint">@color/vc_settings_switch_track</item>
+		<item name="switchMinWidth">44dp</item>
+		<item name="showText">false</item>
+	</style>
+
+	<style name="VcSettings.Divider">
+		<item name="android:layout_width">match_parent</item>
+		<item name="android:layout_height">1dp</item>
+		<item name="android:layout_marginStart">56dp</item>
+		<item name="android:background">@color/vc_settings_divider</item>
+	</style>
+</resources>

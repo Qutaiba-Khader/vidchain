@@ -49,3 +49,4 @@
 {"task": "T8.2", "date": "2026-10-04", "new_findings": 0, "fixed": 0, "attempts": 1, "verdict": "clean", "commit": "bf75903", "note": "account block, login flow, account screen, showUpcomingFeatures removed; CHANGES.md ledger + seam/drift policy for mixed files; selftest +2"}
 {"task": "T8.3", "date": "2026-10-04", "new_findings": 0, "fixed": 0, "attempts": 1, "verdict": "clean", "commit": "bf75903", "note": "daily suggestions removed + forced off; region kept (NewPipe localization)"}
 {"task": "T8.4", "date": "2026-10-04", "new_findings": 0, "fixed": 0, "attempts": 1, "verdict": "clean", "commit": "bf75903", "note": "both Other Advanced Settings rows + AdvBrowserSettingsActivity removed; contents listed in STATUS"}
+{"task": "T8.5", "date": "2026-10-04", "new_findings": 0, "fixed": 0, "attempts": 1, "verdict": "clean", "commit": "df46e78", "note": "splash removed (fixed 1.2 s, no init); coldstart.py in full-test.yml compares v1.0.1 vs build"}

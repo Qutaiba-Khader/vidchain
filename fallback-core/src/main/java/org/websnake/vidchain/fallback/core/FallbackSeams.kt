@@ -32,9 +32,9 @@ object FallbackSeams {
 	@JvmStatic fun decorateOptions(view: View?, downloadId: Int, anchorId: Int, dismiss: () -> Unit) =
 		guard("options") { FallbackUi.decorateOptions(view, downloadId, anchorId, dismiss) }
 
-	/** Settings: the "VidChain fallbacks" row */
-	@JvmStatic fun addSettingsEntry(layout: View, templateRowId: Int, templateTextId: Int) =
-		guard("settings") { FallbackUi.addSettingsEntry(layout, templateRowId, templateTextId) }
+	/** Settings: the "VidChain fallbacks" row (a row of the redesigned settings screen, T8.6) opens VidChain's settings */
+	@JvmStatic fun bindSettingsEntry(layout: View, rowId: Int) =
+		guard("settings") { FallbackUi.bindSettingsEntry(layout, rowId) }
 
 	private fun intent(downloadId: Int, intent: UserIntent) = guard("intent") { FallbackRuntime.recordIntent(downloadId.toString(), intent) }
 

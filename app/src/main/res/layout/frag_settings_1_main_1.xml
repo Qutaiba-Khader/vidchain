@@ -1,1329 +1,317 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	xmlns:app="http://schemas.android.com/apk/res-auto"
+<!-- VidChain settings screen (T8.6): the owner's design (design/VidChain Settings.dc.html) in classic Views.
+     Row ids are the original app's, so SettingsFragment / SettingsOnClickLogic keep their click logic. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:tools="http://schemas.android.com/tools"
+	android:id="@+id/container_main_layout"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
-	android:background="@color/transparent"
-	android:orientation="vertical"
-	tools:ignore="UseCompatTextViewDrawableXml,UseAppTint,TooManyViews,VisualLintLongText"
-	>
-	
-	
+	android:background="@color/vc_settings_bg"
+	android:fillViewport="true"
+	android:scrollbars="none"
+	tools:ignore="ContentDescription,TooManyViews">
+
 	<LinearLayout
-		android:id="@+id/container_layout_loading"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:layout_centerInParent="true"
 		android:orientation="vertical"
-		>
-		
-		<com.airbnb.lottie.LottieAnimationView
-			android:id="@+id/img_layout_loading_anim"
+		android:paddingBottom="16dp">
+
+		<TextView
 			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:layout_gravity="center"
-			android:layout_margin="@dimen/_5"
-			android:adjustViewBounds="true"
-			android:hardwareAccelerated="true"
-			android:importantForAccessibility="no"
-			android:layerType="hardware"
-			app:lottie_autoPlay="true"
-			app:lottie_enableMergePathsForKitKatAndAbove="true"
-			app:lottie_loop="true"
-			app:lottie_rawRes="@raw/animation_layout_load"
-			tools:ignore="ImageContrastCheck"
-			/>
-	
-	</LinearLayout>
-	
-	<ScrollView
-		android:id="@+id/container_main_layout"
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		android:orientation="vertical"
-		android:visibility="visible"
-		tools:ignore="SpeakableTextPresentCheck"
-		>
-		
+			android:layout_height="56dp"
+			android:fontFamily="@font/font_family_medium"
+			android:gravity="center_vertical"
+			android:paddingStart="20dp"
+			android:paddingEnd="20dp"
+			android:text="@string/vc_settings_title"
+			android:textColor="@color/vc_settings_text"
+			android:textSize="22sp" />
+
+
+		<TextView style="@style/VcSettings.Section" android:text="@string/vc_settings_section_appearance" />
+
+		<LinearLayout style="@style/VcSettings.Card">
+
+			<LinearLayout android:id="@+id/btn_dark_mode_ui" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_dark_mode" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_dark_mode_ui" style="@style/VcSettings.RowTitle" android:text="@string/title_enable_dark_mode" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_dark" />
+				</LinearLayout>
+				<androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_dark_mode_ui" style="@style/VcSettings.Switch" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_language_picker" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_language" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_language_picker" style="@style/VcSettings.RowTitle" android:text="@string/title_application_language" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_language" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_content_location" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_content" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_content_location" style="@style/VcSettings.RowTitle" android:text="@string/title_preferred_content_region" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_region" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+		</LinearLayout>
+
+		<TextView style="@style/VcSettings.Section" android:text="@string/vc_settings_section_downloads" />
+
+		<LinearLayout style="@style/VcSettings.Card">
+
+			<LinearLayout android:id="@+id/btn_default_download_location" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_folder" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_default_download_location" style="@style/VcSettings.RowTitle" android:text="@string/title_download_location" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_location" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_wifi_only_downloads" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_wifi_signal" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_wifi_only_downloads" style="@style/VcSettings.RowTitle" android:text="@string/title_wifi_only_download" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_wifi" />
+				</LinearLayout>
+				<androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_wifi_only_downloads" style="@style/VcSettings.Switch" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_hide_task_notifications" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_notifications" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_hide_task_notifications" style="@style/VcSettings.RowTitle" android:text="@string/title_hide_task_notifications" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_hide_notif" />
+				</LinearLayout>
+				<androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_hide_task_notifications" style="@style/VcSettings.Switch" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_play_notification_sound" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_audio" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_play_notification_sound" style="@style/VcSettings.RowTitle" android:text="@string/title_play_notification_sound" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_sound" />
+				</LinearLayout>
+				<androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_play_notification_sound" style="@style/VcSettings.Switch" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_single_click_open" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_single_click" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_single_click_open" style="@style/VcSettings.RowTitle" android:text="@string/title_single_click_open" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_single_click" />
+				</LinearLayout>
+				<androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_single_click_open" style="@style/VcSettings.Switch" />
+			</LinearLayout>
+		</LinearLayout>
+
+		<TextView style="@style/VcSettings.Section" android:text="@string/vc_settings_section_browser" />
+
+		<LinearLayout style="@style/VcSettings.Card">
+
+			<LinearLayout android:id="@+id/btn_browser_homepage" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_document_big" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_browser_homepage" style="@style/VcSettings.RowTitle" android:text="@string/title_browser_homepage" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_homepage" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_enable_popup_blocker" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_popup_block" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_enable_popup_blocker" style="@style/VcSettings.RowTitle" android:text="@string/title_block_popup_ads" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_popups" />
+				</LinearLayout>
+				<androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_enable_popup_blocker" style="@style/VcSettings.Switch" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_show_image_on_web" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_images" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_show_image_on_web" style="@style/VcSettings.RowTitle" android:text="@string/title_show_image_on_webpage" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_images" />
+				</LinearLayout>
+				<androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_show_image_on_web" style="@style/VcSettings.Switch" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_enable_video_grabber" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_video" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_enable_video_grabber" style="@style/VcSettings.RowTitle" android:text="@string/title_show_video_grabber" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_grabber" />
+				</LinearLayout>
+				<androidx.appcompat.widget.SwitchCompat android:id="@+id/sw_enable_video_grabber" style="@style/VcSettings.Switch" />
+			</LinearLayout>
+		</LinearLayout>
+
+		<TextView style="@style/VcSettings.Section" android:text="@string/vc_settings_section_vidchain" />
+
+		<LinearLayout style="@style/VcSettings.Card">
+
+			<LinearLayout android:id="@+id/btn_vidchain_fallbacks" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_settings" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_vidchain_fallbacks" style="@style/VcSettings.RowTitle" android:text="@string/vc_settings_vidchain" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_vidchain" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+		</LinearLayout>
+
+		<TextView style="@style/VcSettings.Section" android:text="@string/vc_settings_section_support" />
+
+		<LinearLayout style="@style/VcSettings.Card">
+
+			<LinearLayout android:id="@+id/btn_open_feedback" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_feedback" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_open_feedback" style="@style/VcSettings.RowTitle" android:text="@string/title_your_send_feedback" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_feedback" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_share_with_friends" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_share" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_share_with_friends" style="@style/VcSettings.RowTitle" android:text="@string/title_share_with_friends" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_share" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_open_about_info" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_information" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_open_about_info" style="@style/VcSettings.RowTitle" android:text="@string/title_open_application_info" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_app_info" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_open_privacy_policy" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_privacy_policy" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_open_privacy_policy" style="@style/VcSettings.RowTitle" android:text="@string/title_privacy_policy" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_privacy" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+			<View style="@style/VcSettings.Divider" />
+
+			<LinearLayout android:id="@+id/btn_open_terms_condition" style="@style/VcSettings.Row">
+				<ImageView style="@style/VcSettings.Icon" android:src="@drawable/ic_button_term_conditions" />
+				<LinearLayout style="@style/VcSettings.Texts">
+					<TextView android:id="@+id/txt_open_terms_condition" style="@style/VcSettings.RowTitle" android:text="@string/title_terms_conditions" />
+					<TextView style="@style/VcSettings.RowDesc" android:text="@string/vc_settings_desc_terms" />
+				</LinearLayout>
+				<ImageView style="@style/VcSettings.Chevron" />
+			</LinearLayout>
+		</LinearLayout>
+
 		<LinearLayout
+			style="@style/VcSettings.Card"
+			android:layout_marginTop="16dp"
+			android:padding="16dp">
+
+			<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+				<TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+					android:fontFamily="@font/font_family_regular" android:text="@string/title_version_number"
+					android:textColor="@color/vc_settings_text2" android:textSize="14sp" />
+				<TextView android:id="@+id/txt_version_number_value" android:layout_width="wrap_content" android:layout_height="wrap_content"
+					android:fontFamily="@font/font_family_regular" android:textColor="@color/vc_settings_text" android:textSize="14sp" />
+			</LinearLayout>
+
+			<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
+				<TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+					android:fontFamily="@font/font_family_regular" android:text="@string/title_build_version"
+					android:textColor="@color/vc_settings_text2" android:textSize="14sp" />
+				<TextView android:id="@+id/txt_build_version_value" android:layout_width="wrap_content" android:layout_height="wrap_content"
+					android:fontFamily="@font/font_family_regular" android:textColor="@color/vc_settings_text" android:textSize="14sp" />
+			</LinearLayout>
+
+			<View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="12dp" android:background="@color/vc_settings_divider" />
+
+			<TextView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="12dp"
+				android:fontFamily="@font/font_family_regular"
+				android:lineSpacingExtra="3sp"
+				android:text="@string/text_restart_if_somethings_off"
+				android:textColor="@color/vc_settings_text2"
+				android:textSize="13sp" />
+
+			<TextView
+				android:id="@+id/btn_restart_application"
+				android:layout_width="match_parent"
+				android:layout_height="40dp"
+				android:layout_marginTop="12dp"
+				android:background="@drawable/vc_settings_outline_button"
+				android:clickable="true"
+				android:focusable="true"
+				android:fontFamily="@font/font_family_medium"
+				android:gravity="center"
+				android:text="@string/title_restart_application"
+				android:textColor="@color/color_secondary"
+				android:textSize="14sp" />
+		</LinearLayout>
+
+		<TextView
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			android:layout_centerInParent="true"
-			android:orientation="vertical"
-			tools:ignore="ObsoleteLayoutParam"
-			>
-			
-			<androidx.cardview.widget.CardView
-				android:id="@+id/container_user_info"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginHorizontal="@dimen/_5"
-				android:layout_marginTop="@dimen/_10"
-				android:layout_marginBottom="@dimen/_0"
-				android:orientation="vertical"
-				android:visibility="gone"
-				app:cardBackgroundColor="@color/color_cardview_bg"
-				app:cardCornerRadius="@dimen/_10"
-				>
-				
-				<LinearLayout
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:orientation="vertical"
-					>
-					
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:background="@color/color_cardview_title_bg"
-						android:gravity="center_vertical"
-						android:orientation="horizontal"
-						>
-						
-						<de.hdodenhof.circleimageview.CircleImageView
-							android:id="@+id/img_user_avatar"
-							android:layout_width="@dimen/_50"
-							android:layout_height="@dimen/_50"
-							android:layout_marginStart="@dimen/_10"
-							android:layout_marginTop="@dimen/_2"
-							android:layout_marginEnd="@dimen/_10"
-							android:layout_marginBottom="@dimen/_2"
-							android:src="@drawable/image_default_avatar"
-							/>
-						
-						<LinearLayout
-							android:id="@+id/btn_user_info"
-							android:layout_width="match_parent"
-							android:layout_height="wrap_content"
-							android:layout_marginTop="@dimen/_2"
-							android:layout_marginEnd="@dimen/_2"
-							android:layout_marginBottom="@dimen/_2"
-							android:background="@drawable/ic_button_negative_selector"
-							android:clickable="true"
-							android:orientation="vertical"
-							tools:ignore="TouchTargetSizeCheck"
-							>
-							
-							<TextView
-								android:id="@+id/txt_user_name"
-								android:layout_width="match_parent"
-								android:layout_height="wrap_content"
-								android:layout_marginStart="@dimen/_5"
-								android:layout_marginTop="@dimen/_5"
-								android:layout_marginEnd="@dimen/_10"
-								android:drawableEnd="@drawable/ic_button_edit_text"
-								android:drawablePadding="@dimen/_5"
-								android:drawableTint="@color/color_secondary"
-								android:fontFamily="@font/font_family_semibold"
-								android:gravity="center_vertical"
-								android:text="@string/title_sample_username"
-								android:textColor="@color/color_text_primary"
-								android:textSize="@dimen/normal_text_size"
-								tools:ignore="TouchTargetSizeCheck"
-								/>
-							
-							<TextView
-								android:id="@+id/txt_user_email"
-								android:layout_width="match_parent"
-								android:layout_height="wrap_content"
-								android:layout_marginStart="@dimen/_5"
-								android:layout_marginEnd="@dimen/_10"
-								android:layout_marginBottom="@dimen/_5"
-								android:fontFamily="@font/font_family_medium"
-								android:text="@string/text_sample_email"
-								android:textColor="@color/color_text_secondary"
-								android:textSize="@dimen/small_text_size"
-								tools:ignore="TouchTargetSizeCheck"
-								/>
-						</LinearLayout>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:visibility="gone"
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:orientation="vertical"
-						>
-						
-						<TextView
-							android:id="@+id/txt_suggest_for_sign_up"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_marginStart="@dimen/_10"
-							android:layout_marginTop="@dimen/_8"
-							android:layout_marginEnd="@dimen/_10"
-							android:autoLink="web"
-							android:fontFamily="@font/font_family_regular"
-							android:gravity="center"
-							android:text="@string/text_connect_with_aio_cloud"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/message_text_size"
-							/>
-						
-						<RelativeLayout
-							android:id="@+id/btn_login_register_to_cloud"
-							android:layout_width="match_parent"
-							android:layout_height="wrap_content"
-							android:layout_marginStart="@dimen/_10"
-							android:layout_marginTop="@dimen/_8"
-							android:layout_marginEnd="@dimen/_10"
-							android:layout_marginBottom="@dimen/_8"
-							android:background="@drawable/ic_button_selector_secondary"
-							android:clickable="true"
-							android:elevation="@dimen/_2"
-							tools:ignore="TouchTargetSizeCheck"
-							>
-							
-							<TextView
-								android:id="@+id/txt_connect_to_cloud"
-								android:layout_width="wrap_content"
-								android:layout_height="wrap_content"
-								android:layout_centerInParent="true"
-								android:layout_margin="@dimen/_7"
-								android:drawableStart="@drawable/ic_button_account"
-								android:drawablePadding="@dimen/_5"
-								android:drawableTint="@color/color_on_secondary"
-								android:fontFamily="@font/font_family_semibold"
-								android:gravity="center"
-								android:text="@string/title_sign_in_register"
-								android:textColor="@color/color_on_secondary"
-								android:textSize="@dimen/normal_text_size"
-								/>
-						</RelativeLayout>
-					</LinearLayout>
-				</LinearLayout>
-			</androidx.cardview.widget.CardView>
-			
-			<androidx.cardview.widget.CardView
-				android:id="@+id/container_application_settings"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginHorizontal="@dimen/_5"
-				android:layout_marginTop="@dimen/_10"
-				android:layout_marginBottom="@dimen/_0"
-				android:orientation="vertical"
-				app:cardBackgroundColor="@color/color_cardview_bg"
-				app:cardCornerRadius="@dimen/_10"
-				>
-				
-				<LinearLayout
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:orientation="vertical"
-					>
-					
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:background="@color/color_cardview_title_bg"
-						android:orientation="vertical"
-						>
-						
-						<TextView
-							android:id="@+id/txt_application_settings"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_10"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_bold"
-							android:gravity="center"
-							android:maxLines="1"
-							android:text="@string/title_application_settings"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_default_download_location"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_10"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_default_download_location"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_folder"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_7"
-							android:drawableTint="@color/color_secondary"
-							android:fontFamily="@font/font_family_regular"
-							android:text="@string/title_download_location"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_language_picker"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_language_picker"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_language"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:fontFamily="@font/font_family_regular"
-							android:text="@string/title_application_language"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_dark_mode_ui"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_dark_mode_ui"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_dark_mode"
-							android:drawableEnd="@drawable/ic_button_checked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:fontFamily="@font/font_family_regular"
-							android:text="@string/title_enable_dark_mode"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<View
-						android:layout_width="match_parent"
-						android:layout_height="@dimen/_1"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_5"
-						android:layout_marginEnd="@dimen/_5"
-						android:layout_marginBottom="@dimen/_5"
-						android:background="@color/transparent_dark"
-						android:visibility="visible"
-						/>
-					
-					<LinearLayout
-						android:id="@+id/btn_content_location"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						android:visibility="visible"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_content_location"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_content"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:fontFamily="@font/font_family_regular"
-							android:text="@string/title_preferred_content_region"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_daily_suggestions"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_10"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						android:visibility="gone"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_daily_suggestions"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_notifications"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:fontFamily="@font/font_family_regular"
-							android:text="@string/title_enable_daily_suggestions"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-				</LinearLayout>
-			</androidx.cardview.widget.CardView>
-			
-			<androidx.cardview.widget.CardView
-				android:id="@+id/container_download_settings"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginHorizontal="@dimen/_5"
-				android:layout_marginTop="@dimen/_10"
-				android:layout_marginBottom="@dimen/_0"
-				android:orientation="vertical"
-				app:cardBackgroundColor="@color/color_cardview_bg"
-				app:cardCornerRadius="@dimen/_10"
-				>
-				
-				<LinearLayout
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:orientation="vertical"
-					>
-					
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:background="@color/color_cardview_title_bg"
-						android:orientation="vertical"
-						>
-						
-						<TextView
-							android:id="@+id/txt_download_settings"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_10"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_semibold"
-							android:gravity="center"
-							android:maxLines="1"
-							android:text="@string/title_download_settings"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_default_download_folder"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_10"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						android:visibility="visible"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_default_download_folder"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_folder"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_7"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_default_download_folder"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_hide_task_notifications"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_hide_task_notifications"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_notifications"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_hide_task_notifications"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_wifi_only_downloads"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_wifi_only_downloads"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_wifi_signal"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_wifi_only_download"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_single_click_open"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_single_click_open"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_single_click"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_single_click_open"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_play_notification_sound"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_play_notification_sound"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_audio"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_play_notification_sound"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							tools:ignore="TextContrastCheck"
-							/>
-					</LinearLayout>
-					
-					<View
-						android:layout_width="match_parent"
-						android:layout_height="@dimen/_1"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_5"
-						android:layout_marginEnd="@dimen/_5"
-						android:layout_marginBottom="@dimen/_5"
-						android:background="@color/transparent_dark"
-						/>
-					
-					<LinearLayout
-						android:id="@+id/btn_adv_downloads_settings"
-						android:visibility="gone"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_10"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_adv_downloads_settings"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_settings"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_semibold"
-							android:maxLines="1"
-							android:text="@string/title_other_advance_settings"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-				</LinearLayout>
-			</androidx.cardview.widget.CardView>
-			
-			<androidx.cardview.widget.CardView
-				android:id="@+id/container_browser_settings"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginHorizontal="@dimen/_5"
-				android:layout_marginTop="@dimen/_10"
-				android:layout_marginBottom="@dimen/_0"
-				android:orientation="vertical"
-				app:cardBackgroundColor="@color/color_cardview_bg"
-				app:cardCornerRadius="@dimen/_10"
-				>
-				
-				<LinearLayout
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:orientation="vertical"
-					>
-					
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:background="@color/color_cardview_title_bg"
-						android:orientation="vertical"
-						>
-						
-						<TextView
-							android:id="@+id/txt_browser_settings"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_10"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_bold"
-							android:gravity="center"
-							android:maxLines="1"
-							android:text="@string/title_browser_settings"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_browser_homepage"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_10"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_browser_homepage"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_document_big"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_browser_homepage"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_enable_adblock"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_enable_adblock"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_adblock"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_enable_browser_adblock"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_enable_popup_blocker"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_enable_popup_blocker"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_popup_block"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_block_popup_ads"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<View
-						android:layout_width="match_parent"
-						android:layout_height="@dimen/_1"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_5"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_5"
-						android:background="@color/transparent_dark"
-						/>
-					
-					<LinearLayout
-						android:id="@+id/btn_show_image_on_web"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_show_image_on_web"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_images"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_show_image_on_webpage"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_enable_video_grabber"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_enable_video_grabber"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_video"
-							android:drawableEnd="@drawable/ic_button_unchecked_circle_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_show_video_grabber"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<View
-						android:layout_width="match_parent"
-						android:layout_height="@dimen/_1"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_5"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_5"
-						android:background="@color/transparent_dark"
-						/>
-					
-					<LinearLayout
-						android:id="@+id/btn_adv_browser_settings"
-						android:visibility="gone"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_10"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_adv_browser_settings"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_settings"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_semibold"
-							android:maxLines="1"
-							android:text="@string/title_other_advance_settings"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-				</LinearLayout>
-			</androidx.cardview.widget.CardView>
-			
-			<androidx.cardview.widget.CardView
-				android:id="@+id/container_customer_service"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginHorizontal="@dimen/_5"
-				android:layout_marginTop="@dimen/_10"
-				android:layout_marginBottom="@dimen/_0"
-				android:orientation="vertical"
-				app:cardBackgroundColor="@color/color_cardview_bg"
-				app:cardCornerRadius="@dimen/_10"
-				>
-				
-				<LinearLayout
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:orientation="vertical"
-					>
-					
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:background="@color/color_cardview_title_bg"
-						android:orientation="vertical"
-						>
-						
-						<TextView
-							android:id="@+id/txt_content_policy"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_10"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_bold"
-							android:gravity="center"
-							android:maxLines="1"
-							android:text="@string/title_customer_service"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_open_feedback"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_10"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_open_feedback"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_feedback"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_your_send_feedback"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_share_with_friends"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_share_with_friends"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_share"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_share_with_friends"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							tools:ignore="TextContrastCheck"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_open_about_info"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_open_about_info"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_information"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_open_application_info"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<View
-						android:layout_width="match_parent"
-						android:layout_height="@dimen/_1"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_5"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_5"
-						android:background="@color/transparent_dark"
-						/>
-					
-					<LinearLayout
-						android:id="@+id/btn_open_privacy_policy"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_open_privacy_policy"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_privacy_policy"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_privacy_policy"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:id="@+id/btn_open_terms_condition"
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_10"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:orientation="vertical"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_open_terms_condition"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_8"
-							android:drawableStart="@drawable/ic_button_term_conditions"
-							android:drawableEnd="@drawable/ic_button_open_small"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_secondary"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_regular"
-							android:maxLines="1"
-							android:text="@string/title_terms_conditions"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-				</LinearLayout>
-			</androidx.cardview.widget.CardView>
-			
-			<androidx.cardview.widget.CardView
-				android:id="@+id/container_application_version"
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginHorizontal="@dimen/_5"
-				android:layout_marginTop="@dimen/_10"
-				android:layout_marginBottom="@dimen/_0"
-				android:orientation="vertical"
-				app:cardBackgroundColor="@color/color_cardview_bg"
-				app:cardCornerRadius="@dimen/_10"
-				>
-				
-				<LinearLayout
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:orientation="vertical"
-					>
-					
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:background="@color/color_cardview_title_bg"
-						android:orientation="vertical"
-						>
-						
-						<TextView
-							android:id="@+id/txt_application_version"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_10"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_bold"
-							android:gravity="center"
-							android:maxLines="1"
-							android:text="@string/title_app_version"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_10"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_0"
-						android:orientation="vertical"
-						>
-						
-						<TextView
-							android:id="@+id/txt_version_info"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:autoLink="web"
-							android:fontFamily="@font/font_family_medium"
-							android:gravity="center"
-							android:text="@string/title__"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size_small"
-							tools:ignore="TextContrastCheck"
-							/>
-					</LinearLayout>
-					
-					<RelativeLayout
-						android:visibility="gone"
-						android:id="@+id/btn_check_new_update"
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_10"
-						android:layout_marginEnd="@dimen/_10"
-						android:layout_marginBottom="@dimen/_10"
-						android:background="@drawable/ic_button_selector_secondary"
-						android:clickable="true"
-						android:elevation="@dimen/_2"
-						tools:ignore="TouchTargetSizeCheck"
-						>
-						
-						<TextView
-							android:id="@+id/txt_check_new_update"
-							android:layout_width="wrap_content"
-							android:layout_height="wrap_content"
-							android:layout_centerInParent="true"
-							android:layout_margin="@dimen/_7"
-							android:drawableStart="@drawable/ic_button_download"
-							android:drawablePadding="@dimen/_5"
-							android:drawableTint="@color/color_on_secondary"
-							android:fontFamily="@font/font_family_semibold"
-							android:gravity="center"
-							android:text="@string/title_check_new_update"
-							android:textColor="@color/color_on_secondary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</RelativeLayout>
-					
-					<TextView
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_0"
-						android:layout_marginEnd="@dimen/_10"
-						android:autoLink="web"
-						android:fontFamily="@font/font_family_italic"
-						android:gravity="center"
-						android:text="@string/text_restart_if_somethings_off"
-						android:textColor="@color/color_text_primary"
-						android:textSize="@dimen/message_text_size"
-						/>
-					
-					<TextView
-						android:id="@+id/btn_restart_application"
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:layout_gravity="center_horizontal"
-						android:layout_marginStart="@dimen/_8"
-						android:layout_marginTop="@dimen/_8"
-						android:layout_marginEnd="@dimen/_8"
-						android:layout_marginBottom="@dimen/_8"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:ellipsize="end"
-						android:fontFamily="@font/font_family_semibold"
-						android:gravity="center"
-						android:maxLines="1"
-						android:text="@string/title_restart_application_underline"
-						android:textColor="@color/color_secondary"
-						android:textSize="@dimen/message_text_size"
-						tools:ignore="TouchTargetSizeCheck"
-						/>
-				</LinearLayout>
-			</androidx.cardview.widget.CardView>
-			
-			<androidx.cardview.widget.CardView
-				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
-				android:layout_marginHorizontal="@dimen/_5"
-				android:layout_marginVertical="@dimen/_10"
-				android:orientation="vertical"
-				app:cardBackgroundColor="@color/color_cardview_bg"
-				app:cardCornerRadius="@dimen/_10"
-				>
-				
-				<LinearLayout
-					android:layout_width="match_parent"
-					android:layout_height="match_parent"
-					android:orientation="vertical"
-					>
-					
-					<LinearLayout
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:background="@color/color_cardview_title_bg"
-						android:orientation="vertical"
-						tools:ignore="TooManyViews"
-						>
-						
-						<TextView
-							android:id="@+id/txt_acknowledgement"
-							android:layout_width="match_parent"
-							android:layout_height="match_parent"
-							android:layout_margin="@dimen/_10"
-							android:ellipsize="end"
-							android:fontFamily="@font/font_family_bold"
-							android:gravity="center"
-							android:maxLines="1"
-							android:text="@string/title_acknowledgement"
-							android:textColor="@color/color_text_primary"
-							android:textSize="@dimen/normal_text_size"
-							/>
-					</LinearLayout>
-					
-					<TextView
-						android:layout_width="match_parent"
-						android:layout_height="match_parent"
-						android:layout_marginStart="@dimen/_10"
-						android:layout_marginTop="@dimen/_10"
-						android:layout_marginEnd="@dimen/_10"
-						android:autoLink="web"
-						android:fontFamily="@font/font_family_italic"
-						android:gravity="center"
-						android:text="@string/text_special_support_thank_you"
-						android:textColor="@color/color_text_primary"
-						android:textSize="@dimen/message_text_size"
-						/>
-					
-					<TextView
-						android:id="@+id/btn_follow_shibafoss"
-						android:layout_width="match_parent"
-						android:layout_height="wrap_content"
-						android:layout_gravity="center_horizontal"
-						android:layout_marginStart="@dimen/_8"
-						android:layout_marginTop="@dimen/_8"
-						android:layout_marginEnd="@dimen/_8"
-						android:layout_marginBottom="@dimen/_8"
-						android:background="@drawable/ic_button_negative_selector"
-						android:clickable="true"
-						android:ellipsize="end"
-						android:fontFamily="@font/font_family_semibold"
-						android:gravity="center"
-						android:maxLines="1"
-						android:text="@string/text_follow_shibafoss"
-						android:textColor="@color/color_secondary"
-						android:textSize="@dimen/message_text_size"
-						android:textStyle="normal"
-						tools:ignore="TouchTargetSizeCheck"
-						/>
-				</LinearLayout>
-			</androidx.cardview.widget.CardView>
+			android:layout_marginTop="20dp"
+			android:fontFamily="@font/font_family_regular"
+			android:gravity="center"
+			android:lineSpacingExtra="5sp"
+			android:paddingStart="32dp"
+			android:paddingEnd="32dp"
+			android:text="@string/text_special_support_thank_you"
+			android:textColor="@color/vc_settings_text3"
+			android:textSize="12sp" />
+
+		<LinearLayout
+			android:id="@+id/btn_follow_shibafoss"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_gravity="center_horizontal"
+			android:layout_marginTop="2dp"
+			android:background="@drawable/vc_settings_row_bg"
+			android:clickable="true"
+			android:focusable="true"
+			android:minHeight="32dp"
+			android:gravity="center"
+			android:orientation="horizontal"
+			android:paddingStart="12dp"
+			android:paddingEnd="12dp">
+
+			<TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+				android:fontFamily="@font/font_family_regular" android:text="@string/vc_settings_follow"
+				android:textColor="@color/vc_settings_text2" android:textSize="12sp" />
+
+			<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4dp"
+				android:fontFamily="@font/font_family_regular" android:text="@string/vc_settings_follow_handle"
+				android:textColor="@color/color_secondary" android:textSize="12sp" />
 		</LinearLayout>
-	</ScrollView>
-</RelativeLayout>
+	</LinearLayout>
+</ScrollView>

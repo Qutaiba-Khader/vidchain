@@ -107,8 +107,12 @@ def tag_with(attr_value, before=False):
     return L[L.rfind("<", 0, i):L.find(">", i)]
 
 
-check('android:visibility="gone"' in tag_with('@+id/btn_check_new_update'), "settings: update-check row hidden")
-check('android:visibility="gone"' in tag_with('@+id/txt_suggest_for_sign_up', before=True), "settings: developer-cloud sign-in block hidden")
+hidden = lambda tag: tag == "" or 'android:visibility="gone"' in tag  # gone, or (since the T8.6 redesign) not in the layout at all
+check(bool(L) and hidden(tag_with('@+id/btn_check_new_update')), "settings: update-check row hidden or absent")
+check(bool(L) and hidden(tag_with('@+id/txt_suggest_for_sign_up', before=True)) and hidden(tag_with('@+id/btn_login_register_to_cloud')),
+      "settings: developer-cloud sign-in block hidden or absent")
+codes = "".join(code.values())
+check("checkForNewApkVersion()" not in codes or "btn_check_new_update" in L, "settings: no update-check entry without its (hidden) row")
 fb = one("UserFeedbackActivity.java")
 check("saveUserFeedback" not in fb and "title_feedbacks_sent_successfully" not in fb,
       "feedback screen does not claim to send to a server")

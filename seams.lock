@@ -22,7 +22,8 @@
 #   DownloadFileRenamer.kt     rename-pause  intent RENAME_PAUSE before the app pauses a download to rename it
 #   DownloadUIManager.kt       row           fallback trail line on a download card, after the row is updated
 #   ActiveTasksOptions.kt      options       "Try another method" + "Methods tried" in the options dialog
-#   SettingsFragment.kt        settings      the "VidChain fallbacks" row, cloned after the advanced-downloads row
+#   SettingsFragment.kt        settings      the "VidChain fallbacks" row opens VidChain's settings (a row of the redesigned screen since T8.6;
+#                                            the file also carries owner changes declared in CHANGES.md)
 #   SharedVideoURLIntercept.kt share-rejected link not on the app's list: VidChain asks yt-dlp (picker if found)
 #   SharedVideoURLIntercept.kt share-empty   the app's analysis found no formats: the same yt-dlp rescue
 #   IntentInterceptActivity.kt share-entry   a shared magnet / torrent link (chain B6, aria2c) or a text with a link in it

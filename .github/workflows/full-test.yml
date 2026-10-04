@@ -137,6 +137,7 @@ jobs:
           script: |
             python3 ci/emulator/coldstart.py coldstart.json v1.0.1=before/vidchain-x86_64.apk this-build=apk/app-x86_64-release.apk || true
             bash ci/emulator/fixture_env.sh apk/app-x86_64-release.apk ${{ runner.temp }}/fixture-ca.pem
+            python3 ci/emulator/screens.py screens || true
             python3 ci/emulator/drive.py ci/golden/scenarios-golden.json off-out ${{ runner.temp }}/faults.json --fallbacks off
             python3 ci/emulator/drive.py ci/golden/scenarios-golden.json off-out2 ${{ runner.temp }}/faults.json --fallbacks off
             python3 ci/emulator/drive.py ci/golden/scenarios-golden.json on-out ${{ runner.temp }}/faults.json --fallbacks on --picker quality-first
@@ -165,6 +166,7 @@ jobs:
           name: golden-twin
           path: |
             coldstart.json
+            screens/
             off-out/
             off-out2/outcomes.json
             faults-off-out/outcomes.json

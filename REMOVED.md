@@ -10,8 +10,8 @@ VidChain. The UI does not offer what cannot work. Nothing here blocks, hides or 
 | Crash reports, download log, feedback upload (Parse / Back4App) | `AIOBackend` is a no-op; the Parse server URL points at a closed local port. | BUILD-FIXES.md (stub + `strings_unit_ids.xml`) |
 | Usage tracking | `AppUsageTimer` is a no-op. | BUILD-FIXES.md (stub) |
 | Remote kill switch | `AIOSelfDestruct` is a no-op. | BUILD-FIXES.md (stub) |
-| Developer cloud sync / accounts (Parse settings sync, Supabase login) | Server URLs point at a closed local port; the sign-in block in Settings is hidden. | `strings_unit_ids.xml` (BUILD-FIXES), `frag_settings_1_main_1.xml` |
-| Self-updater (would install the original app over this one) | Update URL points at a closed local port; the "check for update" row in Settings is hidden. Updates come from GitHub Releases / Obtainium. | `AIOUpdater.kt`, `frag_settings_1_main_1.xml` |
+| Developer cloud sync / accounts (Parse settings sync, Supabase login) | Server URLs point at a closed local port; the sign-in block is gone from Settings (since v1.1.0 the whole account block is removed, CHANGES.md). | `strings_unit_ids.xml` (BUILD-FIXES), settings screen (CHANGES.md) |
+| Self-updater (would install the original app over this one) | Update URL points at a closed local port; the "check for update" row is gone from Settings (redesigned screen, CHANGES.md). Updates come from GitHub Releases / Obtainium. | `AIOUpdater.kt`, settings screen (CHANGES.md) |
 | "Feedback sent" claims | Feedback and the crash dialog open a pre-filled GitHub issue in this repository instead of claiming to send to a server. | `UserFeedbackActivity.java` |
 
 Kept on purpose: the in-app browser's ad-block filter list is still fetched from the original
@@ -22,6 +22,5 @@ Gates: `tools/removed_check.py` (source; it fails on `upstream/` as its negative
 
 ```paths
 modified app/src/main/java/app/core/engines/updater/AIOUpdater.kt
-modified app/src/main/res/layout/frag_settings_1_main_1.xml
 modified app/src/main/java/app/ui/others/information/UserFeedbackActivity.java
 ```
