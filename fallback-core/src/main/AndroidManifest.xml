@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+	<!-- T7.2: ask Android directly to exempt this app from battery optimization (once) -->
+	<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
 	<application>
 		<!-- Settings -> VidChain fallbacks (T1.10) -->
 		<activity

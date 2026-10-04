@@ -1600,6 +1600,7 @@ abstract class BaseActivity : LocaleActivityImpl(), BaseActivityInf {
 			return
 		}
 		
+		if (!org.websnake.vidchain.app.VidChainBattery.mayAsk(this)) return // FALLBACK-SEAM:battery-once
 		logger.d("All conditions met — proceeding to show battery optimization dialog")
 		
 		// Create and configure the battery optimization explanation dialog
@@ -1643,6 +1644,7 @@ abstract class BaseActivity : LocaleActivityImpl(), BaseActivityInf {
 				dialog.cancel()
 				try {
 					// Intent to open battery optimization settings where user can exclude this app
+					if (org.websnake.vidchain.app.VidChainBattery.requestDirect(this@BaseActivity)) return@setOnClickForPositiveButton // FALLBACK-SEAM:battery-direct
 					val intent = Intent(ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
 					startActivity(intent)
 					logger.d("Battery optimization settings intent launched successfully")
