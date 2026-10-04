@@ -70,7 +70,6 @@
 		<item name="android:layout_marginEnd">16dp</item>
 		<item name="android:background">@drawable/vc_settings_card</item>
 		<item name="android:orientation">vertical</item>
-		<item name="android:clipToOutline">true</item>
 	</style>
 
 	<style name="VcSettings.Row">
@@ -94,7 +93,7 @@
 		<item name="android:layout_marginEnd">16dp</item>
 		<item name="android:scaleType">fitCenter</item>
 		<item name="android:importantForAccessibility">no</item>
-		<item name="android:tint">@color/color_secondary</item>
+		<item name="tint">@color/color_secondary</item>
 	</style>
 
 	<style name="VcSettings.Texts">
@@ -132,7 +131,7 @@
 		<item name="android:layout_marginStart">12dp</item>
 		<item name="android:src">@drawable/vc_settings_chevron</item>
 		<item name="android:importantForAccessibility">no</item>
-		<item name="android:tint">@color/vc_settings_text3</item>
+		<item name="tint">@color/vc_settings_text3</item>
 	</style>
 
 	<!-- styled SwitchCompat (the app has no Material library): 48x24 track, 18 dp knob; the row handles the tap -->

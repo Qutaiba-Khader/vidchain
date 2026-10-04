@@ -21,11 +21,11 @@ def dump(name=None):
     return xml
 
 
-def tap_text(text):
-    m = re.search(r'<node [^>]*?text="' + re.escape(text) + r'"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', dump())
-    if not m:
+def tap_text(text, last=False):
+    hits = list(re.finditer(r'<node [^>]*?text="' + re.escape(text) + r'"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', dump()))
+    if not hits:
         return False
-    x1, y1, x2, y2 = map(int, m.groups())
+    x1, y1, x2, y2 = map(int, hits[-1 if last else 0].groups())
     adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
     return True
 
@@ -48,7 +48,7 @@ for i in range(5):
     time.sleep(1.5)
 found = False
 for _ in range(6):                       # scroll back up until the VidChain row is on screen, then open it
-    if tap_text("VidChain fallbacks"):
+    if tap_text("VidChain fallbacks", last=True):   # the row title, below the section header of the same name
         found = True; break
     adb("shell", "input", "swipe", str(w // 2), str(h * 4 // 10), str(w // 2), str(h * 6 // 10), "600")
     time.sleep(1)

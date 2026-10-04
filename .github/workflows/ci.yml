@@ -142,6 +142,15 @@ jobs:
           zip -q -d "$RUNNER_TEMP"/negm/*.apk "lib/arm64-v8a/liblux.so"
           if python3 tools/release/method_matrix.py "$RUNNER_TEMP/negm" >/dev/null; then echo "::error::method matrix missed a missing native"; exit 1; fi
 
+      - name: Keep the lint report when lint fails
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-release.*
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Keep the x86_64 and arm64 APKs for the emulator jobs
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
