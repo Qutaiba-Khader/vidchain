@@ -4,6 +4,20 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## 1.1.1
+- Checked by the full emulator test pass ([run 38148282013](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38148282013), 55 / 55).
+
+From the owner's report (freeze or "not responding" when sharing after the phone was idle):
+- Sharing no longer freezes the app at start: the download history now loads in the background (before, it loaded
+  on the main screen thread, and each saved download listed the whole app folder again, so the wait grew with the
+  number of downloads). If the share arrives while the history is still loading, the app shows "wait till the app
+  loads" instead of freezing.
+- The share screen is no longer created twice when the phone theme differs from the app theme.
+- A link analysis that fails or takes longer than 30 s no longer leaves the "Analyzing URL" dialog on screen: it
+  closes and the page opens in the browser.
+- Shared text that contains a link (for example "look at this https://...") is handled again.
+- On Android 15 the download service no longer gets the app closed after a few hours in the background.
+
 ## 1.1.0
 - Checked by the full emulator test pass ([run 37225016775](https://github.com/Qutaiba-Khader/vidchain/actions/runs/37225016775), 55 / 55).
 
