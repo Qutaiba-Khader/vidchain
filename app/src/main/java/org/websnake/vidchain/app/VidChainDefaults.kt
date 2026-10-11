@@ -35,6 +35,19 @@ object VidChainDefaults {
 		Trace.event { TraceEvent("defaults", result = if (dark) "dark-ui" else "theme-kept", reason = "fresh install: $fresh") }
 	}
 
+	/**
+	 * T8.9 (owner report 2026-10-11, freeze when sharing after idle): the app applies its dark switch with
+	 * setDefaultNightMode in each activity's onCreate, after the activity was already created, so the first activity
+	 * of a fresh process (the share screen) was created, then torn down and created again - and handled the share
+	 * twice - whenever the phone's own theme differed from the switch. Setting the mode here, in Application start
+	 * before any activity exists, makes the later call a no-op (same mode).
+	 */
+	fun applyNightModeNow(context: Context) {
+		androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+			if (darkFlag(context).exists()) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+			else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO)
+	}
+
 	/** VidChain's own screens follow the app's switch, also when Android restores one of them first after process death */
 	fun darkUi(context: Context): Boolean = darkFlag(context).exists()
 

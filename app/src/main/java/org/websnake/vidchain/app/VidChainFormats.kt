@@ -21,7 +21,8 @@ import org.websnake.vidchain.ytdlp.YtDlpFormats
  * Called from one FALLBACK-SEAM line in SharedVideoURLIntercept; on any problem the list stays as the app made it.
  */
 object VidChainFormats {
-	private const val LOOKUP_MS = 45_000L
+	// T8.9: the app's analysis job ends at 30 s in all (ThreadsUtility); the size lookup must fit inside it
+	private const val LOOKUP_MS = 12_000L
 
 	@JvmStatic
 	suspend fun refineYouTube(url: String, cookie: String?, formats: List<VideoFormat>) {

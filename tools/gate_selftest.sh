@@ -27,7 +27,7 @@ expect_fail "drift check: undeclared edit of an upstream file" python3 "$d/tools
 d=$(fresh stray);   echo seeded > "$d/app/src/main/stray.txt"
 expect_fail "drift check: undeclared new file in the app tree" python3 "$d/tools/drift_check.py"
 
-d=$(fresh seamedit); sed -i "s/^\(\s*\)INSTANCE = this$/\1INSTANCE = this; INSTANCE.hashCode()/" "$d/app/src/main/java/app/core/AIOApp.kt"
+d=$(fresh seamedit); sed -i '0,/^import /s/^import /import  /' "$d/app/src/main/java/app/ui/main/fragments/downloads/fragments/active/ActiveTasksOptions.kt"
 expect_fail "seam gate: upstream line changed in a seamed file" python3 "$d/tools/seam_check.py"
 
 d=$(fresh seamstray); echo "// FALLBACK-SEAM:stray" >> "$d/app/src/main/java/app/core/engines/downloader/DownloadSystem.kt"

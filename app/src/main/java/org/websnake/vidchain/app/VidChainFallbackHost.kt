@@ -26,6 +26,7 @@ object VidChainFallbackHost : FallbackHost {
 	// created by the start seam (right after AIOApp.INSTANCE is set): the fresh-install defaults (T7.3, T8.1)
 	init {
 		runCatching { VidChainDefaults.applyThemeNow(AIOApp.INSTANCE) }
+		runCatching { VidChainDefaults.applyNightModeNow(AIOApp.INSTANCE) }
 		runCatching { VidChainDefaults.applyWhenReady(AIOApp.INSTANCE) }
 	}
 

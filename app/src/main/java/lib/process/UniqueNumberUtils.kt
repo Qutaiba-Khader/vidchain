@@ -14,8 +14,17 @@ object UniqueNumberUtils {
 		return currentTime * 1000 + randomComponent
 	}
 
+	/**
+	 * T8.9 (inherited bug fix): every DownloadDataModel() calls this, also each of the N models loaded from the
+	 * database, and every call listed the whole files/ folder (3-4 files per download) -> N x 4N work on start.
+	 * The answer only changes when the folder's entries change, so the scan is reused while the folder's
+	 * modification time is the same (same result as before, see MaxIdCacheTest).
+	 */
 	@JvmStatic
-	fun getUniqueNumberForDownloadModels(): Int {
+	fun getUniqueNumberForDownloadModels(): Int =
+		org.websnake.vidchain.fallback.fixes.MaxIdCache.next(app.core.AIOApp.INSTANCE.filesDir) { scanMaxId() }
+
+	private fun scanMaxId(): Int {
 		val existingFiles = internalDataFolder.listFiles()
 			.filter { it.name!!.endsWith(DOWNLOAD_MODEL_FILE_JSON_EXTENSION) }
 
@@ -23,7 +32,6 @@ object UniqueNumberUtils {
 			file.name!!.split("_").firstOrNull()?.toIntOrNull()
 		}
 
-		val maxNumber = existingNumbers.maxOrNull() ?: 0
-		return maxNumber + 1
+		return existingNumbers.maxOrNull() ?: 0
 	}
 }

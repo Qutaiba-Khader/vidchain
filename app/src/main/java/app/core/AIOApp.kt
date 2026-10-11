@@ -631,11 +631,22 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 	 */
 	private fun initializeDownloadSystemWithModels() {
 		try {
-			getAllDownloadsWithRelationsAssembled().let {
-				logger.d("[Startup] Preloading ${it.size} download models from database...")
-				downloadSystem.prefetchedEntireDownloadModels.addAll(it)
-				downloadSystem.initializeSystem()
-			}
+			// T8.9 (inherited bug fix, owner report 2026-10-11: freeze / "not responding" when sharing after idle):
+			// the whole download history used to be loaded here, on the main thread, before the share screen could
+			// draw. It now loads in the background; the lists already filled in the background (parseDownloadDataModelsAndSync)
+			// and readers wait while isInitializing is true, which is now set before the load instead of inside it.
+			downloadSystem.isInitializing = true
+			executeInBackground(timeOutInMilli = 300_000, codeBlock = {
+				val models = try {
+					getAllDownloadsWithRelationsAssembled()
+				} catch (error: Throwable) {
+					logger.e("[Startup] Failed to load download models: ${error.message}", error)
+					emptyList()
+				}
+				logger.d("[Startup] Preloaded ${models.size} download models from database")
+				downloadSystem.prefetchedEntireDownloadModels.addAll(models)
+				android.os.Handler(android.os.Looper.getMainLooper()).post { downloadSystem.initializeSystem() }
+			})
 		} catch (error: Exception) {
 			logger.e("[Startup] Failed to initialize download system: ${error.message}", error)
 			logger.d("[Startup] Continuing with empty download system")

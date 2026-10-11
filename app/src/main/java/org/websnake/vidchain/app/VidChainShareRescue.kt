@@ -64,8 +64,11 @@ object VidChainShareRescue {
 		if (activity == null || text.isNullOrBlank() || lib.networks.URLUtility.isValidURL(text)) false
 		else if (torrent(activity, text)) true
 		else extractUrl(text)?.let { url ->
+			// T8.9: the share screen is singleTop and on top, so a plain start went to its (missing) onNewIntent and the
+			// link was dropped when it closed; a new task gets a fresh instance that handles the link
 			activity.startActivity(android.content.Intent(activity, activity.javaClass).setAction(android.content.Intent.ACTION_SEND)
-				.setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, url))
+				.setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, url)
+				.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_MULTIPLE_TASK))
 			true
 		} ?: false
 	} catch (t: Throwable) {

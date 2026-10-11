@@ -228,6 +228,14 @@ class SharedVideoURLIntercept(
 				// Begin actual video analysis
 				logger.d("Supported URL detected — initiating yt-dlp analysis")
 				startAnalyzingVideoUrl(targetVideoUrl)
+			}, errorHandler = {
+				// T8.9 (inherited bug fix): a failed or timed-out analysis (30 s job limit) left the non-cancelable
+				// "Analyzing URL" dialog on screen for good; close it and offer the page in the browser instead
+				android.os.Handler(android.os.Looper.getMainLooper()).post {
+					runCatching { waitingDialog.close() }
+					isInterceptingInProcess = false
+					if (!isInterceptingTerminated) runCatching { openInBuiltInBrowser(targetVideoUrl) }
+				}
 			})
 		} ?: logger.d("No waiting dialog initialized — interception aborted")
 	}

@@ -45,8 +45,25 @@ public class AIOForegroundService extends Service {
         super.onCreate();
         instance = this;
         createNotification();
-        startForeground(NOTIFICATION_ID, notification);
-        isServiceRunning = true;
+        // T8.9 (inherited bug fix): Android 14+ refuses a foreground start that is not allowed at that moment
+        // (e.g. a restart from the background, or the dataSync time budget used up); that crashed the app here
+        try {
+            startForeground(NOTIFICATION_ID, notification);
+            isServiceRunning = true;
+        } catch (RuntimeException error) {
+            error.printStackTrace();
+            stopSelf();
+        }
+    }
+
+    /**
+     * T8.9 (inherited bug fix): Android 15 stops a dataSync foreground service after 6 h in 24 h and kills the app
+     * when the service does not stop itself within seconds of this call. The original had no handler, so the app
+     * died while the phone lay idle and the next share always cold-started it.
+     */
+    @Override
+    public void onTimeout(int startId, int fgsType) {
+        stopService();
     }
 
     @Nullable

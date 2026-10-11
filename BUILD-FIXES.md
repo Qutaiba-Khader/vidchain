@@ -35,7 +35,7 @@ added app/lint-baseline-vidchain.xml
 ## Inherited bug fixes (owner INBOX #8, 2026-10-04)
 
 The owner lifted the "current method unchanged" rule for these fixes of the original app's own bugs (T8.7). Each
-change is marked `T8.7` in the code; the pure rules live in `fallback-core/.../fixes/` with JVM tests. Two files
+change is marked `T8.7` in the code; the pure rules live in `fallback-core/.../fixes/` with JVM tests. Three files
 also carry FALLBACK-SEAM lines and stay declared in `seams.lock` (its seam lines are still checked).
 
 | Bug (original app) | Fix | Files |
@@ -47,6 +47,9 @@ also carry FALLBACK-SEAM lines and stay declared in `seams.lock` (its seam lines
 | e. Picking a yt-dlp "Generic" format (a page's single file) asked yt-dlp for that format plus a separate audio stream that does not exist: a failed entry and an empty placeholder file; a known silent video was downloaded without its audio | the picker passes yt-dlp's audio codec the way the app reads it (`YtDlpFormats.appAcodec`, YtDlpPickerTest) | ours: `VidChainShareRescue.kt` |
 | f8. Cookies handed to yt-dlp had no domain, so yt-dlp dropped them | the cookie file names the page's exact host (host-only) | `DownloaderUtils.kt`, `VideoParserUtility.kt`, `DownloadDataModel.kt` |
 | f9. The Referer was always cut to the origin | the full page address when the file is on the same host, the origin otherwise (a browser's default) | `DownloadURLHelper.kt` |
+| T8.9 (owner report 2026-10-11: freeze / "not responding" when sharing after the phone was idle). Start-up loaded the whole download history on the main thread, and every loaded download listed the whole files/ folder again (N x folder size) | the history loads in the background (readers already wait on `isInitializing`, now set before the load); the folder is listed again only when it changed (`MaxIdCache`, MaxIdCacheTest) | `AIOApp.kt`, `UniqueNumberUtils.kt` |
+| T8.9: a failed or timed-out link analysis (30 s job limit) left the non-cancelable "Analyzing URL" dialog up for good | the dialog closes and the page opens in the browser | `SharedVideoURLIntercept.kt` |
+| T8.9: the always-on dataSync foreground service had no `onTimeout` (Android 15 kills the app after 6 h) and crashed when Android refused its start | `onTimeout` stops it; a refused start stops the service instead of crashing | `AIOForegroundService.java` |
 
 ```paths
 modified app/src/main/java/lib/networks/URLUtilityKT.kt
@@ -59,4 +62,7 @@ modified app/src/main/java/app/ui/main/fragments/downloads/intercepter/SharedVid
 modified app/src/main/java/lib/networks/DownloaderUtils.kt
 modified app/src/main/java/app/core/engines/downloader/DownloadDataModel.kt
 modified app/src/main/java/app/core/engines/downloader/DownloadURLHelper.kt
+modified app/src/main/java/app/core/AIOApp.kt
+modified app/src/main/java/lib/process/UniqueNumberUtils.kt
+modified app/src/main/java/app/core/engines/services/AIOForegroundService.java
 ```
