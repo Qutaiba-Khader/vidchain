@@ -19,6 +19,11 @@ CONFIG = {
 }
 
 
+def asset_names(version):
+    """Release file name per ABI for app version `version` (release-contract.json "assets", `{version}` filled in)."""
+    return {abi: name.format(version=version) for abi, name in CONTRACT["assets"].items()}
+
+
 def deep_link():
     return "obtainium://app/" + urllib.parse.quote(json.dumps(CONFIG, separators=(",", ":")), safe="")
 
@@ -29,4 +34,8 @@ def add_url():
 
 
 if __name__ == "__main__":
+    import sys
+    if sys.argv[1:2] == ["--asset"]:  # obtainium.py --asset <abi> <version>: one release file name (sign.sh)
+        print(asset_names(sys.argv[3])[sys.argv[2]])
+        sys.exit(0)
     print(json.dumps({"config": CONFIG, "deep_link": deep_link(), "add_url": add_url()}, indent=2))

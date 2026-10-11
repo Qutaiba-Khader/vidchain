@@ -1,5 +1,5 @@
 <resources>
-	<string name="title_app_name" translatable="false">VidChain</string>
+	<string name="title_app_name" translatable="false">AIO VidChain</string>
 	<string name="title_aio_video_downloader" translatable="false">VidChain</string>
 	<string name="title_default_application_folder" translatable="false">VidChain Downloads</string>
 	<string name="title_aio_images" translatable="false">VidChain Images</string>

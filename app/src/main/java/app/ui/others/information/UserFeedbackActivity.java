@@ -240,8 +240,13 @@ public class UserFeedbackActivity extends BaseActivity {
 			dialogBuilder.setOnClickForPositiveButton(view -> {
 				dialogBuilder.close();
 				// No developer server receives crash reports: offer a pre-filled GitHub issue instead.
-				String crashIssueUrl = getString(R.string.text_aio_official_page_url) + "/issues/new?body="
-						+ android.net.Uri.encode("The app crashed. What were you doing when it happened?\n\n");
+				// The newest crash report (redacted, from the app's private folder) goes into the text; it is sent only
+				// if the user submits the issue.
+				String report = org.websnake.vidchain.app.VidChainCrashReport.INSTANCE.latestForIssue(this);
+				String crashIssueUrl = getString(R.string.text_aio_official_page_url) + "/issues/new?title="
+						+ android.net.Uri.encode("App crashed") + "&body="
+						+ android.net.Uri.encode("The app crashed. What were you doing when it happened?\n\n"
+						+ (report == null ? "" : "Crash report:\n```\n" + report + "\n```\n"));
 
 				delay(200, () -> {
 					try {

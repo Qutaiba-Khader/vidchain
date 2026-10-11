@@ -1,5 +1,5 @@
 {
-  "_note": "Release contract (T0.6). release.yml publishes `release.version` once: when CI is green on main and the tag v<version> does not exist yet, and only if app/build.gradle carries the same versionName/versionCode. null = nothing to release. Asset names stay version-free so README links to releases/latest work; the tag carries the version. `fully_tested: false` adds the 'not fully tested yet' line to the notes (INBOX #3: intermediate releases before the one full test pass).",
+  "_note": "Release contract (T0.6). release.yml publishes `release.version` once: when CI is green on main and the tag v<version> does not exist yet, and only if app/build.gradle carries the same versionName/versionCode. null = nothing to release. Asset names end with the version (owner, 2026-10-12): `{version}` in `assets` is the app versionName; README links to the releases/latest page. `fully_tested: false` adds the 'not fully tested yet' line to the notes (INBOX #3: intermediate releases before the one full test pass).",
   "release": {
     "version": "1.1.1",
     "version_code": 10101,
@@ -9,11 +9,11 @@
   },
   "package": "org.websnake.vidchain",
   "assets": {
-    "arm64-v8a": "vidchain-arm64-v8a.apk",
-    "armeabi-v7a": "vidchain-armeabi-v7a.apk",
-    "x86": "vidchain-x86.apk",
-    "x86_64": "vidchain-x86_64.apk",
-    "universal": "vidchain-universal.apk"
+    "arm64-v8a": "vidchain-arm64-v8a-{version}.apk",
+    "armeabi-v7a": "vidchain-armeabi-v7a-{version}.apk",
+    "x86": "vidchain-x86-{version}.apk",
+    "x86_64": "vidchain-x86_64-{version}.apk",
+    "universal": "vidchain-universal-{version}.apk"
   },
   "obtainium": {
     "autoApkFilterByArch": true,

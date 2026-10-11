@@ -82,6 +82,8 @@ class AIOCrashHandler : Thread.UncaughtExceptionHandler {
 				logger.e("Failed to save crash log: ${error.message}", error)
 			}
 
+			// VidChain: a redacted report in the app's private folder (the crash screen offers it; T8.10)
+			org.websnake.vidchain.app.VidChainCrashReport.record(AIOApp.INSTANCE, thread, exception)
 			// Save crash information for later inspection
 			aioBackend.saveAppCrashedInfo(stackTrace)
 
@@ -94,5 +96,7 @@ class AIOCrashHandler : Thread.UncaughtExceptionHandler {
 			// Catch secondary failures in the crash handling flow
 			logger.d("Secondary error during crash handling: ${error.message}")
 		}
+		// VidChain: a main-thread crash closes the app instead of leaving it frozen ("not responding"; T8.10)
+		org.websnake.vidchain.app.VidChainCrashReport.finish(thread, exception)
 	}
 }

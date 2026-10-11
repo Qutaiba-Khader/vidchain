@@ -18,7 +18,9 @@ class LauncherActivity : BaseActivity() {
 	}
 	
 	override fun onAfterLayoutRender() {
-		if (aioSettings.hasAppCrashedRecently) launchFeedbackActivity()
+		// VidChain: a main-thread crash now closes the app before the upstream flag is saved; its marker counts too (T8.10)
+		val crashedOnMainThread = org.websnake.vidchain.app.VidChainCrashReport.takePending(this)
+		if (aioSettings.hasAppCrashedRecently || crashedOnMainThread) launchFeedbackActivity()
 		else launchMotherActivity()
 	}
 	

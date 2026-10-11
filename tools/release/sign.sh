@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Sign-only step (runs in the protected `release` environment, never runs Gradle):
 # zipalign every APK for 16 KB pages, sign with the VidChain key, prove the certificate is the pinned one,
-# and write the final asset names from release-contract.json.
-# usage: sign.sh <in-dir> <out-dir>   env: KEYSTORE (path), STORE_PW, KEY_ALIAS, KEY_PW, ANDROID_HOME
+# and write the final asset names from release-contract.json (they end with the app version).
+# usage: sign.sh <in-dir> <out-dir>   env: VERSION, KEYSTORE (path), STORE_PW, KEY_ALIAS, KEY_PW, ANDROID_HOME
 set -Eeuo pipefail
 IN=$1 OUT=$2
-: "${KEYSTORE:?}" "${STORE_PW:?}" "${KEY_ALIAS:?}" "${KEY_PW:?}"
+: "${VERSION:?}" "${KEYSTORE:?}" "${STORE_PW:?}" "${KEY_ALIAS:?}" "${KEY_PW:?}"
 BT=$(ls -d "${ANDROID_HOME:?}"/build-tools/* | sort -V | tail -1)
 PIN=$(grep -v '^#' signing/cert-sha256.txt | tr -d '[:space:]')
 mkdir -p "$OUT"
 for abi in arm64-v8a armeabi-v7a x86 x86_64 universal; do
   src="$IN/app-$abi-release.apk"
-  dst="$OUT/$(python3 -c "import json;print(json.load(open('release-contract.json'))['assets']['$abi'])")"
+  dst="$OUT/$(python3 tools/release/obtainium.py --asset "$abi" "$VERSION")"
   [[ -f "$src" ]] || { echo "FAIL: missing $src"; exit 1; }
   "$BT/zipalign" -f -P 16 4 "$src" "$dst.aligned"
   "$BT/apksigner" sign --ks "$KEYSTORE" --ks-pass env:STORE_PW --ks-key-alias "$KEY_ALIAS" --key-pass env:KEY_PW \

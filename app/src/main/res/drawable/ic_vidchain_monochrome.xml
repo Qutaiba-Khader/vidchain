@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon layer (Android 13+): the cloud with the arrow cut out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M40.5,71.25 H70.5 A12,12 0 0 0 70.5,47.25 A16.5,16.5 0 0 0 40.5,50.25 A10.5,10.5 0 0 0 40.5,71.25 Z M51.4,45.75 H56.6 V55 H62 L54,64.5 L46,55 H51.4 Z"/>
+</vector>

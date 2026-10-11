@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- VidChain launcher icon foreground: a download arrow over a chain of three linked steps. -->
+<!-- VidChain launcher icon foreground (owner's icon "2a, Cloud download", 2026-10-12): a cloud with a download arrow. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-	android:width="108dp"
-	android:height="108dp"
-	android:viewportWidth="108"
-	android:viewportHeight="108">
-	<path android:fillColor="#FFFFFF" android:pathData="M50,28h8v28h10l-14,16l-14,-16h10z" />
-	<path android:fillColor="#FFFFFF" android:pathData="M38,78L70,78L70,82L38,82Z" />
-	<path android:fillColor="#FFFFFF" android:pathData="M32,80a6,6 0,1 0,12 0a6,6 0,1 0,-12 0z" />
-	<path android:fillColor="#FFFFFF" android:pathData="M48,80a6,6 0,1 0,12 0a6,6 0,1 0,-12 0z" />
-	<path android:fillColor="#FFFFFF" android:pathData="M64,80a6,6 0,1 0,12 0a6,6 0,1 0,-12 0z" />
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#1A1206" android:pathData="M40.5,71.25 H70.5 A12,12 0 0 0 70.5,47.25 A16.5,16.5 0 0 0 40.5,50.25 A10.5,10.5 0 0 0 40.5,71.25 Z"/>
+    <path android:strokeColor="#F5A00F" android:strokeWidth="5.25"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M54,45.75 V62.25 M47.25,56.25 L54,63 L60.75,56.25"/>
 </vector>

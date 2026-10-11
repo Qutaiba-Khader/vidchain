@@ -41,11 +41,15 @@ for p in sorted(APP.rglob("*")):
         else:
             errors.append(f"UNCLASSIFIED com.aio: {rel}:{no}: {line.strip()[:120]}")
 
+# owner decision 2026-10-12: the launcher name starts with "AIO" so launcher search finds it (BRANDING.md)
+OWNER_NAMES = {("title_app_name", "AIO VidChain")}
 for p in sorted((APP / "src" / "main" / "res").glob("values*/*.xml")):
     rel = p.relative_to(ROOT).as_posix()
     for no, line in enumerate(p.read_text().splitlines(), 1):
         for m in re.finditer(r'<string name="([^"]+)"[^>]*>(.*?)</string>', line):
             name, value = m.groups()
+            if (name, value) in OWNER_NAMES:
+                continue
             if re.search(r"\bAIO\b", value) or "shibaFoss/AIO-Video-Downloader" in value:
                 errors.append(f"OLD BRAND in string value: {rel}:{no} {name}")
 

@@ -50,6 +50,7 @@ also carry FALLBACK-SEAM lines and stay declared in `seams.lock` (its seam lines
 | T8.9 (owner report 2026-10-11: freeze / "not responding" when sharing after the phone was idle). Start-up loaded the whole download history on the main thread, and every loaded download listed the whole files/ folder again (N x folder size) | the history loads in the background (readers already wait on `isInitializing`, now set before the load); the folder is listed again only when it changed (`MaxIdCache`, MaxIdCacheTest) | `AIOApp.kt`, `UniqueNumberUtils.kt` |
 | T8.9: a failed or timed-out link analysis (30 s job limit) left the non-cancelable "Analyzing URL" dialog up for good | the dialog closes and the page opens in the browser | `SharedVideoURLIntercept.kt` |
 | T8.9: the always-on dataSync foreground service had no `onTimeout` (Android 15 kills the app after 6 h) and crashed when Android refused its start | `onTimeout` stops it; a refused start stops the service instead of crashing | `AIOForegroundService.java` |
+| T8.10 (owner report 2026-10-12: "Oops, App Was Crashed" sheet at start). The crash handler saved the crash and returned: on the main thread that leaves the app open with a dead screen thread (frozen, then "not responding"), and the report went only to a hidden file in the download folder, which needs the storage permission | a main-thread crash is handed to Android's own handler (the app closes cleanly); a redacted report (trace Redactor, last 5) is kept in the app's private folder and the crash screen's GitHub issue text carries the newest one (`VidChainCrashReport`); the upstream crash flag is saved in the background, so a main-thread crash also leaves a marker file the launcher checks | `AIOCrashHandler.kt`, `LauncherActivity.kt` (declared in CHANGES.md) |
 
 ```paths
 modified app/src/main/java/lib/networks/URLUtilityKT.kt
@@ -65,4 +66,6 @@ modified app/src/main/java/app/core/engines/downloader/DownloadURLHelper.kt
 modified app/src/main/java/app/core/AIOApp.kt
 modified app/src/main/java/lib/process/UniqueNumberUtils.kt
 modified app/src/main/java/app/core/engines/services/AIOForegroundService.java
+modified app/src/main/java/app/core/AIOCrashHandler.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainCrashReport.kt
 ```

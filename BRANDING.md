@@ -11,10 +11,10 @@ use is classified in `tools/rename-allowlist.txt` and checked by `tools/rename_a
 | Lint baseline block (T1.4: inherited findings frozen in `app/lint-baseline-vidchain.xml`, calendar-dependent checks disabled) | `app/build.gradle` |
 | Own version line: versionName `MAJOR.MINOR.PATCH`, versionCode `MAJOR*10000 + MINOR*100 + PATCH` (first: 0.0.1 / 1), set together with `release-contract.json` | `app/build.gradle` |
 | taskAffinity `${applicationId}.mother` (no clash with another install of the original app) | `AndroidManifest.xml` |
-| App name, folder names, category names, help texts, player/service titles: "AIO" -> "VidChain" | `values/strings_library.xml`, `values-bn/strings_library.xml`, `strings_unit_ids.xml` (BUILD-FIXES) |
+| App name, folder names, category names, help texts, player/service titles: "AIO" -> "VidChain"; the launcher name is "AIO VidChain" (owner, 2026-10-12: the name must start with "AIO" so launcher search finds it) | `values/strings_library.xml`, `values-bn/strings_library.xml`, `strings_unit_ids.xml` (BUILD-FIXES) |
 | Official page / privacy / terms links -> this repository (`PRIVACY.md`, `LICENSE.md`) | same string files |
 | Fallback file titles `..._By_VidChain_...`; category label strips the "VidChain" prefix | `M3U8VideoDownloader.kt`, `VideoResolutionPicker.kt`, `FinishedTasksViewHolder.kt` |
-| New adaptive launcher icon (+ themed monochrome layer) | `mipmap-anydpi-v26/ic_launcher_v2*.xml`, `drawable/ic_vidchain_*.xml` |
+| New adaptive launcher icon (+ themed monochrome layer); since 2026-10-12 the owner's "Cloud download" icon (orange #F5A00F, dark mark #1A1206) | `mipmap-anydpi-v26/ic_launcher_v2*.xml`, `drawable/ic_vidchain_*.xml` |
 | Notification small icon replaced by the VidChain mark (same resource name, no code change) | `drawable/ic_launcher_logo_v4.png` -> `.xml` |
 
 ```paths
@@ -31,4 +31,5 @@ deleted app/src/main/res/drawable/ic_launcher_logo_v4.png
 added app/src/main/res/drawable/ic_launcher_logo_v4.xml
 added app/src/main/res/drawable/ic_vidchain_background.xml
 added app/src/main/res/drawable/ic_vidchain_foreground.xml
+added app/src/main/res/drawable/ic_vidchain_monochrome.xml
 ```

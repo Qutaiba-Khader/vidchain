@@ -12,7 +12,7 @@ VidChain. The UI does not offer what cannot work. Nothing here blocks, hides or 
 | Remote kill switch | `AIOSelfDestruct` is a no-op. | BUILD-FIXES.md (stub) |
 | Developer cloud sync / accounts (Parse settings sync, Supabase login) | Server URLs point at a closed local port; the sign-in block is gone from Settings (since v1.1.0 the whole account block is removed, CHANGES.md). | `strings_unit_ids.xml` (BUILD-FIXES), settings screen (CHANGES.md) |
 | Self-updater (would install the original app over this one) | Update URL points at a closed local port; the "check for update" row is gone from Settings (redesigned screen, CHANGES.md). Updates come from GitHub Releases / Obtainium. | `AIOUpdater.kt`, settings screen (CHANGES.md) |
-| "Feedback sent" claims | Feedback and the crash dialog open a pre-filled GitHub issue in this repository instead of claiming to send to a server. | `UserFeedbackActivity.java` |
+| "Feedback sent" claims | Feedback and the crash dialog open a pre-filled GitHub issue in this repository instead of claiming to send to a server; the crash issue text carries the newest redacted crash report (T8.10), sent only if the user submits it. | `UserFeedbackActivity.java` |
 
 Kept on purpose: the in-app browser's ad-block filter list is still fetched from the original
 project's GitHub repository (a public data file, no user data sent).

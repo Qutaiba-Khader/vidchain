@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Check a release's files, the Obtainium entry and every link in README.md.
-usage: GH_TOKEN=... check_links.py README.md [--tag TAG]
+usage: GH_TOKEN=... [VERSION=x.y.z] check_links.py README.md [--tag TAG]
 --tag TAG checks that release (drafts included) instead of the latest one - used on the DRAFT before
-publishing, so a broken release is never made public. Exit 1 on any failure."""
+publishing, so a broken release is never made public. APK names end with the app version: VERSION, else the
+tag without its "v". Exit 1 on any failure."""
 import json
 import os
 import re
@@ -24,7 +25,6 @@ README = args[0] if args else "README.md"
 TOKEN = os.environ.get("GH_TOKEN", "")
 REPO = obtainium.REPO
 API = f"https://api.github.com/repos/{REPO}"
-ASSETS = obtainium.CONTRACT["assets"]
 failures = []
 
 
@@ -60,7 +60,7 @@ else:
     check(st == 200, f"latest release readable (HTTP {st})")
 tag = release.get("tag_name", "")
 assets = {a["name"]: a for a in release.get("assets", [])}
-for name in ASSETS.values():
+for name in obtainium.asset_names(os.environ.get("VERSION") or tag.removeprefix("v")).values():
     check(name in assets, f"asset {name} present")
 for name, a in sorted(assets.items()):
     if name.endswith(".apk"):

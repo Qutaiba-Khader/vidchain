@@ -115,6 +115,7 @@ jobs:
           STORE_PW: ${{ secrets.SIGNING_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PW: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          VERSION: ${{ needs.plan.outputs.version }}
         run: |
           umask 077
           printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
@@ -243,7 +244,7 @@ jobs:
             fi
             echo "VidChain ${VERSION} - an Android video downloader based on [AIO Video Downloader](https://github.com/shibaFoss/AIO-Video-Downloader) by shibaFoss (independent, non-commercial, not official)."
             echo
-            echo "**Phones: install \`vidchain-arm64-v8a.apk\`**, or add VidChain to Obtainium with the link in the README."
+            echo "**Phones: install \`vidchain-arm64-v8a-${VERSION}.apk\`**, or add VidChain to Obtainium with the link in the README."
             echo
             echo "No ads, no tracking, no self-updater, no remote kill switch, no developer cloud sync. Checked before publishing: no ad SDK, no tracker SDK and no developer server in the APKs; VidChain started in an Android emulator with all its traffic recorded and contacted no developer server, no IP-location service and no ad network."
             echo
@@ -253,6 +254,7 @@ jobs:
       - name: Check the draft - files download, Obtainium entry, README links
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.plan.outputs.version }}
         run: python3 tools/release/check_links.py README.md --tag "$TAG"
       - name: Dry run - remove the verified draft and its tag
         if: needs.plan.outputs.dry == 'true'

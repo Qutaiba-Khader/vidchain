@@ -4,5 +4,5 @@
 	tools:ignore="MonochromeLauncherIcon">
     <background android:drawable="@drawable/ic_vidchain_background"/>
     <foreground android:drawable="@drawable/ic_vidchain_foreground"/>
-    <monochrome android:drawable="@drawable/ic_vidchain_foreground"/>
+    <monochrome android:drawable="@drawable/ic_vidchain_monochrome"/>
 </adaptive-icon>
