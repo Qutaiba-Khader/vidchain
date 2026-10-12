@@ -21,9 +21,13 @@ class CatchCollector(
 	var sawBlob = false
 		private set
 
+	private val headersOf = HashMap<String, Map<String, String>>()
+
+	/** [headers]: what the page's request for [rawUrl] carried (only network observations have them) */
 	@Synchronized
-	fun offer(rawUrl: String?, how: String) {
+	fun offer(rawUrl: String?, how: String, headers: Map<String, String> = emptyMap()) {
 		val url = rawUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return
+		if (headers.isNotEmpty() && headersOf.size < 500 && url.startsWith("http", ignoreCase = true)) headersOf[url] = org.websnake.vidchain.web.headers.RequestHeaders.keep(headers)
 		if (url.startsWith("blob:", ignoreCase = true)) { sawBlob = true; return }
 		if (!url.startsWith("http", ignoreCase = true)) return
 		val kind = classify(url, how) ?: return
@@ -49,7 +53,8 @@ class CatchCollector(
 	}
 
 	@Synchronized
-	fun result(): List<MediaCandidate> = found.values.sortedWith(compareByDescending<MediaCandidate> { it.score }.thenBy { it.url.length })
+	fun result(): List<MediaCandidate> = found.values.map { c -> headersOf[c.url]?.let { c.copy(headers = it) } ?: c }
+		.sortedWith(compareByDescending<MediaCandidate> { it.score }.thenBy { it.url.length })
 
 	companion object {
 		private val JUNK = Regex("""doubleclick|googlesyndication|imasdk|/ads?/|[?&]ad(?:_|=)|preroll|thumb|sprite|\.vtt|\.srt|/beacon|/track""", RegexOption.IGNORE_CASE)

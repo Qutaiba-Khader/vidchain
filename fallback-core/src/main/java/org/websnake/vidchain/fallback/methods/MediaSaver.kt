@@ -23,7 +23,9 @@ internal object MediaSaver {
 			val r = when (c.kind) {
 				MediaCandidate.Kind.FILE -> {
 					val temp = HttpFileExecutor.partialFile(ctx, methodId) ?: return MethodOutcome.Unsupported("destination folder unknown")
-					val headers = buildMap { ctx.userAgent?.let { put("User-Agent", it) }; put("Referer", c.page) }
+					// the exact headers the page's player sent for this address first (T8.12), then the defaults
+					val headers = org.websnake.vidchain.web.headers.RequestHeaders.merge(c.headers,
+						buildMap { ctx.userAgent?.let { put("User-Agent", it) }; put("Referer", c.page) })
 					HttpFileExecutor.fetch(fetcher, verifier, ctx, temp, c.url, headers)
 				}
 				else -> stream?.invoke(ctx.copy(url = c.url, mediaUrl = c.url, urlClass = UrlClass.HLS_DASH, referer = c.page), c)

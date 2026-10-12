@@ -54,5 +54,6 @@ added app/src/main/java/org/websnake/vidchain/app/VidChainShareRescue.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainFormats.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainBattery.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainGrabber.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainHeaders.kt
 modified app/src/main/java/app/ui/main/fragments/browser/webengine/WebViewEngine.kt
 ```

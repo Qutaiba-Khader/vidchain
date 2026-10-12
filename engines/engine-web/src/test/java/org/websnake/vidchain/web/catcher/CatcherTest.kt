@@ -67,6 +67,15 @@ class CatcherTest {
 		assertEquals("https://cdn.example/main.m3u8", c.result().first().url)
 	}
 
+	@Test fun theRequestHeadersOfAMediaAddressComeWithItsCandidate() {
+		val c = CatchCollector("https://site.example/p", deadlineMs = 25_000, clock = { 0L })
+		c.offer("https://cdn.example/v.m3u8", "request", mapOf("Referer" to "https://player.example/embed/1", "Cookie" to "s=1", "X-Token" to "t"))
+		c.offer("https://cdn.example/v.m3u8", "ct-hls")                     // a stronger find without headers keeps them
+		val r = c.result().single()
+		assertEquals("ct-hls", r.source.removePrefix("webview:"))
+		assertEquals(mapOf("Referer" to "https://player.example/embed/1", "X-Token" to "t"), r.headers)
+	}
+
 	@Test fun theProbeOnlyReportsKeepsOriginalsAndGuardsAgainstDoubleInjection() {
 		val js = org.websnake.vidchain.web.probe.ProbeScript.build(autoplay = false)
 		assertTrue(js.contains("window.__vcProbe") && js.contains("window.VidChainProbe"))

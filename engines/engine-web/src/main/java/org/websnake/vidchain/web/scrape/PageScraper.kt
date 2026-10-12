@@ -9,7 +9,9 @@ import org.websnake.vidchain.hosts.Page
 import java.util.Locale
 
 /** A media URL found on a page. [page] is the page it came from (the Referer to send). */
-data class MediaCandidate(val url: String, val kind: Kind, val source: String, val page: String, val score: Int) {
+data class MediaCandidate(val url: String, val kind: Kind, val source: String, val page: String, val score: Int,
+						  /** the request headers the page's player sent for [url] (T8.12, [org.websnake.vidchain.web.headers.RequestHeaders]) */
+						  val headers: Map<String, String> = emptyMap()) {
 	enum class Kind { FILE, HLS, DASH }
 }
 

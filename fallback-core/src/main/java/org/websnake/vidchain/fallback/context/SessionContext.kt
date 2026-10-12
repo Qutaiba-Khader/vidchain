@@ -18,6 +18,8 @@ class SessionContext(
 	val cookies: List<SessionCookie>,
 	val referer: String?,
 	val userAgent: String?,
+	/** the exact request headers the in-app browser sent for the media address (T8.12; never a Cookie) */
+	val requestHeaders: Map<String, String> = emptyMap(),
 ) {
 	/**
 	 * the Cookie header for [url]: only cookies of that exact host (the browser store cannot say which cookies are
@@ -41,12 +43,13 @@ class SessionContext(
 	}
 
 	/** request headers for [url] (Cookie only for its host; leave it out when the client scopes cookies per redirect hop) */
-	fun headersFor(url: String, withCookie: Boolean = true): Map<String, String> = buildMap {
-		userAgent?.takeIf { it.isNotBlank() }?.let { put("User-Agent", it) }
-		referer?.takeIf { it.startsWith("http") }?.let { put("Referer", it) }
-		originFor(url)?.let { put("Origin", it) }
-		if (withCookie) cookieHeader(url)?.let { put("Cookie", it) }
-	}
+	fun headersFor(url: String, withCookie: Boolean = true): Map<String, String> = org.websnake.vidchain.web.headers.RequestHeaders.merge(
+		org.websnake.vidchain.web.headers.RequestHeaders.keep(requestHeaders),
+		buildMap {
+			userAgent?.takeIf { it.isNotBlank() }?.let { put("User-Agent", it) }
+			referer?.takeIf { it.startsWith("http") }?.let { put("Referer", it) }
+			originFor(url)?.let { put("Origin", it) }
+		}) + (if (withCookie) cookieHeader(url)?.let { mapOf("Cookie" to it) }.orEmpty() else emptyMap())
 
 	/**
 	 * Netscape cookie file with a real domain on every line (the upstream writer leaves the domain empty, so yt-dlp and
@@ -60,7 +63,7 @@ class SessionContext(
 		return file
 	}
 
-	override fun toString() = "SessionContext(cookies=${cookies.size} on ${cookies.map { it.host }.distinct()}, referer=${referer?.let { runCatching { URI(it).host }.getOrNull() }}, ua=${userAgent != null})"
+	override fun toString() = "SessionContext(cookies=${cookies.size} on ${cookies.map { it.host }.distinct()}, referer=${referer?.let { runCatching { URI(it).host }.getOrNull() }}, ua=${userAgent != null}, headers=${requestHeaders.size})"
 
 	companion object {
 		/** "a=1; b=2" as cookies of [host]; [secure] = they were read for an https URL (then they never go over plain http) */

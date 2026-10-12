@@ -120,6 +120,7 @@ class BrowserWebClient(val webviewEngine: WebViewEngine) : WebViewClient() {
 		request: WebResourceRequest?
 	): WebResourceResponse? {
 		val url = request?.url.toString()
+		org.websnake.vidchain.app.VidChainHeaders.seen(request)   // VidChain T8.12: exact request headers for method S
 		if (url.isNotEmpty()) {
 			logger.d("Intercepting resource request: $url")
 

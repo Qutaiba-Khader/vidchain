@@ -136,7 +136,9 @@ object VidChainFallbackHost : FallbackHost {
 		}
 		// the browser's UA when the session came from the browser (servers may tie a session to it)
 		val ua = if (p.isDownloadFromBrowser || cookies.isNotEmpty()) AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null } else null
-		return org.websnake.vidchain.fallback.context.SessionContext(cookies, page, ua ?: p.globalSettings.downloadHttpUserAgent.ifEmpty { null })
+		// T8.12: the exact headers the browser's player sent for this address (or for the download's own address)
+		val exact = VidChainHeaders.forUrl(url).ifEmpty { VidChainHeaders.forUrl(p.fileURL) }
+		return org.websnake.vidchain.fallback.context.SessionContext(cookies, page, ua ?: p.globalSettings.downloadHttpUserAgent.ifEmpty { null }, exact)
 	}
 
 	private fun findModel(id: String): DownloadDataModel? {

@@ -38,7 +38,7 @@ class WebViewCatcher(private val context: Context) {
 				val pageScript = if (docStart) null else org.websnake.vidchain.web.probe.WebProbe.script(autoplay = true)
 				webViewClient = object : WebViewClient() {
 					override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-						collector.offer(request.url?.toString(), "request")
+						collector.offer(request.url?.toString(), "request", request.requestHeaders.orEmpty())
 						return null                                       // observe only, never alter the page's traffic
 					}
 					override fun onPageStarted(view: WebView, u: String?, favicon: Bitmap?) { pageScript?.let { view.evaluateJavascript(it, null) } }

@@ -85,4 +85,15 @@ class SessionMethodTest {
 		val f = sc.writeNetscape(File(tmp.root, "c/cookies.txt"))
 		assertTrue(f.readText().contains("example.com\tFALSE\t/\tFALSE\t2147483647\ta\t1"))
 	}
+
+	@Test fun theExactHeadersThePlayerSentAreReplayedButNeverACookieFromThem() {
+		val s = SessionContext(listOf(SessionCookie("cdn.example", "c", "1")), "https://site.example/page", "UA",
+			mapOf("Referer" to "https://player.example/embed/9", "X-Player-Token" to "abc", "Cookie" to "stolen=1", "Range" to "bytes=5-"))
+		val h = s.headersFor("https://cdn.example/v.mp4")
+		assertEquals("https://player.example/embed/9", h["Referer"])           // the exact Referer, not the page
+		assertEquals("abc", h["X-Player-Token"])
+		assertEquals("c=1", h["Cookie"])                                        // looked up for this host only
+		assertTrue("Range" !in h && h.values.none { it.contains("stolen") })
+		assertEquals("UA", h["User-Agent"])
+	}
 }
