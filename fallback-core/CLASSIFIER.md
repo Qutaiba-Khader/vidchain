@@ -10,7 +10,7 @@ whether the fallback coordinator may start the next method. The first matching r
 | 2 | status COMPLETE or isComplete | Success (a bad current-method file only gets a badge, Q26) | no |
 | 3 | isWaitingForNetwork | Waiting(network / Wi-Fi / internet) | no |
 | 4 | intent PAUSE, RENAME_PAUSE, APP_SHUTDOWN (checked before DOWNLOADING: a pause can leave a stale status) | UserStopped | no |
-| 5 | status DOWNLOADING, progress within 120 s (or unknown), or an M3U8 (yt-dlp) download whose process still runs | InProgress | no |
+| 5 | status DOWNLOADING, progress within 120 s (or unknown), or an M3U8 (yt-dlp) download whose process still runs (unless row 5a2) | InProgress | no |
 | 5a | status DOWNLOADING, no progress for >= 120 s, Regular engine or M3U8 process gone | Failure STALLED (Regular retries ran out) | yes |
 | 5a2 | status DOWNLOADING, M3U8 (yt-dlp) process still running, 0 bytes so far, no change for >= 300 s | Failure STALLED (stuck connecting, T8.11) | yes |
 | 5b | "Waiting to join" (resumed, waiting for a free slot) | Waiting(QUEUED) | no |

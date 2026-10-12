@@ -38,7 +38,7 @@ class CatchCollector(
 		} + if (kind == MediaCandidate.Kind.FILE) 0 else 5
 		val prev = found[url]
 		if (prev == null || prev.score < score) found[url] = MediaCandidate(url, kind, "webview:$how", page, score)
-		if (firstStrongAt == null) firstStrongAt = clock()
+		if (firstStrongAt == null && score >= 80) firstStrongAt = clock()   // a weak find (named in data) does not start the stop timer
 	}
 
 	@Synchronized
@@ -61,9 +61,12 @@ class CatchCollector(
 		fun classify(url: String, how: String): MediaCandidate.Kind? = when (how) {
 			"ct-hls", "body-hls" -> MediaCandidate.Kind.HLS
 			"ct-dash", "body-dash" -> MediaCandidate.Kind.DASH
-			"ct", "play" -> kindOf(url) ?: MediaCandidate.Kind.FILE
-			else -> kindOf(url)
+			"ct", "play" -> if (PIECE.containsMatchIn(url)) null else kindOf(url) ?: MediaCandidate.Kind.FILE
+			else -> kindOf(url)?.takeUnless { PIECE.containsMatchIn(url) }
 		}
+
+		/** a piece of a stream, never the video: segments, byte ranges, per-chunk requests (T8.11 review) */
+		private val PIECE = Regex("""\.(?:ts|m4s|cmfv|cmfa)(?:[?#]|$)|[?&](?:range|rn|bytestart|byteend)=""", RegexOption.IGNORE_CASE)
 
 		/** files and manifests by extension; extension-less player requests by their mime= query (e.g. googlevideo) */
 		fun kindOf(url: String): MediaCandidate.Kind? {

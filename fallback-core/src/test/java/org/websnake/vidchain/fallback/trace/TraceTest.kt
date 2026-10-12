@@ -75,10 +75,13 @@ class TraceTest {
 				"https://cdn.example/v/index.m3u8?hdnts=exp=1~acl=/*~hmac=S2: Server returned 403",
 				"https://a.example/p#access_token=S3", "https://a.example/p;jsessionid=S4",
 				"https://l.facebook.com/l.php?u=https%3A%2F%2Fcdn.x%2Fv.mp4%3Ftoken%3DS5", "https://user:S6@host.example/v.mp4",
-				"{\"Cookie\":\"sid=S7\"}", "Cookie: a=1, sid=S8", "auth_token=S9 lsig=S10")) {
+				"{\"Cookie\":\"sid=S7\"}", "Cookie: a=1, sid=S8", "auth_token=S9 lsig=S10",
+				"JSON {\"access_token\":\"S11\",\"refresh_token\": \"S12\"}", "x-goog-api-key: S13 and password: S14",
+				"java.lang.IllegalStateException: X-CSRF-Token: S15")) {
 			val c = Redactor.clean(s)!!
-			for (k in 1..10) assertFalse("leaked S$k in: $c", Regex("S$k\\b").containsMatchIn(c))
+			for (k in 1..15) assertFalse("leaked S$k in: $c", Regex("S$k\\b").containsMatchIn(c))
 		}
 		assertEquals(Redactor.clean("https://x.example/a?b=1"), Redactor.clean(Redactor.clean("https://x.example/a?b=1")))   // idempotent
+		assertEquals("at com.x.TokenManager.refresh(TokenManager.kt:12)", Redactor.clean("at com.x.TokenManager.refresh(TokenManager.kt:12)"))   // stack frames intact
 	}
 }

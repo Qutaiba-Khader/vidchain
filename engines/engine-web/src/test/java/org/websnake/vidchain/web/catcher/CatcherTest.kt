@@ -52,6 +52,21 @@ class CatcherTest {
 		assertTrue(r.getValue("https://api.example/stream?id=7").score > r.getValue("https://cdn.example/v/7.mp4?sig=1").score)
 	}
 
+	@Test fun streamPiecesAreNeverTheVideoAndWeakFindsDoNotStopTheCatch() {
+		var now = 0L
+		val c = CatchCollector("https://site.example/p", deadlineMs = 25_000, graceMs = 2_500, clock = { now })
+		c.offer("https://cdn.example/hls/seg1.ts", "ct")
+		c.offer("https://cdn.example/dash/chunk-1.m4s", "ct")
+		c.offer("https://rr1.googlevideo.com/videoplayback?mime=video%2Fmp4&range=0-1000", "request")
+		c.offer("https://video.fbcdn.example/v.mp4?bytestart=0&byteend=900", "net")
+		assertTrue(c.result().isEmpty())
+		c.offer("https://cdn.example/preview.mp4", "body")                    // named in page data: weak
+		now = 5_000; assertFalse(c.done())                                    // a weak find does not start the 2.5 s stop timer
+		c.offer("https://cdn.example/main.m3u8", "ct-hls")
+		now = 7_500; assertTrue(c.done())
+		assertEquals("https://cdn.example/main.m3u8", c.result().first().url)
+	}
+
 	@Test fun theProbeOnlyReportsKeepsOriginalsAndGuardsAgainstDoubleInjection() {
 		val js = org.websnake.vidchain.web.probe.ProbeScript.build(autoplay = false)
 		assertTrue(js.contains("window.__vcProbe") && js.contains("window.VidChainProbe"))

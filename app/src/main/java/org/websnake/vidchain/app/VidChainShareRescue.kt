@@ -64,6 +64,7 @@ object VidChainShareRescue {
 	fun shared(activity: BaseActivity?, text: String?): Boolean = try {
 		if (activity == null || text.isNullOrBlank() || lib.networks.URLUtility.isValidURL(text)) false
 		else if (torrent(activity, text)) { activity.onBackPressActivity(); true }
+		else if (activity.intent?.action != android.content.Intent.ACTION_SEND) false     // the re-entry reads EXTRA_TEXT
 		else extractUrl(text)?.takeIf { lib.networks.URLUtility.isValidURL(it) }?.let { url ->
 			// T8.10: relaunching the share screen with the link (T8.9) lost it on a real phone (the new instance closed
 			// without a trace); the same screen now goes on with the link in its intent

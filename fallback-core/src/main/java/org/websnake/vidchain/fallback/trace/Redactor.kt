@@ -16,6 +16,9 @@ object Redactor {
 	private val NAMED = Regex("""(?i)\b([a-z0-9_.-]*(?:token|sig|signature|key|secret|passw|pwd|auth|session|credential|policy|hmac|jwt|hdnts|hdnea|sid)[a-z0-9_.-]*\s*=\s*)(?!<redacted>)[^&\s"';,]+""")
 	/** the same parameters inside a percent-encoded link (?, &, #, ; and = written as %3F, %26, %23, %3B, %3D) */
 	private val ENCODED = Regex("""(?i)((?:%3F|%26|%23|%3B)(?:(?!%3D|%26|%23|%3B)[^\s&;#"'])*%3D)(?:(?!%26|%23|%3B)[^\s&;#"'])+""")
+	/** JSON "secret-looking-key": "value" and header-style "secret-looking-name: value" (T8.11 review: crash reports) */
+	private val QUOTED = Regex("""(?i)("[a-z0-9_.-]*(?:token|sig|signature|key|secret|passw|pwd|auth|session|credential|cookie|jwt|sid)[a-z0-9_.-]*"\s*:\s*")[^"]*""")
+	private val COLON = Regex("""(?i)\b([a-z0-9_.-]*(?:token|secret|passw|pwd|api[-_]?key|credential|session)[a-z0-9_.-]*\s*:\s+)(?!<redacted>)[^\s"',;}]+""")
 	private val CONTROL = Regex("""[\r\n\t]+""")
 
 	fun clean(s: String?): String? = s?.let {
@@ -28,6 +31,8 @@ object Redactor {
 		}
 		t = ENCODED.replace(t) { m -> "${m.groupValues[1]}<redacted>" }
 		t = NAMED.replace(t) { m -> "${m.groupValues[1]}<redacted>" }
+		t = QUOTED.replace(t) { m -> "${m.groupValues[1]}<redacted>" }
+		t = COLON.replace(t) { m -> "${m.groupValues[1]}<redacted>" }
 		CONTROL.replace(t, " ").take(MAX_FIELD)
 	}
 

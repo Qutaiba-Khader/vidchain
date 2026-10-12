@@ -9,7 +9,7 @@ Release: vX.Y.Z — https://github.com/Qutaiba-Khader/vidchain/releases/tag/vX.Y
 
 Tick what works; write what does not. Nothing here blocks the pipeline - findings become tasks.
 
-- [ ] Obtainium: added with the README link (public repo, no token) and installed `vidchain-arm64-v8a.apk`
+- [ ] Obtainium: added with the README link (public repo, no token) and installed `vidchain-arm64-v8a-<version>.apk`
 - [ ] VidChain installed **next to** the old AIO Video Downloader (the old app is still there and still opens)
 - [ ] App name "VidChain", new icon, no ads, no "watch ad to download"
 - [ ] Share one YouTube link from the YouTube app (Share -> VidChain) -> pick a quality -> the download finishes and the file plays

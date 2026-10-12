@@ -46,6 +46,7 @@ class AIOCrashHandler : Thread.UncaughtExceptionHandler {
 	 * @param exception The uncaught exception that caused the thread to terminate.
 	 */
 	override fun uncaughtException(thread: Thread, exception: Throwable) {
+		try { // VidChain: the outer try/finally makes sure a main-thread crash always ends in finish() (T8.11 review)
 		try {
 			logger.d("Uncaught exception in thread: ${thread.name}")
 
@@ -96,7 +97,8 @@ class AIOCrashHandler : Thread.UncaughtExceptionHandler {
 			// Catch secondary failures in the crash handling flow
 			logger.d("Secondary error during crash handling: ${error.message}")
 		}
-		// VidChain: a main-thread crash closes the app instead of leaving it frozen ("not responding"; T8.10)
+		} finally { // VidChain: a main-thread crash closes the app instead of leaving it frozen ("not responding"; T8.10)
 		org.websnake.vidchain.app.VidChainCrashReport.finish(thread, exception)
+		}
 	}
 }

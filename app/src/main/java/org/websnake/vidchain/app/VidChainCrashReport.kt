@@ -9,6 +9,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
+import java.net.URLEncoder
 import kotlin.system.exitProcess
 
 /**
@@ -27,6 +29,9 @@ object VidChainCrashReport {
 	private const val MAX_LINES = 60
 	private const val ISSUE_CHARS = 3500
 	private const val PENDING = "pending"
+	private const val ISSUE_ENCODED = 6000
+	private val EMAIL = Regex("""[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}""")
+	private val PATH = Regex("""/(?:storage|sdcard|mnt|data/user|data/data|data/media)/[^\s:'"()]+""")
 
 	@Volatile private var systemHandler: Thread.UncaughtExceptionHandler? = null
 
@@ -44,9 +49,11 @@ object VidChainCrashReport {
 				appendLine("app: " + appVersion(context))
 				appendLine("android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ${Build.MANUFACTURER} ${Build.MODEL}")
 				appendLine("thread: ${thread.name}" + if (isMain(thread)) " (main)" else "")
-				error.stackTraceToString().lineSequence().take(MAX_LINES).forEach { appendLine(Redactor.clean(it)) }
+				error.stackTraceToString().lineSequence().take(MAX_LINES).forEach { appendLine(scrub(Redactor.clean(it).orEmpty())) }
 			}
-			File(dir, "crash_" + SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(now) + ".txt").writeText(text)
+			// named in UTC so "newest" holds across time-zone and daylight-saving changes
+			val name = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(now)
+			File(dir, "crash_$name.txt").writeText(text)
 			// the upstream crash flag is saved in the background, which a main-thread crash no longer waits for
 			if (isMain(thread)) File(dir, PENDING).writeText("1")
 			dir.listFiles { f -> f.name.startsWith("crash_") }?.sortedByDescending { it.name }?.drop(KEEP)?.forEach { it.delete() }
@@ -56,11 +63,18 @@ object VidChainCrashReport {
 	/** True once after a main-thread crash (the launcher then opens the crash screen, like the upstream flag). */
 	fun takePending(context: Context): Boolean = runCatching { File(File(context.filesDir, "crash"), PENDING).delete() }.getOrDefault(false)
 
-	/** The newest report, shortened for a GitHub issue body; null when there is none. */
+	/** The newest report, shortened so the encoded GitHub issue address stays short enough; null when there is none. */
 	fun latestForIssue(context: Context): String? = runCatching {
-		File(context.filesDir, "crash").listFiles { f -> f.name.startsWith("crash_") }
-			?.maxByOrNull { it.name }?.readText()?.take(ISSUE_CHARS)
+		var s = File(context.filesDir, "crash").listFiles { f -> f.name.startsWith("crash_") }
+			?.maxByOrNull { it.name }?.readText()?.take(ISSUE_CHARS) ?: return@runCatching null
+		while (s.length > 200 && URLEncoder.encode(s, "UTF-8").length > ISSUE_ENCODED) s = s.take(s.length * 3 / 4)
+		s
 	}.getOrNull()
+
+	/** a report is meant for a public issue: e-mail addresses and file paths (video titles) are not needed there */
+	private fun scrub(line: String): String = line
+		.replace(EMAIL, "<email>")
+		.replace(PATH, "<path>")
 
 	/** Last step of the upstream handler: a main-thread crash goes to Android's handler (the app closes, no freeze). */
 	fun finish(thread: Thread, error: Throwable) {

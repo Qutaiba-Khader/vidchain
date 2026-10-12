@@ -72,7 +72,12 @@ class YtDlpEngine(
 		val known = JS_RUNTIME_SUPPORT[key] ?: run {
 			val probe = listOf(python.absolutePath, ytdlp.absolutePath, "--ignore-config", "--js-runtimes", "quickjs:${qjs.absolutePath}", "--version")
 			val r = runner.run(EngineSpec(probe, layout.env(), timeoutMs = 60_000))
-			(r.outcome == EngineOutcome.Success).also { JS_RUNTIME_SUPPORT[key] = it }
+			// only a clear answer is remembered: yes, or yt-dlp's own "no such option" exit; a kill or time-out is asked again
+			when (r.outcome) {
+				EngineOutcome.Success -> true.also { JS_RUNTIME_SUPPORT[key] = it }
+				is EngineOutcome.Failed -> false.also { JS_RUNTIME_SUPPORT[key] = it }
+				else -> false
+			}
 		}
 		return if (known) listOf("--js-runtimes", "quickjs:${qjs.absolutePath}") else emptyList()
 	}

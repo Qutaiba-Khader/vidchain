@@ -3,6 +3,7 @@ package org.websnake.vidchain.web.probe
 import android.annotation.SuppressLint
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.webkit.WebMessageCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
@@ -28,11 +29,16 @@ object WebProbe {
 		val origins = setOf("*")
 		if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
 			WebViewCompat.addWebMessageListener(webView, ProbeScript.NAME, origins) { _, message, _, _, _ ->
-				parse(message.data)?.let(onFind)
+				// any frame can post here: only a text message is read (reading an ArrayBuffer message as text throws on
+				// the main thread and took the app down - T8.11 review, reproduced on the test phone)
+				try {
+					if (message.type == WebMessageCompat.TYPE_STRING) parse(message.data)?.let(onFind)
+				} catch (_: Throwable) {
+				}
 			}
 		} else {
 			webView.addJavascriptInterface(object {
-				@JavascriptInterface fun report(m: String?) { parse(m)?.let(onFind) }
+				@JavascriptInterface fun report(m: String?) { try { parse(m)?.let(onFind) } catch (_: Throwable) {} }
 			}, ProbeScript.NAME)
 		}
 		if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
@@ -44,14 +50,20 @@ object WebProbe {
 
 	fun script(autoplay: Boolean): String = ProbeScript.build(autoplay)
 
+	/** both WebView features the in-page probe needs (document-start script in every frame + message listener) */
+	fun fullySupported(): Boolean = runCatching {
+		WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT) && WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)
+	}.getOrDefault(false)
+
 	/** The probe's message: {"u": address, "h": tag, "p": frame}. Anything else is dropped. */
 	fun parse(raw: String?): Find? = try {
 		if (raw == null || raw.length > 3 * MAX_FIELD) null
 		else JSONObject(raw).let { o ->
-			val u = o.optString("u").take(MAX_FIELD)
-			val h = o.optString("h").take(20)
+			val u = o.optString("u")
+			val h = o.optString("h")
 			val p = o.optString("p").take(MAX_FIELD).ifEmpty { null }
-			if (h.isEmpty() || !(u == "blob:" || u.startsWith("http://", true) || u.startsWith("https://", true))) null
+			if (u.length > MAX_FIELD || h.isEmpty() || h.length > 20) null                 // rejected, never cut to a different address
+			else if (!(u == "blob:" || u.startsWith("http://", true) || u.startsWith("https://", true))) null
 			else Find(u, h, p)
 		}
 	} catch (t: Throwable) {
