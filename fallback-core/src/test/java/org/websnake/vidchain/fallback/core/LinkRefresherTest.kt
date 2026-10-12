@@ -30,6 +30,21 @@ class LinkRefresherTest {
 		assertNull(none.fresh(d(null)))
 	}
 
+	@Test fun withoutAKnownSizeAnotherQualityOfTheSameAddressIsNotTheSameFile() = runBlocking {
+		val gv = HostDownload("1", "https://site.example/watch/1", "https://r1.example/videoplayback?itag=22&expire=1&sig=OLD&ip=1.1.1.1",
+			DownloadSnapshot(Engine.REGULAR, DownloadSnapshot.CLOSE, isFileUrlExpired = true), bytes = 500, referer = "https://site.example/watch/1")
+		val other = "https://r1.example/videoplayback?expire=2&itag=139&sig=A"
+		val same = "https://r1.example/videoplayback?ip=2.2.2.2&itag=22&expire=2&sig=NEW"
+		assertNull(LinkRefresher(listOf({ _ -> listOf(other) }), { _, _ -> 9_000L }).fresh(gv))          // T8.12 review
+		assertEquals(same, LinkRefresher(listOf({ _ -> listOf(other, same) }), { _, _ -> 9_000L }).fresh(gv))
+	}
+
+	@Test fun aCancelIsNotSwallowed() {
+		val r = LinkRefresher(listOf({ _ -> throw kotlinx.coroutines.CancellationException("stop") }), { _, _ -> 9_000L })
+		val e = runCatching { runBlocking { r.fresh(d(9_000)) } }.exceptionOrNull()
+		assertEquals(true, e is kotlinx.coroutines.CancellationException)
+	}
+
 	@Test fun theSecondSourceIsAskedWhenTheFirstHasNothing() = runBlocking {
 		val r = LinkRefresher(listOf({ _ -> null }, { _ -> listOf("https://cdn.example/v/a.mp4?sig=W") }), { _, _ -> 9_000L })
 		assertEquals("https://cdn.example/v/a.mp4?sig=W", r.fresh(d(9_000)))

@@ -28,7 +28,6 @@ class WebViewCatcher(private val context: Context) {
 		// T8.12: Web Video Caster's re-fetch, armed from the start in this hidden WebView (nobody browses it)
 		val refetcher = org.websnake.vidchain.web.refetch.Refetcher.get(context)
 		val gate = org.websnake.vidchain.web.refetch.RefetchPolicy.PageGate(budget = 200, armed = true)
-		val mainFrame = java.util.concurrent.atomic.AtomicReference(url)
 		val webView = withContext(Dispatchers.Main) {
 			WebView(context.applicationContext).apply {
 				settings.javaScriptEnabled = true
@@ -43,10 +42,10 @@ class WebViewCatcher(private val context: Context) {
 				webViewClient = object : WebViewClient() {
 					override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
 						collector.offer(request.url?.toString(), "request", request.requestHeaders.orEmpty())
-						if (request.isForMainFrame) { request.url?.toString()?.let { mainFrame.set(it) }; return null }
+						if (request.isForMainFrame) return null
 						// a clean 2xx re-fetched by VidChain, or null: the WebView asks for itself (RefetchPolicy)
 						return runCatching {
-							refetcher.intercept(request, mainFrame.get(), gate, userAgent) { u, how -> collector.offer(u, how, request.requestHeaders.orEmpty()) }
+							refetcher.intercept(request, gate, userAgent) { u, how -> collector.offer(u, how, request.requestHeaders.orEmpty()) }
 						}.getOrNull()
 					}
 					override fun onPageStarted(view: WebView, u: String?, favicon: Bitmap?) { pageScript?.let { view.evaluateJavascript(it, null) } }

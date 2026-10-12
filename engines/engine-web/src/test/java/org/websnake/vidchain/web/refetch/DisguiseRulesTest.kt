@@ -10,7 +10,7 @@ class DisguiseRulesTest {
 
 	@Test fun genericRulesNameDisguisedPlaylistsButNotOrdinaryFiles() {
 		val r = rules()
-		for (u in listOf("https://c.example/hls/1080/seg.jpg", "https://c.example/live_abc/x.png", "https://c.example/p/master.css",
+		for (u in listOf("https://c.example/hls/1080/seg.jpg", "https://c.example/hls_720p/x.png", "https://c.example/p/master.css",
 				"https://c.example/x/chunklist_w1.txt", "https://c.example/f.html?file=a.m3u8", "https://c.example/f.txt?hls=1"))
 			assertEquals(u, true, r.match(u) != null)
 		for (u in listOf("https://c.example/img/logo.png", "https://c.example/css/site.css", "https://c.example/index.html",

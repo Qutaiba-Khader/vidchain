@@ -18,8 +18,9 @@ import java.net.URI
 import java.util.Locale
 
 /**
- * VidChain's adapter onto the upstream download system (new file, not upstream code). It only READS the upstream
- * download models and ADDS new downloads through the public DownloadSystem.addDownload; it never changes an existing one.
+ * VidChain's adapter onto the upstream download system (new file, not upstream code). It READS the upstream download
+ * models and ADDS new downloads through the public DownloadSystem.addDownload. It changes an existing one only in two
+ * owner-decided cases after it failed (T8.12): [stopStuck] pauses it, [resumeWithUrl] gives it a fresh address.
  * Called on the main thread (the coordinator's host context).
  */
 object VidChainFallbackHost : FallbackHost {
@@ -74,7 +75,10 @@ object VidChainFallbackHost : FallbackHost {
 	/** expired link (T8.12): the same file's fresh address, then the app's own resume (it continues from the saved bytes) */
 	override fun resumeWithUrl(parent: HostDownload, url: String): Boolean {
 		val m = findModel(parent.id) ?: return false
-		if (m.isRunning || m.isComplete) return false
+		if (m.isComplete) return false
+		if (m.isRunning) return true                     // the user resumed it meanwhile: nothing to take over (T8.12 review)
+		// the cookies captured with the download belong to its old host: they never go to another one (T8.12 review)
+		if (!sameHost(url, m.fileURL)) m.siteCookieString = ""
 		m.fileURL = url
 		m.isFileUrlExpired = false
 		AIOApp.downloadSystem.resumeDownload(m, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
@@ -84,6 +88,7 @@ object VidChainFallbackHost : FallbackHost {
 	/** row 5a2: the app's own pause stops its yt-dlp process (owner decision 2026-10-12) */
 	override fun stopStuck(parent: HostDownload): Boolean {
 		val m = findModel(parent.id) ?: return false
+		if (!AIOApp.downloadSystem.canDownloadTaskBePaused(m)) return false
 		AIOApp.downloadSystem.pauseDownload(m)
 		return true
 	}
@@ -147,7 +152,8 @@ object VidChainFallbackHost : FallbackHost {
 		// the browser's UA when the session came from the browser (servers may tie a session to it)
 		val ua = if (p.isDownloadFromBrowser || cookies.isNotEmpty()) AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null } else null
 		// T8.12: the exact headers the browser's player sent for this address (or for the download's own address)
-		val exact = VidChainHeaders.forUrl(url).ifEmpty { VidChainHeaders.forUrl(p.fileURL) }
+		// (the download's own address only when it is on the same host: headers never travel to another host - T8.12 review)
+		val exact = VidChainHeaders.forUrl(url).ifEmpty { if (sameHost(url, p.fileURL)) VidChainHeaders.forUrl(p.fileURL) else emptyMap() }
 		return org.websnake.vidchain.fallback.context.SessionContext(cookies, page, ua ?: p.globalSettings.downloadHttpUserAgent.ifEmpty { null }, exact)
 	}
 

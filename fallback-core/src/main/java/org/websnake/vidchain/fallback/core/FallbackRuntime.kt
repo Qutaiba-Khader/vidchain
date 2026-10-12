@@ -111,7 +111,7 @@ object FallbackRuntime {
 			{ url -> org.websnake.vidchain.fallback.methods.NewPipeMethod.newPipeSource(url) }, { ffmpeg }),
 		org.websnake.vidchain.fallback.methods.FfmpegMethod({ ffmpeg }, ::ffmpegCaps),
 		org.websnake.vidchain.fallback.methods.WebCatcherMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
-			{ url, ua -> appContext?.let { org.websnake.vidchain.web.catcher.WebViewCatcher(it).catch(url, ua) } }, stream = { ctx, _ -> ytdlpMethod.run(ctx, null) }),
+			{ url, ua -> appContext?.let { org.websnake.vidchain.web.catcher.WebViewCatcher(it).catch(url, ua) } }, stream = { ctx, c -> ytdlpMethod.run(ctx, null, c.headers) }),
 		org.websnake.vidchain.fallback.methods.PageScrapeMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
 			{ ua -> org.websnake.vidchain.hosts.FileHosts.fetcher(http, ua) }, stream = { ctx, _ -> ytdlpMethod.run(ctx, null) }),
 		org.websnake.vidchain.fallback.methods.FileHostMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe),
@@ -121,7 +121,6 @@ object FallbackRuntime {
 		org.websnake.vidchain.fallback.methods.PlainGetMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe)),
 	))
 
-	/** method S asks the app for the session on the main thread (the browser's cookie store and the download models live there) */
 	/** T8.12: YouTube PO tokens minted in a hidden WebView for method C; the trace says only whether it worked */
 	private suspend fun poTokens(videoId: String): org.websnake.vidchain.ytdlp.youtube.PoTokens? {
 		val minter = poMinter ?: appContext?.let { org.websnake.vidchain.web.po.PoTokenMinter(it) }?.also { poMinter = it } ?: return null
@@ -132,6 +131,7 @@ object FallbackRuntime {
 	}
 	@Volatile private var poMinter: org.websnake.vidchain.web.po.PoTokenMinter? = null
 
+	/** method S asks the app for the session on the main thread (the browser's cookie store and the download models live there) */
 	private suspend fun sessionFor(parentId: String, url: String): org.websnake.vidchain.fallback.context.SessionContext? {
 		val h = host ?: return null
 		return kotlinx.coroutines.withContext(Dispatchers.Main) { h.downloads().firstOrNull { it.id == parentId }?.let { h.session(it, url) } }
@@ -196,24 +196,32 @@ object FallbackRuntime {
 		Trace.event { TraceEvent("runtime.started", reason = "methods=${methods.joinToString(",") { it.id }}") }
 	}
 
-	/** T8.12: the same file asked again for an expired link - yt-dlp on the page, then the hidden page catcher */
+	/**
+	 * T8.12: the same file asked again for an expired link - yt-dlp on the page (method Y's engine), then the hidden page
+	 * catcher (method W's); each only when the user has that method on (T8.12 review)
+	 */
 	private fun linkRefresher(app: android.content.Context) = LinkRefresher(
 		sources = listOf(
-			{ page -> (ytdlp?.info(page, timeoutMs = 90_000) as? org.websnake.vidchain.ytdlp.YtDlpEngine.Result.Ok)?.value?.let { i -> i.formats.mapNotNull { it.url } + listOfNotNull(i.directUrl) } },
-			{ page -> org.websnake.vidchain.web.catcher.WebViewCatcher(app).catch(page, null).candidates.map { it.url } },
+			{ page -> if (!FallbackSettings.methodOn(app, "Y")) null
+				else (ytdlp?.info(page, timeoutMs = 90_000) as? org.websnake.vidchain.ytdlp.YtDlpEngine.Result.Ok)?.value?.let { i -> i.formats.mapNotNull { it.url } + listOfNotNull(i.directUrl) } },
+			{ page -> if (!FallbackSettings.methodOn(app, "W")) null
+				else org.websnake.vidchain.web.catcher.WebViewCatcher(app).catch(page, null).candidates.map { it.url } },
 		),
 		sizeOf = { url, referer -> totalSize(url, referer) },
 	)
 
-	/** the total size of [url] from a one-byte range request (no body is read); null when the server does not say */
+	/**
+	 * the total size of [url] from a one-byte range request (no body is read); null when the server does not say, and
+	 * null when it ignores the range (a 200): the app's resume needs ranges, or it would write the file's start at the
+	 * saved offset (T8.12 review)
+	 */
 	private suspend fun totalSize(url: String, referer: String?): Long? = kotlinx.coroutines.withContext(Dispatchers.IO) {
 		if (org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(url)) return@withContext null   // never the user's own network
 		val req = okhttp3.Request.Builder().url(url).header("Range", "bytes=0-0").apply { referer?.let { header("Referer", it) } }.build()
 		runCatching {
 			http.newCall(req).execute().use { r ->
 				when (r.code) {
-					206 -> r.header("Content-Range")?.substringAfter('/')?.toLongOrNull()
-					200 -> r.header("Content-Length")?.toLongOrNull()
+					206 -> r.header("Content-Range")?.trim()?.let { cr -> Regex("""^bytes 0-0/(\d+)$""").find(cr)?.groupValues?.get(1)?.toLongOrNull() }
 					else -> null
 				}
 			}

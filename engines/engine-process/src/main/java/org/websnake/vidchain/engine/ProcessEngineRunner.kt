@@ -49,30 +49,48 @@ data class EngineResult(
  */
 class Launcher(val setsid: String?, val sh: String) {
 	/**
-	 * `setsid -w` is used, never a bare `setsid` (T8.12, found on the test phone): toybox 0.8.3 (Android 11, Samsung A50)
-	 * forks and returns 0 at once, so the runner saw the engine end and killed its group about 150 ms after the start -
-	 * every engine "killed from outside". With -w setsid waits for the engine and returns its status (toybox and
-	 * util-linux both have it). A setsid without -w is not used: the engine then runs in the app's group and a cancel
-	 * signals only its own pid. Checked once per setsid binary, the first time an engine starts (never at construction).
+	 * How setsid is used (T8.12, found on the test phone): toybox 0.8.3 (Android 11, Samsung A50) setsid forks and
+	 * returns 0 at once, so the runner saw the engine end and killed its group about 150 ms after the start - every
+	 * engine "killed from outside". `setsid -w` waits for the engine and returns its status (toybox 0.8.3+ and
+	 * util-linux). Older toybox (Android 9/10) has no -w, but its setsid does not fork for a child that is not a group
+	 * leader (the runner's case), so a bare setsid is used there, as before - after a probe proves it waits (T8.12
+	 * review). Without either, the engine runs in the app's group and a cancel signals only the launcher shell.
+	 * Checked once per setsid binary, the first time an engine starts (on an IO thread, never at construction); a probe
+	 * that timed out is not remembered.
 	 */
-	val groups: Boolean get() = setsid != null && supportsWait(setsid, sh)
+	val groups: Boolean get() = mode() != Mode.NONE
 
-	fun wrap(argv: List<String>): List<String> = (if (groups) listOf(setsid!!, "-w") else emptyList()) + listOf(sh, "-c", WRAPPER) + argv
+	fun wrap(argv: List<String>): List<String> = when (mode()) {
+		Mode.WAIT -> listOf(setsid!!, "-w")
+		Mode.BARE -> listOf(setsid!!)
+		Mode.NONE -> emptyList()
+	} + listOf(sh, "-c", WRAPPER) + argv
+
+	private fun mode(): Mode = setsid?.let { modeOf(it, sh) } ?: Mode.NONE
+
+	private enum class Mode { WAIT, BARE, NONE }
 
 	companion object {
 		const val PGID_MARK = "__VIDCHAIN_PGID__"
 		const val EXIT_MARK = "__VIDCHAIN_EXIT__"
 		private const val WRAPPER = "echo \"$PGID_MARK $$\"; \"\$0\" \"\$@\" </dev/null; rc=\$?; echo \"$EXIT_MARK \$rc\" >&2; exit \$rc"
-		private val WAIT_SUPPORT = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+		private val MODES = java.util.concurrent.ConcurrentHashMap<String, Mode>()
 
-		/** `setsid -w sh -c 'exit 7'` returns 7 only when setsid really waited for its child */
-		private fun supportsWait(setsid: String, sh: String): Boolean = WAIT_SUPPORT.getOrPut(setsid) {
-			runCatching {
-				val p = ProcessBuilder(setsid, "-w", sh, "-c", "exit 7").redirectErrorStream(true)
-					.redirectInput(ProcessBuilder.Redirect.from(File("/dev/null"))).redirectOutput(ProcessBuilder.Redirect.to(File("/dev/null"))).start()
-				if (!p.waitFor(5, TimeUnit.SECONDS)) { p.destroyForcibly(); false } else p.exitValue() == 7
-			}.getOrDefault(false)
+		private fun modeOf(setsid: String, sh: String): Mode {
+			MODES[setsid]?.let { return it }
+			// `exit 7` comes back only when setsid really waited for its child
+			val withWait = probe(listOf(setsid, "-w", sh, "-c", "exit 7")) ?: return Mode.NONE      // timed out: ask again later
+			if (withWait == 7) return Mode.WAIT.also { MODES[setsid] = it }
+			val bare = probe(listOf(setsid, sh, "-c", "sleep 0.3; exit 7")) ?: return Mode.NONE
+			return (if (bare == 7) Mode.BARE else Mode.NONE).also { MODES[setsid] = it }
 		}
+
+		/** the exit code, or null when it did not end in time */
+		private fun probe(cmd: List<String>): Int? = runCatching {
+			val p = ProcessBuilder(cmd).redirectErrorStream(true)
+				.redirectInput(ProcessBuilder.Redirect.from(File("/dev/null"))).redirectOutput(ProcessBuilder.Redirect.to(File("/dev/null"))).start()
+			if (!p.waitFor(5, TimeUnit.SECONDS)) { p.destroyForcibly(); null } else p.exitValue()
+		}.getOrDefault(-1)
 
 		fun detect(): Launcher = Launcher(
 			setsid = listOf("/system/bin/setsid", "/usr/bin/setsid", "/bin/setsid").firstOrNull { File(it).canExecute() },

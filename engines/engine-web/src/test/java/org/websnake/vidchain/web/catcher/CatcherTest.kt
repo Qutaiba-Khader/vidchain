@@ -85,4 +85,11 @@ class CatcherTest {
 		assertTrue(js.contains("var AUTOPLAY = false") && org.websnake.vidchain.web.probe.ProbeScript.build(true).contains("var AUTOPLAY = true"))
 		assertFalse(js.contains("__AUTOPLAY__") || js.contains("\$NAME"))
 	}
+
+	@Test fun aBusyPageDoesNotCrowdOutTheMediaHeaders() {
+		val c = CatchCollector("https://site.example/p", 25_000)
+		repeat(600) { c.offer("https://site.example/static/app$it.js", "request", mapOf("Referer" to "https://site.example/p")) }
+		c.offer("https://cdn.example/v/master.m3u8", "request", mapOf("Referer" to "https://site.example/p", "X-Token" to "t"))
+		assertEquals(mapOf("Referer" to "https://site.example/p", "X-Token" to "t"), c.result().single().headers)   // T8.12 review
+	}
 }

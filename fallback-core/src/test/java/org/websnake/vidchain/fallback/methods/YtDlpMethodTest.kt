@@ -66,6 +66,17 @@ class YtDlpMethodTest {
 		assertEquals(0, cookieDir.listFiles()!!.size)
 	}
 
+	@Test fun thePlayersExactHeadersReachYtDlpButNeverCookiesOrCredentials() = runBlocking {
+		val s = SessionContext(emptyList(), "https://site.example/v/1", "BrowserUA",
+			mapOf("X-Player-Token" to "t1", "Origin" to "https://site.example", "Cookie" to "sid=1", "Authorization" to "Bearer x", "Referer" to "https://other.example/"))
+		assertTrue(method.run(ctx("https://cdn.example/v/master.m3u8"), s) is MethodOutcome.Delivered)
+		val args = argsLog.readLines()
+		assertTrue(args.containsAll(listOf("--add-header", "X-Player-Token:t1", "Origin:https://site.example")))      // T8.12 review
+		assertFalse(args.any { it.startsWith("Cookie:") || it.startsWith("Authorization:") || it.startsWith("Referer:") })
+		assertTrue(method.run(ctx("https://cdn.example/v/2.m3u8"), null, mapOf("X-W" to "w")) is MethodOutcome.Delivered)
+		assertTrue(argsLog.readLines().contains("X-W:w"))                                                           // method W's candidates
+	}
+
 	@Test fun failuresMapToTheChain() = runBlocking {
 		assertTrue(method.attempt(ctx("https://site.example/unsupported")) is MethodOutcome.Unsupported)
 		val r = method.attempt(ctx("https://site.example/members"))

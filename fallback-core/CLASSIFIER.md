@@ -16,7 +16,7 @@ whether the fallback coordinator may start the next method. The first matching r
 | 5b | "Waiting to join" (resumed, waiting for a free slot) | Waiting(QUEUED) | no |
 | 6 | isFailedToAccessFile, storage dialog, "File IO", file deleted / destination missing | Failure STORAGE (checked before "expired": a storage FileNotFoundException can look expired) | no |
 | 7 | isYtdlpHavingProblem | Failure EXTRACTOR_LOGIN / UNAVAILABLE / FORMAT / HTTP_OR_SERVER / OTHER by reason | yes |
-| 8 | isFileUrlExpired or "Link Expired" | Failure EXPIRED_URL (for M3U8 this may really be offline) | yes |
+| 8 | isFileUrlExpired or "Link Expired" | Failure EXPIRED_URL (for M3U8 this may really be offline). T8.12: for the app's own REGULAR download with bytes saved, the page is first asked for the same file (LinkRefresher, at most 2 times) and the download resumed; the chain runs only when that fails | yes |
 | 9 | "Invalid file URL" / "Download Failed" / "Server Issue" / other texts | Failure INVALID_URL / HTTP_OR_SERVER / ... | yes |
 | 9b | "Paused" or no text, no recorded user intent | Failure CRASH_OR_UNKNOWN (error pause, process death) | yes |
 

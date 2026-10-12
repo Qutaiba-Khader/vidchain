@@ -12,3 +12,10 @@ condition = "AND"
 paths = ['''^engines/engine-web/src/main/assets/vidchain-bgutils\.js$''']
 regexTarget = "secret"
 regexes = ['''^AIzaSyDyT5W0Jh49F30Pqqtyfdf7pDLFKLJoAnw$''']
+
+[[allowlists]]
+description = "BotGuard request key YouTube's own web page uses (public, the same for every visitor) in the PO-token mint script (T8.12)"
+condition = "AND"
+paths = ['''^engines/engine-web/src/main/assets/vidchain-po-mint\.js$''']
+regexTarget = "secret"
+regexes = ['''^O43z0dpjhgX20SCx4KAo$''']

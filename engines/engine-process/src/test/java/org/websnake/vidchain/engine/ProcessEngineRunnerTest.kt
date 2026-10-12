@@ -25,7 +25,7 @@ class ProcessEngineRunnerTest {
 
 	@Before fun setUp() {
 		launcher = Launcher.detect()
-		assumeTrue("setsid needed for group tests", launcher.setsid != null)
+		assumeTrue("setsid needed for group tests", launcher.groups)
 	}
 
 	private fun runner(slots: SlotLimiter = SlotLimiter(4)) = ProcessEngineRunner(launcher, slots, killGraceMs = 1_000)
@@ -66,12 +66,14 @@ class ProcessEngineRunnerTest {
 			val toybox = fake("toybox-setsid", "if [ \"\$1\" = -w ]; then shift; \"\$@\"; exit \$?; fi; \"\$@\" & exit 0")
 			// an old setsid that has no -w and also returns at once: not used at all
 			val old = fake("old-setsid", "if [ \"\$1\" = -w ]; then echo 'unknown option w' >&2; exit 1; fi; \"\$@\" & exit 0")
-			for (s in listOf(toybox, old)) {
+			// older toybox (Android 9/10): no -w, but no fork for a child that leads no group - used bare, as before
+			val bare = fake("bare-setsid", "if [ \"\$1\" = -w ]; then echo 'unknown option w' >&2; exit 1; fi; exec \"\$@\"")
+			for (s in listOf(toybox, old, bare)) {
 				val l = Launcher(s, sh)
 				val r = ProcessEngineRunner(l, SlotLimiter(4), killGraceMs = 1_000).run(EngineSpec(listOf(sh, "-c", "sleep 0.5; echo done; exit 3")))
 				assertEquals(s, EngineOutcome.Failed(3, ""), r.outcome.let { if (it is EngineOutcome.Failed) it.copy(reason = "") else it })
 				assertEquals(s, listOf("done"), r.stdoutTail)
-				assertEquals(s, s == toybox, l.groups)
+				assertEquals(s, s != old, l.groups)
 			}
 		} finally { dir.deleteRecursively() }
 	}

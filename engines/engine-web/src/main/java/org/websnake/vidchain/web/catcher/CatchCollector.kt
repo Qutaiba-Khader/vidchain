@@ -27,10 +27,13 @@ class CatchCollector(
 	@Synchronized
 	fun offer(rawUrl: String?, how: String, headers: Map<String, String> = emptyMap()) {
 		val url = rawUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return
-		if (headers.isNotEmpty() && headersOf.size < 500 && url.startsWith("http", ignoreCase = true)) headersOf[url] = org.websnake.vidchain.web.headers.RequestHeaders.keep(headers)
 		if (url.startsWith("blob:", ignoreCase = true)) { sawBlob = true; return }
 		if (!url.startsWith("http", ignoreCase = true)) return
-		val kind = classify(url, how) ?: return
+		val kind = classify(url, how)
+		if (kind == null) return
+		// headers only for media addresses (T8.12 review: every script and picture used to fill the 500 places first);
+		// a re-fetched address proven media by its body is offered again with its request's headers
+		if (headers.isNotEmpty() && headersOf.size < 500) headersOf[url] = org.websnake.vidchain.web.headers.RequestHeaders.keep(headers)
 		if (JUNK.containsMatchIn(url)) return
 		val score = when (how) {
 			"ct-hls", "ct-dash", "body-hls", "body-dash", "play" -> 95

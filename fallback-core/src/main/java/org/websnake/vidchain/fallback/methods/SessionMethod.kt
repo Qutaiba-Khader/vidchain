@@ -26,7 +26,8 @@ class SessionMethod(
 		val url = ctx.mediaUrl.ifEmpty { ctx.url }
 		if (!HttpFileExecutor.isHttp(url)) return MethodOutcome.Unsupported("not an http(s) URL")
 		val session = sessionFor(ctx.parentId, url) ?: return MethodOutcome.Unsupported("no browsing session for this download")
-		if (session.cookies.isEmpty() && session.referer == null) return MethodOutcome.Unsupported("the session adds nothing (no cookies, no page)")
+		if (session.cookies.isEmpty() && session.referer == null && session.requestHeaders.isEmpty())
+			return MethodOutcome.Unsupported("the session adds nothing (no cookies, no page, no player headers)")
 		val fileLike = ctx.urlClass == UrlClass.DIRECT_FILE || (ctx.mediaUrl.isNotEmpty() && ctx.mediaUrl != ctx.url && ctx.urlClass != UrlClass.HLS_DASH)
 		if (!fileLike) {
 			val extractor = withExtractor ?: return MethodOutcome.Unsupported("${ctx.urlClass.name} needs an extractor with the session (yt-dlp, T2.4)")

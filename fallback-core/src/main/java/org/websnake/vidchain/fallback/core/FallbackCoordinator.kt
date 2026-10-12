@@ -38,7 +38,9 @@ import kotlin.coroutines.EmptyCoroutineContext
  * - Exactly once: each (download, failure class, intent sequence) is handled once, recorded in the ledger.
  * - One chain per parent at a time; a resolver's candidate becomes a child download in the existing queue and the chain
  *   waits for it. A failing child continues its parent's chain; a finished child ends it (verified in T1.8).
- * - The current method is never touched: nothing here pauses, resumes or edits an upstream download.
+ * - The current method runs first and is otherwise left alone. Two owner decisions (T8.12) act on it AFTER it failed:
+ *   a yt-dlp download stuck connecting (row 5a2) is paused before the fallbacks take over, and an expired link may be
+ *   swapped for the same file's fresh address and resumed through the app's own resume.
  *
  * [scope] runs the chains; it must not use Dispatchers.Unconfined (a chain takes [lock] to queue a child).
  */
@@ -180,7 +182,8 @@ class FallbackCoordinator(
 		}
 		// row 5a2: the app's own yt-dlp download is still running but never connected; it is paused (recorded as a pause,
 		// so it is not seen as a new failure) before the fallbacks start, so the two never deliver the same video twice
-		val stuck = parentId == null && v.cls == FailureClass.STALLED && d.snapshot.isRunning && d.snapshot.engine == Engine.M3U8
+		// (only when a fallback can really take over: never a pause with nothing behind it - T8.12 review)
+		val stuck = parentId == null && v.cls == FailureClass.STALLED && d.snapshot.isRunning && d.snapshot.engine == Engine.M3U8 && chainCanRun(root)
 		if (stuck) ledger.recordIntent(d.id, UserIntent.PAUSE, now)
 		// an expired link after part of the file was saved: ask the page for the same file and resume the app's download
 		val refresh = refresher != null && parentId == null && v.cls == FailureClass.EXPIRED_URL && d.snapshot.engine == Engine.REGULAR &&
@@ -243,6 +246,14 @@ class FallbackCoordinator(
 
 	private fun traceVerify(parentId: String, method: String, r: Delivery, what: String) =
 		Trace.event { TraceEvent("verify", downloadId = parentId, method = method, result = r.check.name.lowercase(), reason = "$what ${r.kind.name}: ${r.reason}", durationMs = r.durationMs) }
+
+	/** would [runChain] start a method now: nothing delivered or in progress, and a method left that is on */
+	private fun chainCanRun(root: HostDownload): Boolean {
+		val done = ledger.attempts(root.id)
+		if (done.any { it.state == AttemptState.CHILD || it.state == AttemptState.DELIVERED }) return false
+		val steps = ChainSpec.stepsFor(UrlClass.of(withEffectiveUrl(root).url), config.includeStub)
+		return ChainSpec.nextMethod(steps, done.map { it.method }) { it in methods && config.methodOn(it) } != null
+	}
 
 	private suspend fun runChain(original: HostDownload, failureClass: String) {
 		var root = withEffectiveUrl(original)
@@ -453,6 +464,7 @@ class FallbackCoordinator(
 	/** must hold [lock] */
 	private fun forgetLocked(id: String, why: String = "removed by the user") {
 		ledger.forget(id)
+		refreshes.remove(id)                                                     // the app reuses download ids
 		TrailBoard.remove(id)
 		seen.remove(id)
 		Trace.event { TraceEvent("decision", downloadId = id, result = "forgotten", reason = why) }

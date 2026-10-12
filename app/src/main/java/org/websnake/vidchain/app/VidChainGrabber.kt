@@ -50,9 +50,13 @@ object VidChainGrabber {
 
 	private val states = WeakHashMap<WebView, PageState>()
 
-	/** per WebView, read from the WebView's network threads: the page's address and its re-fetch allowance */
-	private class Refetch(val engine: WebViewEngine, val userAgent: String?) {
-		@Volatile var page: String? = null
+	/**
+	 * per WebView, read from the WebView's network threads: the page's re-fetch allowance. The engine is held weakly:
+	 * it holds the activity and every tab's WebView, so a strong reference here would keep them alive for good (the
+	 * map's keys are weak only while nothing in the values points back to them - T8.12 review).
+	 */
+	private class Refetch(engine: WebViewEngine) {
+		val engine = java.lang.ref.WeakReference(engine)
 		@Volatile var gate = RefetchPolicy.PageGate(REFETCH_PER_PAGE, armed = false)
 	}
 	private val refetches = java.util.Collections.synchronizedMap(WeakHashMap<WebView, Refetch>())
@@ -65,15 +69,16 @@ object VidChainGrabber {
 		// (no probe, so no extra requests - full test pass 15, golden OFF audio-only / og-video)
 		if (states.containsKey(webView) || !WebProbe.fullySupported() || !FallbackSettings.enabled(webView.context)) return
 		states[webView] = PageState(null)
-		refetches[webView] = Refetch(engine, runCatching { webView.settings.userAgentString }.getOrNull())
+		refetches[webView] = Refetch(engine)
 		runCatching { WebProbe.attach(webView, autoplay = false) { f -> accept(engine, webView, f) } }
 	}
 
 	/** runs on the UI thread (WebMessageListener); cheap checks first, the list is touched only for accepted finds */
 	private fun accept(engine: WebViewEngine, view: WebView, f: WebProbe.Find) {
 		if (!FallbackSettings.enabled(view.context)) return
-		refetches[view]?.gate?.armed = true                                  // the page shows a video: re-fetch may start
 		runCatching { Refetcher.get(view.context).observed(f.url, f.how) }
+		// the page plays or holds a video (not merely a media address named in data): re-fetch may start
+		if (f.how in TAGS || f.url.startsWith("blob:", ignoreCase = true)) refetches[view]?.gate?.armed = true
 		if (f.how !in TAGS) return
 		val state = states[view] ?: return
 		val page = runCatching { view.url }.getOrNull()
@@ -112,12 +117,13 @@ object VidChainGrabber {
 		if (!FallbackSettings.enabled(v.context)) return null
 		if (r.isForMainFrame) {                                               // a new page: a new, dormant allowance
 			st.gate.summary()?.let { s -> org.websnake.vidchain.fallback.trace.Trace.event { org.websnake.vidchain.fallback.trace.TraceEvent("refetch.page", reason = s) } }
-			st.page = r.url?.toString(); st.gate = RefetchPolicy.PageGate(REFETCH_PER_PAGE, armed = false); return null
+			st.gate = RefetchPolicy.PageGate(REFETCH_PER_PAGE, armed = false); return null
 		}
 		val url = r.url?.toString() ?: return null
 		if (isLocal(url)) return null
-		Refetcher.get(v.context).intercept(r, st.page, st.gate, st.userAgent) { u, how ->
-			main.post { accept(st.engine, v, WebProbe.Find(u, how, null)) }
+		val ua = runCatching { app.core.AIOApp.aioSettings.browserHttpUserAgent }.getOrNull()?.ifEmpty { null }
+		Refetcher.get(v.context).intercept(r, st.gate, ua) { u, how ->
+			main.post { st.engine.get()?.let { e -> accept(e, v, WebProbe.Find(u, how, null)) } }
 		}
 	}.getOrNull()
 

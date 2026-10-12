@@ -65,46 +65,51 @@ class PoTokenMinter(private val context: Context) {
 		val mint = runCatching { context.assets.open(MINT_ASSET).use { it.readBytes() } }.getOrNull()
 		if (bg == null || mint == null) { lastProblem = "assets missing"; return null }
 		val page = "$PAGE?v=$videoId"
-		val webView = withContext(Dispatchers.Main) {
-			WebView(context.applicationContext).apply {
-				settings.javaScriptEnabled = true
-				settings.domStorageEnabled = false
-				settings.blockNetworkImage = true
-				settings.allowFileAccess = false
-				settings.allowContentAccess = false
-				addJavascriptInterface(object {
-					@JavascriptInterface fun done(json: String?) { result.complete(json.orEmpty().take(MAX_ANSWER)) }
-				}, "VidChainPo")
-				webViewClient = object : WebViewClient() {
-					override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-						val u = request.url?.toString() ?: return null
-						return when {
-							u == page -> WebResourceResponse("text/html", "utf-8", HTML.byteInputStream())
-							u == "$ORIGIN$BG_PATH" -> WebResourceResponse("text/javascript", "utf-8", bg.inputStream())
-							u == "$ORIGIN$MINT_PATH" -> WebResourceResponse("text/javascript", "utf-8", mint.inputStream())
-							else -> null                                          // the challenge and token requests go out as they are
+		// held outside the Main block: a cancel right after the WebView is made still reaches the finally (T8.12 review)
+		val holder = java.util.concurrent.atomic.AtomicReference<WebView?>(null)
+		try {
+			withContext(Dispatchers.Main) {
+				WebView(context.applicationContext).apply {
+					holder.set(this)
+					settings.javaScriptEnabled = true
+					settings.domStorageEnabled = false
+					settings.blockNetworkImage = true
+					settings.allowFileAccess = false
+					settings.allowContentAccess = false
+					addJavascriptInterface(object {
+						@JavascriptInterface fun done(json: String?) { result.complete(json.orEmpty().take(MAX_ANSWER)) }
+					}, "VidChainPo")
+					webViewClient = object : WebViewClient() {
+						override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+							val u = request.url?.toString() ?: return null
+							return when {
+								u == page -> WebResourceResponse("text/html", "utf-8", HTML.byteInputStream())
+								u == "$ORIGIN$BG_PATH" -> WebResourceResponse("text/javascript", "utf-8", bg.inputStream())
+								u == "$ORIGIN$MINT_PATH" -> WebResourceResponse("text/javascript", "utf-8", mint.inputStream())
+								else -> null                                          // the challenge and token requests go out as they are
+							}
+						}
+						// the page never navigates anywhere
+						override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = true
+						override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+							result.complete("""{"ok":false,"error":"renderer gone"}""")
+							runCatching { view.destroy() }
+							return true
 						}
 					}
-					// the page never navigates anywhere
-					override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = true
-					override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-						result.complete("""{"ok":false,"error":"renderer gone"}""")
-						runCatching { view.destroy() }
-						return true
-					}
+					loadUrl(page)
 				}
-				loadUrl(page)
 			}
-		}
-		try {
 			val answer = runCatching { JSONObject(result.await()) }.getOrNull() ?: run { lastProblem = "bad answer"; return null }
 			if (!answer.optBoolean("ok")) { lastProblem = answer.optString("error").take(160).ifBlank { "failed" }; return null }
 			val m = Minted(answer.optString("visitorData"), answer.optString("gvs"), answer.optString("player"))
 			val ttlMs = answer.optLong("ttl", 0L).takeIf { it > 60 }?.times(1000)?.minus(60_000) ?: KEEP_MS
 			return Entry(m, System.currentTimeMillis() + minOf(KEEP_MS, ttlMs))
 		} finally {
-			withContext(kotlinx.coroutines.NonCancellable + Dispatchers.Main) {
-				runCatching { webView.stopLoading(); webView.removeJavascriptInterface("VidChainPo"); webView.destroy() }
+			holder.getAndSet(null)?.let { webView ->
+				withContext(kotlinx.coroutines.NonCancellable + Dispatchers.Main) {
+					runCatching { webView.stopLoading(); webView.removeJavascriptInterface("VidChainPo"); webView.destroy() }
+				}
 			}
 		}
 	}

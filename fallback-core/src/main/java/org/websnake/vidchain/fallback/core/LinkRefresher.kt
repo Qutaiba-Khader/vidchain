@@ -1,5 +1,6 @@
 package org.websnake.vidchain.fallback.core
 
+import kotlinx.coroutines.CancellationException
 import java.net.URI
 import java.util.Locale
 
@@ -9,8 +10,9 @@ import java.util.Locale
  * again for the SAME file and the app's download resumes from where it stopped.
  *
  * "The same file" must be proven, because resuming splices two responses into one file: the fresh address must report
- * exactly the size the first one announced; when that size was never known, it must also be the same host and path
- * (only the signature in the query changed). [sources] are asked in order (yt-dlp on the page, then the hidden page
+ * exactly the size the first one announced; when that size was never known, it must be the same host and path with
+ * the same query apart from signature / expiry / routing keys (T8.12 review: a googlevideo itag or a quality
+ * parameter is a different file). [sources] are asked in order (yt-dlp on the page, then the hidden page
  * catcher); [sizeOf] reads a total size without downloading (a one-byte range request).
  */
 class LinkRefresher(
@@ -23,10 +25,11 @@ class LinkRefresher(
 		val page = listOfNotNull(d.referer, d.url).firstOrNull { it.startsWith("http", ignoreCase = true) && it != old } ?: return null
 		val want = d.expectedBytes?.takeIf { it > 0 }
 		for (source in sources) {
-			val found = runCatching { source(page) }.getOrNull().orEmpty().filter { it.startsWith("http", ignoreCase = true) && it != old }.distinct()
-			val ordered = found.sortedByDescending { samePlace(it, old) }.filter { want != null || samePlace(it, old) }.take(maxProbes)
+			val found = try { source(page) } catch (e: CancellationException) { throw e } catch (e: Exception) { null }
+				.orEmpty().filter { it.startsWith("http", ignoreCase = true) && it != old }.distinct()
+			val ordered = found.sortedByDescending { samePlace(it, old) }.filter { want != null || sameFile(it, old) }.take(maxProbes)
 			for (u in ordered) {
-				val size = runCatching { sizeOf(u, page) }.getOrNull() ?: continue
+				val size = (try { sizeOf(u, page) } catch (e: CancellationException) { throw e } catch (e: Exception) { null }) ?: continue
 				if (if (want != null) size == want else size > 0) return u
 			}
 		}
@@ -34,6 +37,18 @@ class LinkRefresher(
 	}
 
 	companion object {
+		/** query keys that change with every signing of the same file */
+		private val VOLATILE = Regex("""^(?:sig|signature|lsig|sparams|lsparams|expire|expires|exp|e|ip|ipbits|ei|initcwndbps|mh|mm|mn|ms|mv|mvi|pl|pcm2|rms|n|c|txp|token|t|st|hdnts|hdnea|policy|key-pair-id|hash|auth|nonce|x-amz-.*|x-goog-.*|_.*)$""")
+
+		/** same place and the same query apart from [VOLATILE] keys */
+		fun sameFile(a: String, b: String): Boolean {
+			if (!samePlace(a, b)) return false
+			fun stable(u: String) = (runCatching { URI(u).rawQuery }.getOrNull() ?: "").split('&').filter { it.isNotEmpty() }
+				.map { it.substringBefore('=').lowercase(Locale.ROOT) to it.substringAfter('=', "") }
+				.filter { !VOLATILE.matches(it.first) }.sortedBy { it.first + "=" + it.second }
+			return stable(a) == stable(b)
+		}
+
 		/** same host and same path: a re-signed address of the same file */
 		fun samePlace(a: String, b: String): Boolean {
 			val x = runCatching { URI(a) }.getOrNull() ?: return false

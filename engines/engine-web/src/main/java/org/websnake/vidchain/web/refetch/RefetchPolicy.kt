@@ -19,6 +19,7 @@ object RefetchPolicy {
 		data class Fetch(val disguised: String?) : Verdict()
 	}
 
+	/** the decision; the page's allowance is taken separately ([PageGate.take]) once nothing else can say no (T8.12 review) */
 	fun decide(f: Facts, gate: PageGate, rules: DisguiseRules, never: NeverList): Verdict {
 		if (f.mainFrame) return Verdict.Skip("main frame")
 		if (!f.method.equals("GET", ignoreCase = true)) return Verdict.Skip("not GET")
@@ -29,6 +30,9 @@ object RefetchPolicy {
 		val accept = h["accept"].orEmpty().lowercase(Locale.ROOT)
 		if (accept.startsWith("image/") || accept.startsWith("text/css") || accept.startsWith("font/") || "text/event-stream" in accept ||
 			accept.startsWith("video/") || accept.startsWith("audio/")) return Verdict.Skip("accept")
+		// a frame's own page (an iframe document): left to the WebView (cookies, base address, third-party rules)
+		if (accept.startsWith("text/html") || accept.startsWith("application/xhtml")) return Verdict.Skip("document")
+		if (polling(url)) return Verdict.Skip("long poll")
 		if (oneTime(url)) return Verdict.Skip("one-time link")
 		val host = runCatching { URI(url).host?.lowercase(Locale.ROOT) }.getOrNull() ?: return Verdict.Skip("no host")
 		if (QUIET_HOSTS.any { host == it || host.endsWith(".$it") }) return Verdict.Skip("fonts / analytics")
@@ -36,7 +40,7 @@ object RefetchPolicy {
 		if ("/videoplayback" in url && "googlevideo" in host) return Verdict.Skip("media address")
 		val disguised = if (rules.staticExtension(url) != null) rules.match(url) ?: return Verdict.Skip("static") else null
 		if (never.has(url)) return Verdict.Skip("handed back before")
-		if (!gate.take()) return Verdict.Skip("page budget")
+		if (!gate.open()) return Verdict.Skip("page budget")
 		return Verdict.Fetch(disguised)
 	}
 
@@ -52,7 +56,7 @@ object RefetchPolicy {
 
 	/** what the first bytes and the Content-Type say; the probe's tags, so the grabber and method W read them alike */
 	fun sniff(contentType: String?, head: ByteArray): String? {
-		val text = String(head, 0, minOf(head.size, 1024), Charsets.ISO_8859_1).trimStart('﻿', 'ï', '»', '¿', ' ', '\n', '\r', '\t')
+		val text = String(head, 0, minOf(head.size, 1024), Charsets.ISO_8859_1).trimStart('\uFEFF', '\u00EF', '\u00BB', '\u00BF', ' ', '\n', '\r', '\t')
 		if (text.startsWith("#EXTM3U")) return "body-hls"
 		if (text.startsWith("<") && Regex("""<MPD[\s>]""").containsMatchIn(text)) return "body-dash"
 		if (head.size >= 8 && String(head, 4, 4, Charsets.ISO_8859_1) == "ftyp") return "ct"
@@ -66,17 +70,31 @@ object RefetchPolicy {
 		}
 	}
 
-	/** a 2xx that is a bot check, not the page's answer: given back so the WebView asks for itself */
-	fun challenge(head: ByteArray): Boolean {
-		val t = String(head, 0, minOf(head.size, 2048), Charsets.ISO_8859_1).lowercase(Locale.ROOT)
-		return CHALLENGE.any { it in t }
+	/** a socket.io / long-poll request: its answer may take minutes, the page must get it from the WebView itself */
+	fun polling(url: String): Boolean {
+		val q = url.substringAfter('?', "").substringBefore('#').lowercase(Locale.ROOT)
+		if (q.isEmpty()) return "/socket.io/" in url
+		val keys = q.split('&').map { it.substringBefore('=') }
+		return "/socket.io/" in url || "eio" in keys || "transport=polling" in q || "sid" in keys && "transport" in keys
 	}
 
-	private val ONE_TIME = Regex("""(?:x-amz-signature|x-amz-security-token|signature|sig|hmac|token|.*_token|hdnts|hdnea|__token__|policy|key-pair-id|expires|exp|e|st|nonce|otp|ticket)""")
+	/**
+	 * a 2xx that is a bot check page, not the answer the page asked for: given back so the WebView asks for itself.
+	 * Only an HTML answer, and only the markers of the check pages themselves (a page that merely uses a captcha is not
+	 * one - T8.12 review).
+	 */
+	fun challenge(contentType: String?, head: ByteArray): Boolean {
+		val ct = contentType?.lowercase(Locale.ROOT).orEmpty()
+		if (!ct.startsWith("text/html")) return false
+		val t = String(head, 0, minOf(head.size, 2048), Charsets.ISO_8859_1).lowercase(Locale.ROOT)
+		return CHALLENGE.any { it in t } || Regex("""<title>\s*(?:just a moment|attention required|are you a robot)""").containsMatchIn(t)
+	}
+
+	private val ONE_TIME = Regex("""(?:x-amz-signature|x-amz-security-token|x-goog-signature|x-signature|x-expires|.*signature|sig|lsig|hmac|token|.*_token|.*tokenhash|hdnts|hdnea|__token__|policy|key-pair-id|expires|expire|exp|e|st|nonce|otp|ticket|auth|auth_key|wmsauthsign|hash|md5|verify|oh|oe|t|k|s)""")
 	private val MEDIA = Regex("""\.(?:mp4|m4v|m4a|mkv|webm|mov|avi|flv|wmv|3gp|ts|m4s|cmfv|cmfa|aac|mp3|ogg|oga|opus|wav|flac|m3u8|mpd)$""", RegexOption.IGNORE_CASE)
 	private val QUIET_HOSTS = listOf("fonts.googleapis.com", "fonts.gstatic.com", "google-analytics.com", "googletagmanager.com",
 		"doubleclick.net", "googlesyndication.com", "facebook.net", "hotjar.com", "clarity.ms")
-	private val CHALLENGE = listOf("cf-chl", "challenge-platform", "captcha", "are you a robot", "ddos-guard", "just a moment")
+	private val CHALLENGE = listOf("cf-chl", "challenge-platform", "ddos-guard", "cf_chl_opt", "_cf_chl")
 
 	/**
 	 * One page's allowance: re-fetching starts only when [armed] (the visible browser arms it when the page shows a
@@ -86,7 +104,10 @@ object RefetchPolicy {
 		private var used = 0
 		private var handedBack = 0
 		private var found = 0
-		@Synchronized fun take(): Boolean { if (!armed || handedBack >= MAX_HANDBACKS || used >= budget) return false; used++; return true }
+		/** may anything still be re-fetched on this page */
+		@Synchronized fun open(): Boolean = armed && handedBack < MAX_HANDBACKS && used < budget
+		/** one re-fetch is really made */
+		@Synchronized fun take(): Boolean { if (!open()) return false; used++; return true }
 		@Synchronized fun handedBack() { handedBack++ }
 		@Synchronized fun found() { found++ }
 		@Synchronized fun stopped() = handedBack >= MAX_HANDBACKS

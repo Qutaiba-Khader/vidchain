@@ -117,6 +117,16 @@ class FallbackCoordinatorTest {
 		assertEquals(listOf("1"), w.host.stopped)
 	}
 
+	@Test fun aStuckDownloadIsLeftAloneWhenNoFallbackCanTakeOver() = runBlocking {
+		val w = World(this, emptyList())                                          // no method left (all off / exhausted)
+		val stuck = DownloadSnapshot(Engine.M3U8, DOWNLOADING, isRunning = true)
+		w.host.set("1", stuck, bytes = 0, url = "https://site.example/post/1"); w.tick()
+		w.now += org.websnake.vidchain.fallback.classifier.TerminalClassifier.NO_START_AFTER_MS
+		w.host.set("1", stuck, bytes = 0); w.tick()
+		assertTrue(w.host.stopped.isEmpty())                                      // T8.12 review: never a pause with nothing behind it
+		assertTrue(w.ledger.intentOf("1") != UserIntent.PAUSE)
+	}
+
 	@Test fun anExpiredLinkIsRefreshedAndResumedTwiceThenTheChainRuns() = runBlocking {
 		val asked = AtomicInteger()
 		val refresher = LinkRefresher(listOf({ _ -> asked.incrementAndGet(); listOf("https://files.example/video.mp4?sig=${asked.get()}") }), { _, _ -> 9_000L })

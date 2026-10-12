@@ -21,42 +21,41 @@ import java.util.concurrent.TimeUnit
  *
  * The page must not notice (ADHD design review, T8.12): every decision is taken before anything is sent
  * ([RefetchPolicy.decide]); only a clean 2xx is handed to the page - a redirect (WebView cannot take a 3xx from here),
- * an error, a bot check or a failure goes back to the WebView, which asks for itself, and that address shape is never
- * re-fetched again this session; signed / one-time links and range or media requests are never re-fetched.
- * Cookies: only a same-site request (same registrable domain as the page) carries the WebView's cookies for exactly
- * that address, and only its Set-Cookie answers are written back; a cross-site request that has cookies is left to
- * the WebView, so cookies never go anywhere the browser would not send them, and never follow a redirect. Nothing
- * is logged.
+ * an error, a bot check, an answer that sets cookies or a failure goes back to the WebView, which asks for itself, and
+ * that address shape is never re-fetched again this session; signed / one-time links, long polls, frame documents and
+ * range or media requests are never re-fetched. Cookies are never sent or stored here (T8.12 review): an address the
+ * WebView holds cookies for is left to it, because only it knows whether the request may carry them. Nothing is
+ * logged.
  */
 class Refetcher(private val rules: DisguiseRules, private val never: RefetchPolicy.NeverList = RefetchPolicy.NeverList()) {
 
-	/** [page]: the address of the page the request belongs to (its main frame); [report]: (url, probe tag) */
-	fun intercept(request: WebResourceRequest, page: String?, gate: RefetchPolicy.PageGate, userAgent: String?,
+	/** [report]: (url, probe tag) of a find */
+	fun intercept(request: WebResourceRequest, gate: RefetchPolicy.PageGate, userAgent: String?,
 		report: (String, String) -> Unit): WebResourceResponse? {
 		val url = request.url?.toString() ?: return null
 		val headers = request.requestHeaders.orEmpty()
 		val verdict = RefetchPolicy.decide(RefetchPolicy.Facts(url, request.method, request.isForMainFrame, headers), gate, rules, never)
 		val disguised = (verdict as? RefetchPolicy.Verdict.Fetch ?: return null).disguised
 		val target = url.toHttpUrlOrNull() ?: return null
-		val sameSite = page?.toHttpUrlOrNull()?.let { p -> p.topPrivateDomain() != null && p.topPrivateDomain() == target.topPrivateDomain() } ?: false
-		val cookies = runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull()?.takeIf { it.isNotBlank() }
-		if (!sameSite && cookies != null) return null                                 // the browser's own rules for it
+		// cookies are never handled here (T8.12 review): the WebView alone knows whether this request may carry them
+		// (SameSite, third-party, credentials mode), so an address it holds cookies for is left to it
+		if (!runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull().isNullOrBlank()) return null
+		if (!gate.take()) return null
 
 		val b = Request.Builder().url(target)
 		for ((k, v) in headers) if (k.lowercase(Locale.ROOT) !in DROP && '\n' !in v && '\r' !in v) runCatching { b.header(k, v) }
 		if (headers.keys.none { it.equals("User-Agent", true) }) userAgent?.let { b.header("User-Agent", it) }
-		if (sameSite && cookies != null) b.header("Cookie", cookies)
 
 		val response: Response = try { CLIENT.newCall(b.build()).execute() } catch (e: Exception) { return handBack(url, gate, disguised) }
 		try {
 			val code = response.code
-			if (code !in 200..299 || code == 206) { response.close(); return handBack(url, gate, disguised) }
+			// not a clean answer, or one that sets cookies (the WebView must store them by its own rules): its own request
+			if (code !in 200..299 || code == 206 || response.headers("Set-Cookie").isNotEmpty()) { response.close(); return handBack(url, gate, disguised) }
 			val body = response.body
 			val source = body.source()
 			source.request(1)                                             // the first bytes, never the whole answer
 			val head = source.buffer.let { buf -> buf.copy().readByteArray(minOf(buf.size, HEAD.toLong())) }
-			if (RefetchPolicy.challenge(head)) { response.close(); return handBack(url, gate, disguised) }
-			if (sameSite) for (c in response.headers("Set-Cookie")) runCatching { CookieManager.getInstance().setCookie(url, c) }
+			if (RefetchPolicy.challenge(response.header("Content-Type"), head)) { response.close(); return handBack(url, gate, disguised) }
 			val how = RefetchPolicy.sniff(response.header("Content-Type"), head)
 			when {
 				how == "body-hls" || how == "body-dash" || how == "ct-hls" || how == "ct-dash" -> { rules.learn(url); gate.found(); report(url, how) }
@@ -84,7 +83,7 @@ class Refetcher(private val rules: DisguiseRules, private val never: RefetchPoli
 	private fun toWebView(r: Response, stream: InputStream): WebResourceResponse {
 		val ct = r.header("Content-Type")
 		val mime = ct?.substringBefore(';')?.trim()?.takeIf { it.isNotEmpty() } ?: "application/octet-stream"
-		val charset = ct?.let { Regex("""charset=([^;\s]+)""", RegexOption.IGNORE_CASE).find(it)?.groupValues?.get(1)?.trim('"') }
+		val charset = ct?.let { CHARSET.find(it)?.groupValues?.get(1) }
 		val out = LinkedHashMap<String, String>()
 		for (name in r.headers.names()) if (name.lowercase(Locale.ROOT) !in DROP_OUT) out[name] = r.headers(name).joinToString(", ")
 		val closing = object : FilterInputStream(stream) { override fun close() { runCatching { super.close() }; r.close() } }
@@ -93,6 +92,7 @@ class Refetcher(private val rules: DisguiseRules, private val never: RefetchPoli
 
 	companion object {
 		private const val HEAD = 2048
+		private val CHARSET = Regex("""(?:^|;)\s*charset\s*=\s*["']?([^;"'\s]+)""", RegexOption.IGNORE_CASE)
 		/** never forwarded: one connection's or range's headers, cookies (added per host above), compression (OkHttp's own) */
 		private val DROP = setOf("host", "connection", "keep-alive", "content-length", "transfer-encoding", "te", "trailer", "upgrade",
 			"accept-encoding", "cookie", "cookie2", "range", "if-range", "if-modified-since", "if-none-match", "if-match", "if-unmodified-since",

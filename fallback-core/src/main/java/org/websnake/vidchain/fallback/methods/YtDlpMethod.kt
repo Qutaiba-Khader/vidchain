@@ -34,7 +34,12 @@ class YtDlpMethod(
 
 	override suspend fun attempt(ctx: FallbackContext): MethodOutcome = run(ctx, null)
 
-	suspend fun run(ctx: FallbackContext, session: SessionContext?): MethodOutcome {
+	/**
+	 * [headers]: the exact request headers the page's player sent for this address (T8.12), replayed with
+	 * `--add-header` (the RequestHeaders filter already left out Cookie, Authorization and anything of one connection;
+	 * User-Agent and Referer go through their own options)
+	 */
+	suspend fun run(ctx: FallbackContext, session: SessionContext?, headers: Map<String, String> = session?.requestHeaders.orEmpty()): MethodOutcome {
 		val e = engine() ?: return MethodOutcome.Unsupported("engine runtime not started")
 		if (!e.ready) return MethodOutcome.Unsupported("yt-dlp runtime not extracted yet")
 		if (bench?.benched(id) == true) return MethodOutcome.Unsupported("benched after repeated crashes of this yt-dlp build")
@@ -50,7 +55,7 @@ class YtDlpMethod(
 				referer = session?.referer ?: ctx.referer?.takeIf { it.startsWith("http") },
 				cookiesFile = cookies,
 				// T8.11: the JavaScript runtime for YouTube (N passes its own)
-				extraArgs = extraArgs + if (extraArgs.contains("--js-runtimes")) emptyList() else e.jsRuntimeArgs(),
+				extraArgs = extraArgs + (if (extraArgs.contains("--js-runtimes")) emptyList() else e.jsRuntimeArgs()) + addHeaders(headers),
 			)
 			return when (val r = e.download(url, YtDlpFormats.selector(ctx.preferredHeight, ctx.audioOnly), dir, base, options)) {
 				is YtDlpEngine.Result.Ok -> { bench?.record(id, org.websnake.vidchain.engine.EngineOutcome.Success); MethodOutcome.Delivered(r.value.path) }
@@ -68,4 +73,9 @@ class YtDlpMethod(
 			cookies?.delete()
 		}
 	}
+
+	private fun addHeaders(headers: Map<String, String>): List<String> =
+		org.websnake.vidchain.web.headers.RequestHeaders.keep(headers)
+			.filterKeys { !it.equals("User-Agent", true) && !it.equals("Referer", true) }
+			.flatMap { (k, v) -> listOf("--add-header", "$k:$v") }
 }

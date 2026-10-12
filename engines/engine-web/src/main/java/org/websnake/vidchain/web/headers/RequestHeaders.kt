@@ -10,25 +10,32 @@ import java.util.Locale
  * adds, Sec-Fetch-*). Dropped: what belongs to one connection or one range (Range, If-*, Host, Connection,
  * Content-Length, Accept-Encoding - the downloaders do not decompress), Cookie (cookies are always looked up per host
  * at download time, so they never follow a redirect to another host), and X-Requested-With (Android adds the app's
- * package name there: an app fingerprint, not something the page sent).
+ * package name there: an app fingerprint, not something the page sent). Authorization is dropped too (T8.12 review):
+ * a replay may reach another host (a redirect, a stream's pieces), and a credential must never follow it there. Only
+ * plain printable values and short header names are kept, at most [MAX_TOTAL] characters per address, so a page cannot
+ * make the app hold much, and an HTTP client never throws on a value.
  */
 object RequestHeaders {
 	private val DROP = setOf(
 		"range", "if-range", "if-modified-since", "if-none-match", "if-match", "if-unmodified-since",
 		"host", "connection", "keep-alive", "content-length", "content-type", "transfer-encoding", "te", "trailer", "upgrade",
-		"accept-encoding", "cookie", "cookie2", "x-requested-with", "proxy-authorization", "proxy-connection",
+		"accept-encoding", "cookie", "cookie2", "x-requested-with", "authorization", "proxy-authorization", "proxy-connection",
 	)
 	private const val MAX_HEADERS = 30
 	private const val MAX_VALUE = 2000
+	private const val MAX_TOTAL = 8_000
+	private val NAME = Regex("""^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$""")
 
 	fun keep(headers: Map<String, String>?): Map<String, String> {
 		if (headers.isNullOrEmpty()) return emptyMap()
 		val out = LinkedHashMap<String, String>()
+		var total = 0
 		for ((k, v) in headers) {
 			val name = k.trim()
-			if (name.isEmpty() || name.lowercase(Locale.ROOT) in DROP || v.length > MAX_VALUE || '\n' in v || '\r' in v) continue
-			if (out.size >= MAX_HEADERS) break
+			if (!NAME.matches(name) || name.lowercase(Locale.ROOT) in DROP || v.length > MAX_VALUE || v.any { it != '\t' && (it < ' ' || it > '~') }) continue
+			if (out.size >= MAX_HEADERS || total + name.length + v.length > MAX_TOTAL) break
 			out[name] = v
+			total += name.length + v.length
 		}
 		return out
 	}
