@@ -25,6 +25,10 @@ class WebViewCatcher(private val context: Context) {
 		val collector = CatchCollector(url, deadlineMs)
 		var finalPage = url
 		val rendererGone = java.util.concurrent.atomic.AtomicBoolean(false)
+		// T8.12: Web Video Caster's re-fetch, armed from the start in this hidden WebView (nobody browses it)
+		val refetcher = org.websnake.vidchain.web.refetch.Refetcher.get(context)
+		val gate = org.websnake.vidchain.web.refetch.RefetchPolicy.PageGate(budget = 200, armed = true)
+		val mainFrame = java.util.concurrent.atomic.AtomicReference(url)
 		val webView = withContext(Dispatchers.Main) {
 			WebView(context.applicationContext).apply {
 				settings.javaScriptEnabled = true
@@ -34,12 +38,16 @@ class WebViewCatcher(private val context: Context) {
 				userAgent?.takeIf { it.isNotBlank() }?.let { settings.userAgentString = it }
 				CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 				// T8.11: the shared media probe, in every frame from document start where the WebView supports it
-				val docStart = org.websnake.vidchain.web.probe.WebProbe.attach(this, autoplay = true) { f -> collector.offer(f.url, f.how) }
+				val docStart = org.websnake.vidchain.web.probe.WebProbe.attach(this, autoplay = true) { f -> collector.offer(f.url, f.how); refetcher.observed(f.url, f.how) }
 				val pageScript = if (docStart) null else org.websnake.vidchain.web.probe.WebProbe.script(autoplay = true)
 				webViewClient = object : WebViewClient() {
 					override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
 						collector.offer(request.url?.toString(), "request", request.requestHeaders.orEmpty())
-						return null                                       // observe only, never alter the page's traffic
+						if (request.isForMainFrame) { request.url?.toString()?.let { mainFrame.set(it) }; return null }
+						// a clean 2xx re-fetched by VidChain, or null: the WebView asks for itself (RefetchPolicy)
+						return runCatching {
+							refetcher.intercept(request, mainFrame.get(), gate, userAgent) { u, how -> collector.offer(u, how, request.requestHeaders.orEmpty()) }
+						}.getOrNull()
 					}
 					override fun onPageStarted(view: WebView, u: String?, favicon: Bitmap?) { pageScript?.let { view.evaluateJavascript(it, null) } }
 					override fun onPageFinished(view: WebView, u: String?) { u?.let { finalPage = it }; pageScript?.let { view.evaluateJavascript(it, null) } }

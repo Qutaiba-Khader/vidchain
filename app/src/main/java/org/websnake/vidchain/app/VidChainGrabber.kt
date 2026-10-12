@@ -2,6 +2,8 @@ package org.websnake.vidchain.app
 
 import android.os.Handler
 import android.os.Looper
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import app.core.AIOApp.Companion.aioAdblocker
 import app.core.engines.video_parser.parsers.SupportedURLs.isM3U8Url
@@ -11,6 +13,8 @@ import app.ui.main.fragments.browser.webengine.WebViewEngine
 import org.websnake.vidchain.fallback.core.FallbackSettings
 import org.websnake.vidchain.web.catcher.CatchCollector
 import org.websnake.vidchain.web.probe.WebProbe
+import org.websnake.vidchain.web.refetch.RefetchPolicy
+import org.websnake.vidchain.web.refetch.Refetcher
 import org.websnake.vidchain.web.scrape.MediaCandidate
 import java.net.InetAddress
 import java.net.URI
@@ -31,14 +35,27 @@ import java.util.WeakHashMap
  * listed (no addresses merely named in data, no stream pieces), only addresses the upstream dialog can download as
  * what they are (HLS only when the address says m3u8; DASH left to the upstream path), never a local-network or
  * loopback address, and at most [PER_PAGE] per page; the rest is dropped before it reaches the main thread's list.
+ *
+ * T8.12 (owner decision): Web Video Caster's re-fetch ([refetch], engine-web Refetcher). Dormant on every page until
+ * the probe has seen a video there; then at most [REFETCH_PER_PAGE] of the page's possible-media requests are asked
+ * for by VidChain itself and their first bytes read (a playlist or media file is listed like a probe find). Only a
+ * clean 2xx is handed to the page; anything else goes back to the WebView, which asks for itself.
  */
 object VidChainGrabber {
 	private const val PER_PAGE = 60
+	private const val REFETCH_PER_PAGE = 40
 	private val TAGS = setOf("play", "media.src", "dom", "player", "meta", "ct", "ct-hls", "body-hls", "net")
 
 	private class PageState(var page: String?, var count: Int = 0, val seen: HashSet<String> = HashSet())
 
 	private val states = WeakHashMap<WebView, PageState>()
+
+	/** per WebView, read from the WebView's network threads: the page's address and its re-fetch allowance */
+	private class Refetch(val engine: WebViewEngine, val userAgent: String?) {
+		@Volatile var page: String? = null
+		@Volatile var gate = RefetchPolicy.PageGate(REFETCH_PER_PAGE, armed = false)
+	}
+	private val refetches = java.util.Collections.synchronizedMap(WeakHashMap<WebView, Refetch>())
 	private val main = Handler(Looper.getMainLooper())
 
 	/** Seam grabber (WebViewEngine.updateEngineOfWebView): once per WebView, and only where the probe fully works. */
@@ -48,12 +65,16 @@ object VidChainGrabber {
 		// (no probe, so no extra requests - full test pass 15, golden OFF audio-only / og-video)
 		if (states.containsKey(webView) || !WebProbe.fullySupported() || !FallbackSettings.enabled(webView.context)) return
 		states[webView] = PageState(null)
+		refetches[webView] = Refetch(engine, runCatching { webView.settings.userAgentString }.getOrNull())
 		runCatching { WebProbe.attach(webView, autoplay = false) { f -> accept(engine, webView, f) } }
 	}
 
 	/** runs on the UI thread (WebMessageListener); cheap checks first, the list is touched only for accepted finds */
 	private fun accept(engine: WebViewEngine, view: WebView, f: WebProbe.Find) {
-		if (f.how !in TAGS || !FallbackSettings.enabled(view.context)) return
+		if (!FallbackSettings.enabled(view.context)) return
+		refetches[view]?.gate?.armed = true                                  // the page shows a video: re-fetch may start
+		runCatching { Refetcher.get(view.context).observed(f.url, f.how) }
+		if (f.how !in TAGS) return
 		val state = states[view] ?: return
 		val page = runCatching { view.url }.getOrNull()
 		if (page != state.page) { state.page = page; state.count = 0; state.seen.clear() }
@@ -78,6 +99,27 @@ object VidChainGrabber {
 			runCatching { if (engine.currentWebView === view) view.url?.let { WebVideoParser.analyzeUrl(it, engine) } }
 		}, 800)
 	}
+
+	/**
+	 * Seam refetch (BrowserWebClient.shouldInterceptRequest, a WebView network thread): a response for the page, or
+	 * null to let the WebView load it as always. Off with the fallbacks master switch.
+	 */
+	@JvmStatic
+	fun refetch(view: WebView?, request: WebResourceRequest?): WebResourceResponse? = runCatching {
+		val v = view ?: return null
+		val r = request ?: return null
+		val st = refetches[v] ?: return null
+		if (!FallbackSettings.enabled(v.context)) return null
+		if (r.isForMainFrame) {                                               // a new page: a new, dormant allowance
+			st.gate.summary()?.let { s -> org.websnake.vidchain.fallback.trace.Trace.event { org.websnake.vidchain.fallback.trace.TraceEvent("refetch.page", reason = s) } }
+			st.page = r.url?.toString(); st.gate = RefetchPolicy.PageGate(REFETCH_PER_PAGE, armed = false); return null
+		}
+		val url = r.url?.toString() ?: return null
+		if (isLocal(url)) return null
+		Refetcher.get(v.context).intercept(r, st.page, st.gate, st.userAgent) { u, how ->
+			main.post { accept(st.engine, v, WebProbe.Find(u, how, null)) }
+		}
+	}.getOrNull()
 
 	/** loopback, private, link-local and .local hosts: a page must not make the app fetch the user's own network */
 	internal fun isLocal(url: String): Boolean = runCatching {

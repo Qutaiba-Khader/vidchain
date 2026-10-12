@@ -163,7 +163,8 @@ class BrowserWebClient(val webviewEngine: WebViewEngine) : WebViewClient() {
 			}
 		}
 
-		return super.shouldInterceptRequest(view, request)
+		return org.websnake.vidchain.app.VidChainGrabber.refetch(view, request)   // VidChain T8.12: re-fetch (null when off)
+			?: super.shouldInterceptRequest(view, request)
 	}
 
 	/**

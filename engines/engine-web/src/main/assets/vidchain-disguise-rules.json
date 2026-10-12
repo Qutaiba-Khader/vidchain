@@ -1,0 +1,39 @@
+{
+ "_note": "VidChain's own generic rules (T8.12, owner decision): addresses that look like a picture, a style sheet, a text or a web page (scripts, fonts and JSON never) but are often a stream playlist. A match never blocks, hides or changes anything: it only lets the re-fetcher read the first bytes, and only #EXTM3U or <MPD makes it a find. Rules are generic path shapes, never a list of sites. path and query are Java regular expressions matched, ignoring case, against the address's path and query.",
+ "version": 1,
+ "static_extensions": [
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "avif",
+  "bmp",
+  "ico",
+  "svg",
+  "css",
+  "txt",
+  "html",
+  "htm",
+  "js",
+  "mjs",
+  "woff",
+  "woff2",
+  "ttf"
+ ],
+ "rules": [
+  {
+   "name": "playlist-file-name",
+   "path": "/(?:master|playlist|chunklist|hls|m3u8)[^/]*\\.(?:jpe?g|png|gif|webp|bmp|ico|css|txt|html?)$"
+  },
+  {
+   "name": "playlist-folder",
+   "path": "/(?:hls|m3u8|playlists?|chunklists?|streams?|live|vod)(?:[_-][^/]*)?/(?:[^/]+/)*[^/]*\\.(?:jpe?g|png|gif|webp|bmp|ico|css|txt|html?)$"
+  },
+  {
+   "name": "playlist-word-in-query",
+   "path": "\\.(?:jpe?g|png|gif|webp|bmp|ico|css|txt|html?)$",
+   "query": "(?:^|&)[^=&]*(?:m3u8|playlist|hls)[^=&]*=|=[^&]*(?:\\.m3u8|m3u8%|playlist)"
+  }
+ ]
+}
