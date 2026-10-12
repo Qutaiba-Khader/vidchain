@@ -36,6 +36,9 @@ object TerminalClassifier {
 	/** Regular downloads whose retries ran out stay DOWNLOADING forever; after this long without progress they failed. */
 	const val STALL_AFTER_MS = 120_000L
 
+	/** A running yt-dlp (M3U8) download that has not received one byte after this long never got past connecting (T8.11). */
+	const val NO_START_AFTER_MS = 300_000L
+
 	fun classify(s: DownloadSnapshot): Verdict {
 		// 1. user removed it: never fall back
 		if (s.isDeleted || s.isRemoved || s.userIntent in REMOVAL) return Verdict.UserStopped(
@@ -53,7 +56,10 @@ object TerminalClassifier {
 		if (s.status == DOWNLOADING) {
 			val idle = s.msSinceLastProgress
 			val stalled = idle != null && idle >= STALL_AFTER_MS && (s.engine == Engine.REGULAR || !s.isRunning)
-			return if (stalled) Verdict.Failure(FailureClass.STALLED) else Verdict.InProgress
+			// 5a2. ... but a yt-dlp download that never received a byte is stuck connecting, not merging (owner report
+			//      2026-10-12: a post whose video was gone sat at "Connecting To The Server" for good)
+			val neverStarted = idle != null && idle >= NO_START_AFTER_MS && s.engine == Engine.M3U8 && s.isRunning && s.bytesSoFar == 0L
+			return if (stalled || neverStarted) Verdict.Failure(FailureClass.STALLED) else Verdict.InProgress
 		}
 		// from here on: CLOSE (or an unknown status, treated like CLOSE)
 		// 5b. resumed and waiting for a free slot ("Waiting to join"): not started yet, not failed

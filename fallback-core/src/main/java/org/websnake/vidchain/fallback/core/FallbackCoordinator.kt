@@ -115,6 +115,7 @@ class FallbackCoordinator(
 		val snap = d.snapshot.copy(
 			userIntent = ledger.intentOf(d.id),
 			msSinceLastProgress = if (prev == null) null else now - st.lastChangeMs,
+			bytesSoFar = d.bytes,
 		)
 		val v = TerminalClassifier.classify(snap)
 		if (v != Verdict.Success) st.done = false

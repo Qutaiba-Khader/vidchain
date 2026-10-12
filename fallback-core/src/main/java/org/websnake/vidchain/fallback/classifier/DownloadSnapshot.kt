@@ -36,6 +36,7 @@ data class DownloadSnapshot(
 	val hasStorageDialogMessage: Boolean = false,   // msgToShowUserViaDialog set (only the "failed to write file" case)
 	val userIntent: UserIntent = UserIntent.NONE,
 	val msSinceLastProgress: Long? = null,          // observer: time since downloaded bytes last grew (null = unknown)
+	val bytesSoFar: Long? = null,                   // observer: bytes downloaded so far (null = unknown)
 ) {
 	companion object {
 		const val DOWNLOADING = 2

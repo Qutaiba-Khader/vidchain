@@ -51,6 +51,14 @@ class TerminalClassifierTest {
 			failure(regular(DOWNLOADING) { copy(isRunning = true, msSinceLastProgress = TerminalClassifier.STALL_AFTER_MS) }))
 	}
 
+	@Test fun `row5a2 a running yt-dlp download that never received a byte is stuck connecting`() {
+		val idle = TerminalClassifier.NO_START_AFTER_MS
+		assertEquals(FailureClass.STALLED, failure(m3u8(DOWNLOADING) { copy(isRunning = true, msSinceLastProgress = idle, bytesSoFar = 0) }))
+		assertEquals(Verdict.InProgress, TerminalClassifier.classify(m3u8(DOWNLOADING) { copy(isRunning = true, msSinceLastProgress = idle - 1, bytesSoFar = 0) }))
+		assertEquals(Verdict.InProgress, TerminalClassifier.classify(m3u8(DOWNLOADING) { copy(isRunning = true, msSinceLastProgress = idle, bytesSoFar = 5_000_000) }))   // merging after a download
+		assertEquals(Verdict.InProgress, TerminalClassifier.classify(m3u8(DOWNLOADING) { copy(isRunning = true, msSinceLastProgress = idle) }))                        // bytes unknown
+	}
+
 	@Test fun `row5 a recorded user pause never falls back`() {                        // RegularDownloader.kt:181-182
 		for (i in listOf(UserIntent.PAUSE, UserIntent.RENAME_PAUSE, UserIntent.APP_SHUTDOWN)) {
 			val v = TerminalClassifier.classify(regular(CLOSE) { copy(statusKey = StatusKey.PAUSED, userIntent = i) })
