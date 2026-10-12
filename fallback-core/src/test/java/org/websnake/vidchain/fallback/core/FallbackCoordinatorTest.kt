@@ -29,7 +29,9 @@ class FallbackCoordinatorTest {
 		val queued = ArrayList<Pair<String, Candidate>>()
 		val delivered = ArrayList<File>()
 		var lists = true
+		val stopped = ArrayList<String>()
 		private var nextId = 1000
+		override fun stopStuck(parent: HostDownload): Boolean { stopped += parent.id; return true }
 		override fun downloads() = list.values.toList()
 		override fun registerDelivered(parent: HostDownload, file: File, method: String): String? =
 			if (!lists) null else { delivered += file; "d${nextId++}" }
@@ -98,6 +100,28 @@ class FallbackCoordinatorTest {
 		w.ledger.recordIntent("1", UserIntent.PAUSE, 0)
 		w.host.set("1", paused()); repeat(3) { w.tick() }
 		assertTrue(w.ledger.attempts("1").isEmpty())
+	}
+
+	@Test fun aYtDlpDownloadStuckConnectingIsPausedOnceAndTheChainRunsOnce() = runBlocking {
+		val w = World(this, listOf(stub))
+		val stuck = DownloadSnapshot(Engine.M3U8, DOWNLOADING, isRunning = true)
+		w.host.set("1", stuck, bytes = 0, url = "https://site.example/post/1"); w.tick()
+		w.now += org.websnake.vidchain.fallback.classifier.TerminalClassifier.NO_START_AFTER_MS
+		w.host.set("1", stuck, bytes = 0); w.tick()
+		assertEquals(listOf("1"), w.host.stopped)                                // the app's own download is stopped
+		assertEquals(UserIntent.PAUSE, w.ledger.intentOf("1"))                   // recorded as a pause, not a new failure
+		w.host.set("1", paused()); repeat(4) { w.now += 60_000; w.tick() }       // the app shows it paused afterwards
+		assertEquals(1, w.ledger.attempts("1").size)                             // one chain, never a second one
+		assertEquals(listOf("1"), w.host.stopped)
+	}
+
+	@Test fun aRegularStallIsNotStopped() = runBlocking {
+		val w = World(this, listOf(stub))
+		w.host.set("1", running(), url = fileUrl); w.tick()
+		w.now += org.websnake.vidchain.fallback.classifier.TerminalClassifier.STALL_AFTER_MS
+		w.host.set("1", running()); w.tick()
+		assertTrue(w.host.stopped.isEmpty())
+		assertEquals(1, w.ledger.attempts("1").size)
 	}
 
 	@Test fun storageFailureIsNotEligible() = runBlocking {

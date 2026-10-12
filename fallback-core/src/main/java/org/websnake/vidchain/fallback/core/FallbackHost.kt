@@ -41,6 +41,12 @@ interface FallbackHost {
 	/** re-draw [downloadId]'s card (its fallback line changed) */
 	fun refresh(downloadId: String) {}
 
+	/**
+	 * Stop [parent]'s own download because it never got past connecting (classifier row 5a2) and the fallbacks take
+	 * over (owner decision 2026-10-12: the one case where VidChain stops the app's current method). true = stopped.
+	 */
+	fun stopStuck(parent: HostDownload): Boolean = false
+
 	/** the app's "Enable Dark UI Mode" switch (null = unknown: follow the system) */
 	fun darkUi(): Boolean? = null
 }

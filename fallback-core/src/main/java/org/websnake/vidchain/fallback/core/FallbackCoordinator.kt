@@ -9,6 +9,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.websnake.vidchain.fallback.classifier.DownloadSnapshot
+import org.websnake.vidchain.fallback.classifier.Engine
+import org.websnake.vidchain.fallback.classifier.FailureClass
 import org.websnake.vidchain.fallback.classifier.StatusKey
 import org.websnake.vidchain.fallback.classifier.TerminalClassifier
 import org.websnake.vidchain.fallback.classifier.UserIntent
@@ -172,7 +174,17 @@ class FallbackCoordinator(
 			Trace.event { TraceEvent("decision", downloadId = rootId, result = "chain-busy") }
 			return
 		}
-		running[rootId] = scope.launch { runChain(root, v.cls.name) }
+		// row 5a2: the app's own yt-dlp download is still running but never connected; it is paused (recorded as a pause,
+		// so it is not seen as a new failure) before the fallbacks start, so the two never deliver the same video twice
+		val stuck = parentId == null && v.cls == FailureClass.STALLED && d.snapshot.isRunning && d.snapshot.engine == Engine.M3U8
+		if (stuck) ledger.recordIntent(d.id, UserIntent.PAUSE, now)
+		running[rootId] = scope.launch {
+			if (stuck) {
+				val stopped = try { withContext(hostContext) { host.stopStuck(root) } } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
+				Trace.event { TraceEvent("decision", downloadId = rootId, failureClass = v.cls.name, result = if (stopped) "stuck-parent-stopped" else "stuck-parent-not-stopped") }
+			}
+			runChain(root, v.cls.name)
+		}
 	}
 
 	/** A child download finished: the DeliveryVerifier decides (off the observer, in [scope]); FAIL / UNSURE continue the chain. */

@@ -71,6 +71,13 @@ object VidChainFallbackHost : FallbackHost {
 		return sawLoading || android.os.SystemClock.elapsedRealtime() - createdAt > 15_000
 	}
 
+	/** row 5a2: the app's own pause stops its yt-dlp process (owner decision 2026-10-12) */
+	override fun stopStuck(parent: HostDownload): Boolean {
+		val m = findModel(parent.id) ?: return false
+		AIOApp.downloadSystem.pauseDownload(m)
+		return true
+	}
+
 	override fun refresh(downloadId: String) {
 		val system = AIOApp.downloadSystem
 		val m = ArrayList(system.activeDownloadDataModels).firstOrNull { it.downloadId.toString() == downloadId } ?: return
