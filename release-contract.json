@@ -1,11 +1,11 @@
 {
   "_note": "Release contract (T0.6). release.yml publishes `release.version` once: when CI is green on main and the tag v<version> does not exist yet, and only if app/build.gradle carries the same versionName/versionCode. null = nothing to release. Asset names end with the version (owner, 2026-10-12): `{version}` in `assets` is the app versionName; README links to the releases/latest page. `fully_tested: false` adds the 'not fully tested yet' line to the notes (INBOX #3: intermediate releases before the one full test pass).",
   "release": {
-    "version": "1.1.1",
-    "version_code": 10101,
+    "version": "1.1.2",
+    "version_code": 10102,
     "fully_tested": true,
-    "full_test_run": "https://github.com/Qutaiba-Khader/vidchain/actions/runs/38148282013",
-    "notes_extra": "Fixes the freeze / \"not responding\" when sharing a link after the phone was idle: the download history now loads in the background (it loaded on the main screen thread, and every saved download listed the whole app folder again); the share screen is no longer created twice when the phone theme differs from the app theme; a link analysis that fails or passes 30 s no longer leaves the \"Analyzing URL\" dialog stuck; shared text with a link in it is handled again; on Android 15 the download service no longer gets the app closed after hours in the background. Full list: CHANGELOG.md."
+    "full_test_run": "https://github.com/Qutaiba-Khader/vidchain/actions/runs/38187521573",
+    "notes_extra": "New launcher icon and the launcher name \"AIO VidChain\"; file names end with the version; a crash on the main screen thread now closes the app instead of freezing it, and the crash sheet's GitHub issue carries the redacted crash report; the app no longer closes when Android reclaims the browser engine's memory; a shared text with a link in it opens the quality picker again. Full list: CHANGELOG.md."
   },
   "package": "org.websnake.vidchain",
   "assets": {

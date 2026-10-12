@@ -4,6 +4,23 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## 1.1.2
+- Checked by the full emulator test pass ([run 38187521573](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38187521573), 55 / 55).
+
+From the owner's requests (2026-10-12):
+- New launcher icon (orange "Cloud download"), also as the themed icon on Android 13+ and the notification icon.
+- The launcher name is now "AIO VidChain", so searching "aio" in the launcher finds it.
+- Release files carry the version at the end of their names, e.g. `vidchain-arm64-v8a-1.1.2.apk`.
+- A crash on the main screen thread now closes the app cleanly. Before, the app stayed open with a dead screen thread,
+  which looked like a freeze ("not responding"), and the "Oops, App Was Crashed" sheet only appeared on the next start.
+- The crash sheet's "Send Feedback" opens a GitHub issue that already holds the crash report (redacted: no cookies,
+  tokens or link parameters). Nothing is sent unless you submit the issue.
+
+Found while testing on a real phone (Galaxy A50 over USB):
+- When Android reclaims memory it can kill the browser engine behind the app's web pages; that used to close the
+  whole app, running downloads included. Now the app keeps running and the open browser tab reloads.
+- A shared text with a link in it ("Look https://...") was lost without a message; the quality picker now opens.
+
 ## 1.1.1
 - Checked by the full emulator test pass ([run 38148282013](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38148282013), 55 / 55).
 
