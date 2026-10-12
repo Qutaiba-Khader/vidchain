@@ -25,6 +25,7 @@ class WebViewCatcher(private val context: Context) {
 	suspend fun catch(url: String, userAgent: String?, deadlineMs: Long = 25_000): CatchResult {
 		val collector = CatchCollector(url, deadlineMs)
 		var finalPage = url
+		val rendererGone = java.util.concurrent.atomic.AtomicBoolean(false)
 		val webView = withContext(Dispatchers.Main) {
 			WebView(context.applicationContext).apply {
 				settings.javaScriptEnabled = true
@@ -43,6 +44,12 @@ class WebViewCatcher(private val context: Context) {
 					}
 					override fun onPageStarted(view: WebView, u: String?, favicon: Bitmap?) { view.evaluateJavascript(CatcherScript.JS, null) }
 					override fun onPageFinished(view: WebView, u: String?) { u?.let { finalPage = it }; view.evaluateJavascript(CatcherScript.JS, null) }
+					// a lost renderer (Android reclaims memory) must not take the app down: end this catch with what it has
+					override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
+						rendererGone.set(true)
+						runCatching { view.destroy() }
+						return true
+					}
 				}
 				val w = android.view.View.MeasureSpec.makeMeasureSpec(1280, android.view.View.MeasureSpec.EXACTLY)
 				val h = android.view.View.MeasureSpec.makeMeasureSpec(720, android.view.View.MeasureSpec.EXACTLY)
@@ -51,10 +58,10 @@ class WebViewCatcher(private val context: Context) {
 			}
 		}
 		try {
-			while (!collector.done()) delay(250)
+			while (!collector.done() && !rendererGone.get()) delay(250)
 		} finally {
 			withContext(Dispatchers.Main) {
-				runCatching { webView.stopLoading(); webView.loadUrl("about:blank"); webView.removeJavascriptInterface(CatcherScript.BRIDGE); webView.destroy() }
+				if (!rendererGone.get()) runCatching { webView.stopLoading(); webView.loadUrl("about:blank"); webView.removeJavascriptInterface(CatcherScript.BRIDGE); webView.destroy() }
 			}
 		}
 		return CatchResult(collector.result().map { it.copy(page = finalPage) }, collector.sawBlob, finalPage)

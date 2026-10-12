@@ -1148,6 +1148,15 @@ class M3U8VideoDownloader(
 						logger.d("WebView encountered an error: $errorCode, $description")
 						coroutineScope.launch { retryOrFail(retryCount) }
 					}
+
+					// VidChain: a lost renderer must not take the app down; it counts as a failed load (T8.10)
+					override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
+						if (isWebViewLoading) {
+							isWebViewLoading = false
+							coroutineScope.launch { retryOrFail(retryCount) }
+						}
+						return org.websnake.vidchain.app.VidChainWebRecovery.dispose(view)
+					}
 				}
 
 				// Handle page title event as a backup signal for load complete

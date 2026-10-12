@@ -2,6 +2,7 @@ package app.ui.main.fragments.browser.webengine
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -47,6 +48,10 @@ class BrowserWebClient(val webviewEngine: WebViewEngine) : WebViewClient() {
 	 * @param url The URL being loaded
 	 * @param favicon The favicon for this page if available
 	 */
+	/** VidChain: a lost renderer must not take the app down; the tab is reopened (T8.10, VidChainWebRecovery). */
+	override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean =
+		org.websnake.vidchain.app.VidChainWebRecovery.browserTabGone(webviewEngine, view)
+
 	override fun onPageStarted(webView: WebView?, url: String?, favicon: Bitmap?) {
 		super.onPageStarted(webView, url, favicon)
 		logger.d("Page started loading: $url")

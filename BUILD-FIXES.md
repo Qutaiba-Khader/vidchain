@@ -51,6 +51,8 @@ also carry FALLBACK-SEAM lines and stay declared in `seams.lock` (its seam lines
 | T8.9: a failed or timed-out link analysis (30 s job limit) left the non-cancelable "Analyzing URL" dialog up for good | the dialog closes and the page opens in the browser | `SharedVideoURLIntercept.kt` |
 | T8.9: the always-on dataSync foreground service had no `onTimeout` (Android 15 kills the app after 6 h) and crashed when Android refused its start | `onTimeout` stops it; a refused start stops the service instead of crashing | `AIOForegroundService.java` |
 | T8.10 (owner report 2026-10-12: "Oops, App Was Crashed" sheet at start). The crash handler saved the crash and returned: on the main thread that leaves the app open with a dead screen thread (frozen, then "not responding"), and the report went only to a hidden file in the download folder, which needs the storage permission | a main-thread crash is handed to Android's own handler (the app closes cleanly); a redacted report (trace Redactor, last 5) is kept in the app's private folder and the crash screen's GitHub issue text carries the newest one (`VidChainCrashReport`); the upstream crash flag is saved in the background, so a main-thread crash also leaves a marker file the launcher checks | `AIOCrashHandler.kt`, `LauncherActivity.kt` (declared in CHANGES.md) |
+| T8.10 (found on the test phone): no WebView handled `onRenderProcessGone`. When Android kills the shared WebView renderer under memory pressure (typically in the background), Chromium then kills the whole app, running downloads included (reproduced on the A50 by killing the renderer: "Render process ... kill (OOM or update) wasn't handled by all associated webviews, killing application") | every WebView handles it: a browser tab is dropped and the current one reopened at the same address (blank on a second loss within 30 s); the popup, M3U8 cookie and catcher WebViews are destroyed and their job ends as a failed load (`VidChainWebRecovery`) | `BrowserWebClient.kt`, `BrowserWebChromeClient.kt`, `M3U8VideoDownloader.kt` (declared in BRANDING.md) |
+| T8.10 (found on the test phone): a shared text with a link in it ("Look https://...") was relaunched as a new share screen with the bare link (T8.9); on the A50 that second screen closed without a trace, so the link was lost silently | the same share screen goes on with the bare link in its intent and runs the app's own analysis (the picker opens); the seam returns instead of closing the screen | ours: `VidChainShareRescue.kt`; seam `IntentInterceptActivity.kt` share-entry |
 
 ```paths
 modified app/src/main/java/lib/networks/URLUtilityKT.kt
@@ -68,4 +70,7 @@ modified app/src/main/java/lib/process/UniqueNumberUtils.kt
 modified app/src/main/java/app/core/engines/services/AIOForegroundService.java
 modified app/src/main/java/app/core/AIOCrashHandler.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainCrashReport.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainWebRecovery.kt
+modified app/src/main/java/app/ui/main/fragments/browser/webengine/BrowserWebClient.kt
+modified app/src/main/java/app/ui/main/fragments/browser/webengine/BrowserWebChromeClient.kt
 ```

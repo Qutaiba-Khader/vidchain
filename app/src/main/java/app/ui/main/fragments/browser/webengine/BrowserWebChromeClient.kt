@@ -107,6 +107,10 @@ class BrowserWebChromeClient(val webviewEngine: WebViewEngine) : WebChromeClient
 						?.addNewBrowsingTab(url, webviewEngine)
 					(parent as? ViewGroup)?.removeView(this@apply)
 				}
+
+				// VidChain: a lost renderer must not take the app down (T8.10)
+				override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean =
+					org.websnake.vidchain.app.VidChainWebRecovery.dispose(view)
 			}
 		}
 

@@ -56,19 +56,19 @@ object VidChainShareRescue {
 
 	/**
 	 * Seam share-entry: a share the app would reject as "Invalid URL" (it only takes a bare http(s) link). A magnet /
-	 * torrent link runs chain B6; a text with a link in it is shared again as that link, so the app's own analysis runs
-	 * on it. true = taken (the share screen closes). A valid link is never touched.
+	 * torrent link runs chain B6 and the share screen closes; a text with a link in it continues in the same share
+	 * screen as that bare link, so the app's own analysis runs on it. true = handled here (the caller returns).
+	 * A valid link is never touched.
 	 */
 	@JvmStatic
 	fun shared(activity: BaseActivity?, text: String?): Boolean = try {
 		if (activity == null || text.isNullOrBlank() || lib.networks.URLUtility.isValidURL(text)) false
-		else if (torrent(activity, text)) true
-		else extractUrl(text)?.let { url ->
-			// T8.9: the share screen is singleTop and on top, so a plain start went to its (missing) onNewIntent and the
-			// link was dropped when it closed; a new task gets a fresh instance that handles the link
-			activity.startActivity(android.content.Intent(activity, activity.javaClass).setAction(android.content.Intent.ACTION_SEND)
-				.setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, url)
-				.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_MULTIPLE_TASK))
+		else if (torrent(activity, text)) { activity.onBackPressActivity(); true }
+		else extractUrl(text)?.takeIf { lib.networks.URLUtility.isValidURL(it) }?.let { url ->
+			// T8.10: relaunching the share screen with the link (T8.9) lost it on a real phone (the new instance closed
+			// without a trace); the same screen now goes on with the link in its intent
+			activity.intent = android.content.Intent(activity.intent).putExtra(android.content.Intent.EXTRA_TEXT, url)
+			activity.onAfterLayoutRender()
 			true
 		} ?: false
 	} catch (t: Throwable) {
