@@ -11,6 +11,10 @@ SRC = ROOT / "engines/engine-web/src/main/java/org/websnake/vidchain/web/probe/P
 t = SRC.read_text()
 start = t.index('private val JS = """') + len('private val JS = """')
 js = t[start:t.rindex('""".trimIndent()')].replace("$NAME", "VidChainProbe").replace("__AUTOPLAY__", "false")
+# a raw byte-order-mark or other non-ASCII byte in the Kotlin raw string fails Android lint (ByteOrderMark); write escapes
+bad = sorted({hex(ord(c)) for c in js if ord(c) > 126})
+if bad:
+    sys.exit(f"probe_check: non-ASCII characters in the probe script {bad} - write them as \\uXXXX escapes")
 with tempfile.TemporaryDirectory() as d:
     f = pathlib.Path(d) / "probe.js"
     f.write_text(js)

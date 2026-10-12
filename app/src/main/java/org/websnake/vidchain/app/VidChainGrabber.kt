@@ -8,6 +8,7 @@ import app.core.engines.video_parser.parsers.SupportedURLs.isM3U8Url
 import app.ui.main.fragments.browser.webengine.VideoUrlInfo
 import app.ui.main.fragments.browser.webengine.WebVideoParser
 import app.ui.main.fragments.browser.webengine.WebViewEngine
+import org.websnake.vidchain.fallback.core.FallbackSettings
 import org.websnake.vidchain.web.catcher.CatchCollector
 import org.websnake.vidchain.web.probe.WebProbe
 import org.websnake.vidchain.web.scrape.MediaCandidate
@@ -23,6 +24,8 @@ import java.util.WeakHashMap
  * by Content-Type or body, common web players, og:video. Finds go into the same per-tab list the upstream grabber
  * fills, so the upstream "videos found" button and links dialog show them. The first find on a page re-runs the
  * upstream analysis once so the button turns to "found" without a reload.
+ *
+ * Off with the fallbacks master switch (Settings -> VidChain fallbacks), like every other VidChain addition.
  *
  * Every page can post to the probe object, so a find is untrusted input (T8.11 review): only strong evidence is
  * listed (no addresses merely named in data, no stream pieces), only addresses the upstream dialog can download as
@@ -41,14 +44,16 @@ object VidChainGrabber {
 	/** Seam grabber (WebViewEngine.updateEngineOfWebView): once per WebView, and only where the probe fully works. */
 	@JvmStatic
 	fun attach(engine: WebViewEngine, webView: WebView) {
-		if (states.containsKey(webView) || !WebProbe.fullySupported()) return
+		// part of VidChain's fallbacks: with the master switch off the browser behaves exactly like the original app
+		// (no probe, so no extra requests - full test pass 15, golden OFF audio-only / og-video)
+		if (states.containsKey(webView) || !WebProbe.fullySupported() || !FallbackSettings.enabled(webView.context)) return
 		states[webView] = PageState(null)
 		runCatching { WebProbe.attach(webView, autoplay = false) { f -> accept(engine, webView, f) } }
 	}
 
 	/** runs on the UI thread (WebMessageListener); cheap checks first, the list is touched only for accepted finds */
 	private fun accept(engine: WebViewEngine, view: WebView, f: WebProbe.Find) {
-		if (f.how !in TAGS) return
+		if (f.how !in TAGS || !FallbackSettings.enabled(view.context)) return
 		val state = states[view] ?: return
 		val page = runCatching { view.url }.getOrNull()
 		if (page != state.page) { state.page = page; state.count = 0; state.seen.clear() }
