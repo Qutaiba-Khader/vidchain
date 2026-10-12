@@ -48,12 +48,31 @@ data class EngineResult(
  * killed from outside.
  */
 class Launcher(val setsid: String?, val sh: String) {
-	fun wrap(argv: List<String>): List<String> = listOfNotNull(setsid, sh, "-c", WRAPPER) + argv
+	/**
+	 * `setsid -w` is used, never a bare `setsid` (T8.12, found on the test phone): toybox 0.8.3 (Android 11, Samsung A50)
+	 * forks and returns 0 at once, so the runner saw the engine end and killed its group about 150 ms after the start -
+	 * every engine "killed from outside". With -w setsid waits for the engine and returns its status (toybox and
+	 * util-linux both have it). A setsid without -w is not used: the engine then runs in the app's group and a cancel
+	 * signals only its own pid. Checked once per setsid binary, the first time an engine starts (never at construction).
+	 */
+	val groups: Boolean get() = setsid != null && supportsWait(setsid, sh)
+
+	fun wrap(argv: List<String>): List<String> = (if (groups) listOf(setsid!!, "-w") else emptyList()) + listOf(sh, "-c", WRAPPER) + argv
 
 	companion object {
 		const val PGID_MARK = "__VIDCHAIN_PGID__"
 		const val EXIT_MARK = "__VIDCHAIN_EXIT__"
 		private const val WRAPPER = "echo \"$PGID_MARK $$\"; \"\$0\" \"\$@\" </dev/null; rc=\$?; echo \"$EXIT_MARK \$rc\" >&2; exit \$rc"
+		private val WAIT_SUPPORT = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+		/** `setsid -w sh -c 'exit 7'` returns 7 only when setsid really waited for its child */
+		private fun supportsWait(setsid: String, sh: String): Boolean = WAIT_SUPPORT.getOrPut(setsid) {
+			runCatching {
+				val p = ProcessBuilder(setsid, "-w", sh, "-c", "exit 7").redirectErrorStream(true)
+					.redirectInput(ProcessBuilder.Redirect.from(File("/dev/null"))).redirectOutput(ProcessBuilder.Redirect.to(File("/dev/null"))).start()
+				if (!p.waitFor(5, TimeUnit.SECONDS)) { p.destroyForcibly(); false } else p.exitValue() == 7
+			}.getOrDefault(false)
+		}
 
 		fun detect(): Launcher = Launcher(
 			setsid = listOf("/system/bin/setsid", "/usr/bin/setsid", "/bin/setsid").firstOrNull { File(it).canExecute() },
@@ -86,12 +105,14 @@ class ProcessEngineRunner(
 	 */
 	suspend fun run(spec: EngineSpec, onStdout: (String) -> Unit = {}, onStderr: (String) -> Unit = {}): EngineResult = slots.withSlot {
 		val started = System.currentTimeMillis()
-		val pb = ProcessBuilder(launcher.wrap(spec.argv))
-		pb.environment().putAll(spec.env)
-		spec.workDir?.let { pb.directory(it) }
-		pb.redirectInput(ProcessBuilder.Redirect.from(File("/dev/null")))
 		val process = try {
-			withContext(Dispatchers.IO) { pb.start() }
+			withContext(Dispatchers.IO) {
+				val pb = ProcessBuilder(launcher.wrap(spec.argv))         // first call checks setsid -w: off the caller's thread
+				pb.environment().putAll(spec.env)
+				spec.workDir?.let { pb.directory(it) }
+				pb.redirectInput(ProcessBuilder.Redirect.from(File("/dev/null")))
+				pb.start()
+			}
 		} catch (e: IOException) {
 			return@withSlot EngineResult(EngineOutcome.Unsupported("cannot start: ${e.message}"), null, emptyList(), emptyList(), 0)
 		}
@@ -182,7 +203,7 @@ class ProcessEngineRunner(
 	private suspend fun signalGroup(pgid: CompletableDeferred<Int?>, sig: Int) {
 		val id = withTimeoutOrNull(500) { pgid.await() } ?: return
 		// with setsid the shell's pid is its group id; without it only that pid is signalled
-		val target = if (launcher.setsid != null) "-$id" else "$id"
+		val target = if (launcher.groups) "-$id" else "$id"
 		withContext(Dispatchers.IO) {
 			runCatching {
 				ProcessBuilder(launcher.sh, "-c", "kill -$sig $target 2>/dev/null").redirectErrorStream(true).start().waitFor(2, TimeUnit.SECONDS)

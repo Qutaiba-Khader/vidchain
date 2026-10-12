@@ -21,7 +21,7 @@ object SelfTest {
 		lines += "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ABI ${kit.abi}"
 		lines += "Fallbacks: ${if (FallbackSettings.enabled(context)) "on" else "off"}; trace log: ${if (TraceConfig.enabled) "on" else "off"}"
 		lines += "Methods built: ${FallbackRuntime.methods.joinToString(", ") { TrailText.name(it.id) }}"
-		lines += "Process groups (setsid): ${launcher.setsid ?: "not available - cancel kills only the engine itself"}"
+		lines += "Process groups (setsid -w): ${if (kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { launcher.groups }) launcher.setsid else "not available - cancel kills only the engine itself"}"
 		lines += "Library runtime extracted: ${if (l.pythonReady) "yes" else "no (open a video once so the downloader sets it up)"}"
 		if (l.pythonReady) {
 			val py = kit.probe.check("python", kit.layout.engineHash(l.python), CapabilityProbe.pythonSpec(l)) { r ->

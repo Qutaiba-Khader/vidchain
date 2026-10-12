@@ -54,6 +54,28 @@ class ProcessEngineRunnerTest {
 		assertTrue(r.run(EngineSpec(listOf("/nonexistent/libnothing.so"))).outcome is EngineOutcome.Unsupported)
 	}
 
+	/**
+	 * T8.12, found on the test phone: toybox 0.8.3's setsid (Android 11) forks and returns 0 at once; the runner then
+	 * killed the group and every engine ended as "killed from outside" after ~150 ms. A fake setsid plays that phone.
+	 */
+	@Test fun aSetsidThatReturnsAtOnceNoLongerKillsTheEngine() = runBlocking {
+		val dir = kotlin.io.path.createTempDirectory("setsid").toFile()
+		try {
+			fun fake(name: String, body: String) = File(dir, name).apply { writeText("#!$sh\n$body\n"); setExecutable(true) }.path
+			// toybox 0.8.3: -w waits; without -w the command runs in the background and setsid returns 0 at once
+			val toybox = fake("toybox-setsid", "if [ \"\$1\" = -w ]; then shift; \"\$@\"; exit \$?; fi; \"\$@\" & exit 0")
+			// an old setsid that has no -w and also returns at once: not used at all
+			val old = fake("old-setsid", "if [ \"\$1\" = -w ]; then echo 'unknown option w' >&2; exit 1; fi; \"\$@\" & exit 0")
+			for (s in listOf(toybox, old)) {
+				val l = Launcher(s, sh)
+				val r = ProcessEngineRunner(l, SlotLimiter(4), killGraceMs = 1_000).run(EngineSpec(listOf(sh, "-c", "sleep 0.5; echo done; exit 3")))
+				assertEquals(s, EngineOutcome.Failed(3, ""), r.outcome.let { if (it is EngineOutcome.Failed) it.copy(reason = "") else it })
+				assertEquals(s, listOf("done"), r.stdoutTail)
+				assertEquals(s, s == toybox, l.groups)
+			}
+		} finally { dir.deleteRecursively() }
+	}
+
 	@Test fun crashIsCrashedNotOsKilled() = runBlocking {
 		val r = runner().run(shell("kill -SEGV \$\$"))
 		assertEquals(EngineOutcome.Crashed(ExitCodes.SIGSEGV), r.outcome)
