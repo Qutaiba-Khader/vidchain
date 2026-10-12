@@ -71,6 +71,16 @@ object VidChainFallbackHost : FallbackHost {
 		return sawLoading || android.os.SystemClock.elapsedRealtime() - createdAt > 15_000
 	}
 
+	/** expired link (T8.12): the same file's fresh address, then the app's own resume (it continues from the saved bytes) */
+	override fun resumeWithUrl(parent: HostDownload, url: String): Boolean {
+		val m = findModel(parent.id) ?: return false
+		if (m.isRunning || m.isComplete) return false
+		m.fileURL = url
+		m.isFileUrlExpired = false
+		AIOApp.downloadSystem.resumeDownload(m, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
+		return true
+	}
+
 	/** row 5a2: the app's own pause stops its yt-dlp process (owner decision 2026-10-12) */
 	override fun stopStuck(parent: HostDownload): Boolean {
 		val m = findModel(parent.id) ?: return false

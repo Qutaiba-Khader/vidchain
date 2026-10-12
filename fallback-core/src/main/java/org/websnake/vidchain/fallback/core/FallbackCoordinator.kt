@@ -51,7 +51,11 @@ class FallbackCoordinator(
 	private val hostContext: CoroutineContext = EmptyCoroutineContext,
 	private val clock: () -> Long = System::currentTimeMillis,
 	private val verifier: DeliveryVerifier = DeliveryVerifier(),
+	/** expired links: the same file asked again and the app's download resumed (T8.12); null = always the chain */
+	private val refresher: LinkRefresher? = null,
 ) {
+	/** refresh attempts per download (at most [MAX_REFRESH], so an endlessly expiring link still reaches the chain) */
+	private val refreshes = java.util.concurrent.ConcurrentHashMap<String, Int>()
 	class Config(
 		val includeStub: Boolean = true,
 		val enabled: () -> Boolean = { true },
@@ -178,7 +182,17 @@ class FallbackCoordinator(
 		// so it is not seen as a new failure) before the fallbacks start, so the two never deliver the same video twice
 		val stuck = parentId == null && v.cls == FailureClass.STALLED && d.snapshot.isRunning && d.snapshot.engine == Engine.M3U8
 		if (stuck) ledger.recordIntent(d.id, UserIntent.PAUSE, now)
+		// an expired link after part of the file was saved: ask the page for the same file and resume the app's download
+		val refresh = refresher != null && parentId == null && v.cls == FailureClass.EXPIRED_URL && d.snapshot.engine == Engine.REGULAR &&
+			d.bytes > 0 && (refreshes[d.id] ?: 0) < MAX_REFRESH
 		running[rootId] = scope.launch {
+			if (refresh) {
+				refreshes.merge(d.id, 1, Int::plus)
+				val fresh = try { refresher?.fresh(root) } catch (e: CancellationException) { throw e } catch (e: Exception) { null }
+				val resumed = fresh != null && try { withContext(hostContext) { host.resumeWithUrl(root, fresh) } } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
+				Trace.event { TraceEvent("decision", downloadId = rootId, failureClass = v.cls.name, result = if (resumed) "expired-link-refreshed" else "expired-link-not-refreshed") }
+				if (resumed) { ledger.recordIntent(d.id, UserIntent.RESUME, clock()); return@launch }
+			}
 			if (stuck) {
 				val stopped = try { withContext(hostContext) { host.stopStuck(root) } } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
 				Trace.event { TraceEvent("decision", downloadId = rootId, failureClass = v.cls.name, result = if (stopped) "stuck-parent-stopped" else "stuck-parent-not-stopped") }
@@ -499,6 +513,7 @@ class FallbackCoordinator(
 	}
 
 	private companion object {
+		const val MAX_REFRESH = 2
 		val REMOVAL = setOf(UserIntent.CANCEL, UserIntent.CLEAR, UserIntent.DELETE)
 		val RESTART = setOf(UserIntent.START, UserIntent.RESUME)
 		val TEMP_EXT = setOf("part", "tmp", "meta", "ytdl", "bin")

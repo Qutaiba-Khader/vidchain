@@ -159,7 +159,7 @@ object FallbackRuntime {
 		val c = FallbackCoordinator(host, l, methods.toList(), s,
 			FallbackCoordinator.Config(INCLUDE_STUB, enabled = { FallbackSettings.enabled(app) }, methodOn = { FallbackSettings.methodOn(app, it) },
 				keepAlive = { reason, block -> kit.keptAlive(reason) { block() } }),
-			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe))
+			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe), refresher = linkRefresher(app))
 		ledger = l; coordinator = c; this.host = host; scope = s
 		engines = kit
 		// aria2c (method A) is unpacked by its module like the library's other runtimes; the app itself never does it
@@ -184,6 +184,30 @@ object FallbackRuntime {
 			}
 		}
 		Trace.event { TraceEvent("runtime.started", reason = "methods=${methods.joinToString(",") { it.id }}") }
+	}
+
+	/** T8.12: the same file asked again for an expired link - yt-dlp on the page, then the hidden page catcher */
+	private fun linkRefresher(app: android.content.Context) = LinkRefresher(
+		sources = listOf(
+			{ page -> (ytdlp?.info(page, timeoutMs = 90_000) as? org.websnake.vidchain.ytdlp.YtDlpEngine.Result.Ok)?.value?.let { i -> i.formats.mapNotNull { it.url } + listOfNotNull(i.directUrl) } },
+			{ page -> org.websnake.vidchain.web.catcher.WebViewCatcher(app).catch(page, null).candidates.map { it.url } },
+		),
+		sizeOf = { url, referer -> totalSize(url, referer) },
+	)
+
+	/** the total size of [url] from a one-byte range request (no body is read); null when the server does not say */
+	private suspend fun totalSize(url: String, referer: String?): Long? = kotlinx.coroutines.withContext(Dispatchers.IO) {
+		if (org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(url)) return@withContext null   // never the user's own network
+		val req = okhttp3.Request.Builder().url(url).header("Range", "bytes=0-0").apply { referer?.let { header("Referer", it) } }.build()
+		runCatching {
+			http.newCall(req).execute().use { r ->
+				when (r.code) {
+					206 -> r.header("Content-Range")?.substringAfter('/')?.toLongOrNull()
+					200 -> r.header("Content-Length")?.toLongOrNull()
+					else -> null
+				}
+			}
+		}.getOrNull()
 	}
 
 	fun recordIntent(downloadId: String, intent: UserIntent) {

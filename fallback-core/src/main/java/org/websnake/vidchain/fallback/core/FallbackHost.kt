@@ -47,6 +47,9 @@ interface FallbackHost {
 	 */
 	fun stopStuck(parent: HostDownload): Boolean = false
 
+	/** Give [parent]'s own download the fresh address of the same file and resume it (expired link, T8.12). true = resumed. */
+	fun resumeWithUrl(parent: HostDownload, url: String): Boolean = false
+
 	/** the app's "Enable Dark UI Mode" switch (null = unknown: follow the system) */
 	fun darkUi(): Boolean? = null
 }

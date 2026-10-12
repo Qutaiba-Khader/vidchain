@@ -32,6 +32,8 @@ class FallbackCoordinatorTest {
 		val stopped = ArrayList<String>()
 		private var nextId = 1000
 		override fun stopStuck(parent: HostDownload): Boolean { stopped += parent.id; return true }
+		val resumedWith = ArrayList<String>()
+		override fun resumeWithUrl(parent: HostDownload, url: String): Boolean { resumedWith += url; return true }
 		override fun downloads() = list.values.toList()
 		override fun registerDelivered(parent: HostDownload, file: File, method: String): String? =
 			if (!lists) null else { delivered += file; "d${nextId++}" }
@@ -56,11 +58,11 @@ class FallbackCoordinatorTest {
 	private fun failed(key: StatusKey = StatusKey.DOWNLOAD_FAILED) = DownloadSnapshot(Engine.REGULAR, CLOSE, statusKey = key)
 	private fun paused() = DownloadSnapshot(Engine.REGULAR, CLOSE, statusKey = StatusKey.PAUSED)
 
-	private class World(scope: CoroutineScope, methods: List<FallbackMethod>, enabled: Boolean = true, stub: Boolean = true) {
+	private class World(scope: CoroutineScope, methods: List<FallbackMethod>, enabled: Boolean = true, stub: Boolean = true, refresher: LinkRefresher? = null) {
 		val host = FakeHost()
 		val ledger = InMemoryLedger()
 		var now = 1_000_000L
-		val c = FallbackCoordinator(host, ledger, methods, scope, FallbackCoordinator.Config(stub, enabled = { enabled }), clock = { now })
+		val c = FallbackCoordinator(host, ledger, methods, scope, FallbackCoordinator.Config(stub, enabled = { enabled }), clock = { now }, refresher = refresher)
 		suspend fun tick() { c.tick(); c.drain() }
 	}
 
@@ -113,6 +115,34 @@ class FallbackCoordinatorTest {
 		w.host.set("1", paused()); repeat(4) { w.now += 60_000; w.tick() }       // the app shows it paused afterwards
 		assertEquals(1, w.ledger.attempts("1").size)                             // one chain, never a second one
 		assertEquals(listOf("1"), w.host.stopped)
+	}
+
+	@Test fun anExpiredLinkIsRefreshedAndResumedTwiceThenTheChainRuns() = runBlocking {
+		val asked = AtomicInteger()
+		val refresher = LinkRefresher(listOf({ _ -> asked.incrementAndGet(); listOf("https://files.example/video.mp4?sig=${asked.get()}") }), { _, _ -> 9_000L })
+		val w = World(this, listOf(stub), refresher = refresher)
+		val expired = DownloadSnapshot(Engine.REGULAR, CLOSE, isFileUrlExpired = true)
+		fun cycle(n: Int) {
+			w.host.list["1"] = HostDownload("1", "https://site.example/p", fileUrl, running(), 500, referer = "https://site.example/p", expectedBytes = 9_000)
+		}
+		cycle(0); w.tick()
+		for (round in 1..3) {
+			w.host.list["1"] = HostDownload("1", "https://site.example/p", fileUrl, expired, 500, referer = "https://site.example/p", expectedBytes = 9_000)
+			w.tick(); w.now += 120_000
+			w.host.list["1"] = HostDownload("1", "https://site.example/p", fileUrl, running(), 600, referer = "https://site.example/p", expectedBytes = 9_000)
+			w.tick(); w.now += 120_000
+		}
+		assertEquals(2, w.host.resumedWith.size)                                  // two refreshes ...
+		assertEquals(1, w.ledger.attempts("1").size)                              // ... then the normal chain, once
+	}
+
+	@Test fun anExpiredLinkWithNothingSavedGoesStraightToTheChain() = runBlocking {
+		val refresher = LinkRefresher(listOf({ _ -> listOf("https://files.example/video.mp4?sig=2") }), { _, _ -> 9_000L })
+		val w = World(this, listOf(stub), refresher = refresher)
+		w.host.set("1", running(), url = fileUrl); w.tick()
+		w.host.set("1", DownloadSnapshot(Engine.REGULAR, CLOSE, isFileUrlExpired = true), bytes = 0); w.tick()
+		assertTrue(w.host.resumedWith.isEmpty())
+		assertEquals(1, w.ledger.attempts("1").size)
 	}
 
 	@Test fun aRegularStallIsNotStopped() = runBlocking {
