@@ -133,7 +133,7 @@ scenarios = SCEN["scenarios"]
 ONLY = [x for x in os.environ.get("VIDCHAIN_ONLY", "").split(",") if x]
 if ONLY:
     scenarios = [sc for sc in scenarios if sc["id"] in ONLY]
-if SCEN.get("warmup", True):
+if SCEN.get("warmup", True) and scenarios:   # a diagnostic subset can leave a file with none (pass 15 diagnostic run)
     # the first share after a fresh install is slower (first start work); run one throw-away scenario first
     scenarios = [{**scenarios[0], "id": "_warmup", "wait": 45}] + scenarios
 for sc in scenarios:
