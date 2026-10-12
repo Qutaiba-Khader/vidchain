@@ -4,6 +4,27 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## 1.1.4
+- Checked by the full emulator test pass ([run 38241779554](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38241779554), 55 / 55).
+
+From the owner's list of remaining ideas (2026-10-12):
+- YouTube: when YouTube's ordinary player types are refused, method C now also tries the "mobile web" and "web" types
+  with proof-of-origin tokens made on the phone itself (a hidden page runs YouTube's own check, without your login
+  or cookies). Tested on the phone: a 4K video that the other player types could not get was saved this way.
+- An expired download link is asked for again on the same page; if the same file is found (same size, or the same
+  address without the changing parts), your download continues from where it stopped instead of starting over.
+- The fallbacks replay the exact request headers the page's own player used for a video address.
+- The browser and the hidden page method (W) now check the page's requests the way Web Video Caster does: VidChain
+  asks for possible videos itself, reads the first bytes, and finds playlists and video files that hide behind
+  addresses ending in .jpg, .txt or with no ending at all. The page gets the same answer; anything unusual (a
+  redirect, an error, a robot check) is left to the browser. In the browser this starts only after the page shows a
+  video, and it is off with the fallbacks switch.
+- A yt-dlp download stuck at "Connecting To The Server" is now stopped before the fallbacks start.
+
+Found while testing on the phone:
+- On Android 11 (and phones with the same system tools) every fallback that runs Python, ffmpeg or aria2 was stopped
+  about 0.15 s after it started, so those methods never worked on such phones. Fixed.
+
 ## 1.1.3
 - Checked by the full emulator test pass ([run 38208140239](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38208140239), 55 / 55).
 
