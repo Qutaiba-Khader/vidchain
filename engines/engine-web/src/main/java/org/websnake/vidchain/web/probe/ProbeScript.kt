@@ -57,7 +57,7 @@ object ProbeScript {
       if (typeof t !== 'string' || !t) return;
       if (t.length > 2000000) t = t.slice(0, 2000000);
       if (!urlsOnly) {
-        var head = t.slice(0, 300).replace(/^﻿/, '').trimStart();
+        var head = t.slice(0, 300).replace(/^\uFEFF/, '').trimStart();
         if (head.indexOf('#EXTM3U') === 0) { rep(base, 'body-hls'); return; }
         if (/^(?:<\?xml[^>]*>\s*)?(?:<!--[\s\S]*?-->\s*)*<MPD[\s>]/.test(head)) { rep(base, 'body-dash'); return; }
       }
