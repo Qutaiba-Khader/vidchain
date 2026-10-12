@@ -16,10 +16,14 @@ class YouTubeClients(
 	private val winnerKey get() = "yt.client.winner.$engineHash"
 	private fun poKey(c: String) = "yt.client.needs_po.$engineHash.$c"
 
-	/** clients to try, the last winner first, PO-token clients left out */
-	fun plan(): List<String> {
-		val winner = store.get(winnerKey)?.takeIf { it in order }
-		return (listOfNotNull(winner) + order).distinct().filter { store.get(poKey(it)) == null }
+	/**
+	 * clients to try, the last winner first, clients known to need a PO token left out; with [withPoTokens] the
+	 * [PO_CLIENTS] come after them (T8.12: they are only tried with tokens minted on the phone)
+	 */
+	fun plan(withPoTokens: Boolean = false): List<String> {
+		val all = order + if (withPoTokens) PO_CLIENTS.filter { it !in order } else emptyList()
+		val winner = store.get(winnerKey)?.takeIf { it in all }
+		return (listOfNotNull(winner) + all).distinct().filter { withPoTokens && it in PO_CLIENTS || store.get(poKey(it)) == null }
 	}
 
 	fun won(client: String) = store.put(winnerKey, client)
@@ -31,7 +35,22 @@ class YouTubeClients(
 		/** clients that do not need PO tokens today (yt-dlp wiki, PO Token Guide); adjustable per release */
 		val DEFAULT_ORDER = listOf("android_vr", "web_safari", "web_embedded", "tv")
 
+		/**
+		 * clients YouTube serves only with PO tokens (yt-dlp wiki, PO Token Guide: mweb is the recommended one); tried
+		 * after [DEFAULT_ORDER], and only when tokens could be minted
+		 */
+		val PO_CLIENTS = listOf("mweb", "web")
+
 		fun args(client: String) = listOf("--extractor-args", "youtube:player_client=$client")
+
+		/**
+		 * [client] with minted tokens: the GVS token is bound to the visitor, so the visitor data goes with it and yt-dlp
+		 * must not fetch its own (player_skip=webpage,configs, as the wiki says); the player token is bound to the video
+		 */
+		fun args(client: String, po: PoTokens?): List<String> =
+			if (po == null || client !in PO_CLIENTS) args(client)
+			else listOf("--extractor-args", "youtube:player_client=$client;player_skip=webpage,configs;" +
+				"visitor_data=${po.visitorData};po_token=$client.gvs+${po.gvs},$client.player+${po.player}")
 
 		/** what an error from one client means for the rotation */
 		fun judge(error: String): Verdict {

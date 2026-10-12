@@ -2971,6 +2971,13 @@
    "note": "VidChain's own code; the APIs follow dukpy (MIT) and lxml (BSD-3-Clause)"
   },
   {
+   "name": "BgUtils (bgutils-js)",
+   "licence": "MIT",
+   "kind": "JavaScript (WebView asset vidchain-bgutils.js)",
+   "url": "https://github.com/LuanRT/BgUtils",
+   "note": "4.0.3, npm tarball pinned by sha512 in tools/build_bgutils.py; used to mint YouTube PO tokens on the phone"
+  },
+  {
    "name": "gallery-dl",
    "version": "1.32.14",
    "licence": "GNU General Public License v2 (GPLv2)",

@@ -6,15 +6,20 @@ import org.websnake.vidchain.fallback.core.MethodOutcome
 import org.websnake.vidchain.fallback.core.UrlClass
 import org.websnake.vidchain.ytdlp.YtDlpEngine
 import org.websnake.vidchain.ytdlp.YtDlpFormats
+import org.websnake.vidchain.ytdlp.youtube.PoTokens
 import org.websnake.vidchain.ytdlp.youtube.YouTubeClients
 
 /**
  * C - YouTube player_client retries (T2.5): asks yt-dlp for the video as different YouTube clients; the first client
  * whose info has a usable format also does the download (same client, so the stream URLs match).
+ *
+ * T8.12: when [poTokens] is given, the clients that need YouTube's PO tokens are tried last, with tokens minted on the
+ * phone for this video (asked once per attempt, only when the rotation reaches them).
  */
 class YouTubeClientMethod(
 	private val engine: () -> YtDlpEngine?,
 	private val clients: () -> YouTubeClients?,
+	private val poTokens: (suspend (videoId: String) -> PoTokens?)? = null,
 ) : FallbackMethod {
 	override val id = "C"
 	override val kind = FallbackMethod.Kind.EXECUTOR
@@ -29,8 +34,16 @@ class YouTubeClientMethod(
 		val selector = YtDlpFormats.selector(ctx.preferredHeight, ctx.audioOnly)
 		val tried = ArrayList<String>()
 		val js = e.jsRuntimeArgs()
-		for (client in rotation.plan()) {
-			val o = YtDlpEngine.Options(userAgent = null, extraArgs = YouTubeClients.args(client) + js)   // T8.11: + JavaScript runtime
+		val videoId = PoTokens.videoId(ctx.url)
+		val minter = poTokens?.takeIf { videoId != null }
+		var po: PoTokens? = null
+		var poAsked = false
+		for (client in rotation.plan(withPoTokens = minter != null)) {
+			if (client in YouTubeClients.PO_CLIENTS && minter != null) {
+				if (!poAsked) { poAsked = true; po = try { minter(videoId!!) } catch (c: kotlinx.coroutines.CancellationException) { throw c } catch (_: Exception) { null } }
+				if (po == null) continue
+			}
+			val o = YtDlpEngine.Options(userAgent = null, extraArgs = YouTubeClients.args(client, po) + js)   // T8.11: + JavaScript runtime
 			val info = e.info(ctx.url, o, timeoutMs = 90_000)
 			if (info is YtDlpEngine.Result.Failed && info.problem == YtDlpEngine.Problem.KILLED) return MethodOutcome.Failed("stopped by the system", retryable = true)
 			val error = when (info) {
@@ -51,11 +64,11 @@ class YouTubeClientMethod(
 			}
 			tried += "$client: ${error.take(80)}"
 			when (YouTubeClients.judge(error)) {
-				YouTubeClients.Verdict.NEEDS_PO_TOKEN -> rotation.needsPoToken(client)
+				YouTubeClients.Verdict.NEEDS_PO_TOKEN -> if (client !in YouTubeClients.PO_CLIENTS) rotation.needsPoToken(client)
 				YouTubeClients.Verdict.GIVE_UP -> return MethodOutcome.Failed("$client: $error")
 				YouTubeClients.Verdict.NEXT_CLIENT -> Unit
 			}
 		}
-		return if (tried.isEmpty()) MethodOutcome.Unsupported("every client needs a PO token") else MethodOutcome.Failed(tried.joinToString("; "))
+		return if (tried.isEmpty()) MethodOutcome.Unsupported(if (poAsked) "every client needs a PO token; none could be minted" else "every client needs a PO token") else MethodOutcome.Failed(tried.joinToString("; "))
 	}
 }

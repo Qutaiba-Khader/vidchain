@@ -46,5 +46,6 @@ to every release (`SOURCES-<tag>.tar.zst`).
 | gallery-dl | 1.32.14 | GPL-2.0 |
 | Streamlink (+ trio, websocket-client, isodate, ...) | 8.6.1 | BSD-2-Clause |
 | you-get | 0.4.1743 | MIT |
+| BgUtils (bgutils-js, WebView asset for YouTube PO tokens) | 4.0.3 | MIT |
 | requests, urllib3, idna, certifi, charset-normalizer | per python/requirements.lock | Apache-2.0 / MIT / BSD-3-Clause / MPL-2.0 / MIT |
 | aria2 (youtubedl-android aria2c module) | 0.18.1 module | GPL-2.0-or-later |

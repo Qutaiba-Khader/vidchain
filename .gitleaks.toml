@@ -1,0 +1,14 @@
+# gitleaks config: the default rules, plus one allowlisted value.
+#
+# AIzaSyDyT5W0Jh49F30Pqqtyfdf7pDLFKLJoAnw is the public API key that YouTube's own web page ships to every visitor
+# (BgUtils, MIT, uses it to fetch the BotGuard challenge). It is not a VidChain secret. It is allowed only as that
+# exact value and only in the generated BgUtils asset, so any other key anywhere still fails the scan.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "YouTube web page's public API key inside the BgUtils asset (T8.12)"
+condition = "AND"
+paths = ['''^engines/engine-web/src/main/assets/vidchain-bgutils\.js$''']
+regexTarget = "secret"
+regexes = ['''^AIzaSyDyT5W0Jh49F30Pqqtyfdf7pDLFKLJoAnw$''']

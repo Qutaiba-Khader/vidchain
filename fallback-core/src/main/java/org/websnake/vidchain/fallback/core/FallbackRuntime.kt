@@ -86,7 +86,7 @@ object FallbackRuntime {
 	val methods: MutableList<FallbackMethod> = CopyOnWriteArrayList(listOf<FallbackMethod>(
 		org.websnake.vidchain.fallback.methods.YouTubeClientMethod({ ytdlp }, {
 			engines?.let { k -> org.websnake.vidchain.ytdlp.youtube.YouTubeClients(k.store, k.layout.engineHash(k.layout.ytdlp)) }
-		}),
+		}, ::poTokens),
 		org.websnake.vidchain.fallback.methods.RedirectMethod(org.websnake.vidchain.http.redirect.RedirectUnwrapper(http)),
 		ytdlpMethod,
 		org.websnake.vidchain.fallback.methods.StreamlinkMethod({ engines?.let { org.websnake.vidchain.engine.python.PythonEngine(it.runner, it.layout) } },
@@ -122,6 +122,16 @@ object FallbackRuntime {
 	))
 
 	/** method S asks the app for the session on the main thread (the browser's cookie store and the download models live there) */
+	/** T8.12: YouTube PO tokens minted in a hidden WebView for method C; the trace says only whether it worked */
+	private suspend fun poTokens(videoId: String): org.websnake.vidchain.ytdlp.youtube.PoTokens? {
+		val minter = poMinter ?: appContext?.let { org.websnake.vidchain.web.po.PoTokenMinter(it) }?.also { poMinter = it } ?: return null
+		val m = minter.mint(videoId)
+		val t = m?.let { org.websnake.vidchain.ytdlp.youtube.PoTokens.of(it.visitorData, it.gvs, it.player) }
+		Trace.event { TraceEvent("po.mint", method = "C", reason = if (t != null) "minted" else "not minted: ${minter.lastProblem ?: "refused"}") }
+		return t
+	}
+	@Volatile private var poMinter: org.websnake.vidchain.web.po.PoTokenMinter? = null
+
 	private suspend fun sessionFor(parentId: String, url: String): org.websnake.vidchain.fallback.context.SessionContext? {
 		val h = host ?: return null
 		return kotlinx.coroutines.withContext(Dispatchers.Main) { h.downloads().firstOrNull { it.id == parentId }?.let { h.session(it, url) } }
