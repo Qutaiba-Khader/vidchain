@@ -49,7 +49,8 @@ class YtDlpMethod(
 				userAgent = session?.userAgent ?: ctx.userAgent,
 				referer = session?.referer ?: ctx.referer?.takeIf { it.startsWith("http") },
 				cookiesFile = cookies,
-				extraArgs = extraArgs,
+				// T8.11: the JavaScript runtime for YouTube (N passes its own)
+				extraArgs = extraArgs + if (extraArgs.contains("--js-runtimes")) emptyList() else e.jsRuntimeArgs(),
 			)
 			return when (val r = e.download(url, YtDlpFormats.selector(ctx.preferredHeight, ctx.audioOnly), dir, base, options)) {
 				is YtDlpEngine.Result.Ok -> { bench?.record(id, org.websnake.vidchain.engine.EngineOutcome.Success); MethodOutcome.Delivered(r.value.path) }

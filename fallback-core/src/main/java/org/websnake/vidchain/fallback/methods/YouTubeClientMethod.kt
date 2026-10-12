@@ -28,8 +28,9 @@ class YouTubeClientMethod(
 		val base = "${ctx.parentId}-$id"
 		val selector = YtDlpFormats.selector(ctx.preferredHeight, ctx.audioOnly)
 		val tried = ArrayList<String>()
+		val js = e.jsRuntimeArgs()
 		for (client in rotation.plan()) {
-			val o = YtDlpEngine.Options(userAgent = null, extraArgs = YouTubeClients.args(client))
+			val o = YtDlpEngine.Options(userAgent = null, extraArgs = YouTubeClients.args(client) + js)   // T8.11: + JavaScript runtime
 			val info = e.info(ctx.url, o, timeoutMs = 90_000)
 			if (info is YtDlpEngine.Result.Failed && info.problem == YtDlpEngine.Problem.KILLED) return MethodOutcome.Failed("stopped by the system", retryable = true)
 			val error = when (info) {

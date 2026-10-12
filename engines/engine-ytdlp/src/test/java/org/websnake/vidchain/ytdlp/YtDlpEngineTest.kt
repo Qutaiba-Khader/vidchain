@@ -45,6 +45,17 @@ class YtDlpEngineTest {
 		engine = YtDlpEngine(ProcessEngineRunner(launcher, SlotLimiter(2)), layout)
 	}
 
+	@Test fun jsRuntimeIsOfferedOnlyWhenThisYtDlpKnowsTheOption() = runBlocking {
+		val qjs = File(tmp.root, "lib/libqjs.so").apply { writeText("qjs") }
+		assertEquals(emptyList<String>(), engine.jsRuntimeArgs())                  // the stand-in rejects it, like an older yt-dlp
+		val y = File(tmp.root, "nb/youtubedl-android/yt-dlp/yt-dlp")
+		y.writeText("case \" ${'$'}* \" in *\" --js-runtimes \"*\" --version \"*) echo 2026.08.19; exit 0;; esac\nexit 2\n")
+		y.setLastModified(y.lastModified() + 5_000)                               // a new yt-dlp file is asked again
+		assertEquals(listOf("--js-runtimes", "quickjs:${qjs.absolutePath}"), engine.jsRuntimeArgs())
+		qjs.delete()
+		assertEquals(emptyList<String>(), engine.jsRuntimeArgs())                  // no QuickJS on this ABI: nothing offered
+	}
+
 	@Test fun infoParsesFormatsAndPassesTheUrlAfterDoubleDash() = runBlocking {
 		val r = engine.info("https://site.example/v/1", YtDlpEngine.Options(userAgent = "UA", referer = "https://site.example/"))
 		val info = (r as YtDlpEngine.Result.Ok).value

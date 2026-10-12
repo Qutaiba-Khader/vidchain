@@ -61,6 +61,22 @@ class YtDlpEngine(
 		return Result.Ok(f)
 	}
 
+	/**
+	 * T8.11: current yt-dlp needs a JavaScript runtime for YouTube; the library's QuickJS is offered when this yt-dlp
+	 * build knows the option (the bundled one may be older). Asked once per yt-dlp file; [] when not possible.
+	 */
+	suspend fun jsRuntimeArgs(): List<String> {
+		val qjs = layout.quickJs.takeIf { it.isFile } ?: return emptyList()
+		if (!ready) return emptyList()
+		val key = "${ytdlp.absolutePath}:${ytdlp.length()}:${ytdlp.lastModified()}"
+		val known = JS_RUNTIME_SUPPORT[key] ?: run {
+			val probe = listOf(python.absolutePath, ytdlp.absolutePath, "--ignore-config", "--js-runtimes", "quickjs:${qjs.absolutePath}", "--version")
+			val r = runner.run(EngineSpec(probe, layout.env(), timeoutMs = 60_000))
+			(r.outcome == EngineOutcome.Success).also { JS_RUNTIME_SUPPORT[key] = it }
+		}
+		return if (known) listOf("--js-runtimes", "quickjs:${qjs.absolutePath}") else emptyList()
+	}
+
 	internal fun argv(o: Options, args: List<String>): List<String> = buildList {
 		add(python.absolutePath); add(ytdlp.absolutePath)
 		addAll(listOf("--ignore-config", "--no-warnings", "--socket-timeout", "20", "--retries", "3"))
@@ -72,6 +88,7 @@ class YtDlpEngine(
 	}
 
 	companion object {
+		private val JS_RUNTIME_SUPPORT = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 		const val PATH_MARK = "__VIDCHAIN_FILE__"
 		/** no progress line and no byte for this long: the download is stuck (the 4 h cap stays behind it) */
 		const val STALL_MS = 180_000L
