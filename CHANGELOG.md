@@ -4,6 +4,25 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## 1.1.3
+- Checked by the full emulator test pass ([run 38208140239](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38208140239), 55 / 55).
+
+From the owner's checklist (2026-10-12):
+- A stronger video grabber in the browser: it now looks inside every part of the page, also the player boxes of other
+  sites embedded in it. It sees what the video actually plays, playlists recognised by their content (not only by
+  their address), the state of common web players (JW Player, Flowplayer, Clappr, Video.js, OK/VK, Vimeo), and
+  og:video tags. Stream pieces and adverts are left out. It is part of the VidChain fallbacks: with their switch off
+  the browser behaves exactly like the original app.
+- Reddit: the grabber said "No Videos Found" while the video played; it now lists it (it downloads with sound).
+- The hidden page method (W) of the fallbacks uses the same grabber.
+- A yt-dlp download stuck at "Connecting To The Server" for 5 minutes now counts as failed, so the fallbacks start
+  (before, a post whose video was gone stayed there for good).
+- yt-dlp gets the app's QuickJS as its JavaScript runtime for YouTube in methods Y and C (method N already had it).
+
+Found by the four-lane code review and fixed:
+- A web page could close the app by sending the grabber a binary message; one could flood it with fake links.
+- Crash reports are cleaned more: secrets written as JSON or "name: value", e-mail addresses and file paths are removed.
+
 ## 1.1.2
 - Checked by the full emulator test pass ([run 38187521573](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38187521573), 55 / 55).
 
