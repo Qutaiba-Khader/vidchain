@@ -87,21 +87,29 @@ object WebVideoParser {
 						}
 					}
 				} else {
-					resetVideoGrabbingButton(webviewEngine)
+					// VidChain T8.11: the page's own video requests are kept and offered (before: the list was
+					// cleared, so a site yt-dlp knows but could not read here - e.g. Reddit - showed "No Videos Found")
+					ThreadsUtility.executeOnMain { showSniffedVideos(webviewEngine) }
 				}
 			})
 		} else {
-			val currentWebVideosLibrary = webviewEngine.listOfWebVideosLibrary
-				.find { it.webViewId == webviewEngine.currentWebView?.id }
+			showSniffedVideos(webviewEngine)
+		}
+	}
 
-			if (currentWebVideosLibrary != null) {
-				val listOfAvailableVideoUrls = currentWebVideosLibrary.listOfAvailableVideoUrlInfos
-				if (listOfAvailableVideoUrls.isEmpty()) {
-					assignNoVideoLinkFoundDialog(videoGrabberButton, webviewEngine)
-				} else videoFoundIndicate(webviewEngine, listOfAvailableVideoUrls)
-			} else {
+	/** The videos the page itself loaded (request sniffing + the VidChain probe), or the "play the video first" hint. */
+	private fun showSniffedVideos(webviewEngine: WebViewEngine) {
+		val videoGrabberButton = webviewEngine.browserFragment.browserFragmentBody.videoGrabberButton
+		val currentWebVideosLibrary = webviewEngine.listOfWebVideosLibrary
+			.find { it.webViewId == webviewEngine.currentWebView?.id }
+
+		if (currentWebVideosLibrary != null) {
+			val listOfAvailableVideoUrls = currentWebVideosLibrary.listOfAvailableVideoUrlInfos
+			if (listOfAvailableVideoUrls.isEmpty()) {
 				assignNoVideoLinkFoundDialog(videoGrabberButton, webviewEngine)
-			}
+			} else videoFoundIndicate(webviewEngine, listOfAvailableVideoUrls)
+		} else {
+			assignNoVideoLinkFoundDialog(videoGrabberButton, webviewEngine)
 		}
 	}
 

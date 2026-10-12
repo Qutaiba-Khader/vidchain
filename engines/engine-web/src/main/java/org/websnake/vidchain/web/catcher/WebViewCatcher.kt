@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.webkit.CookieManager
-import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -34,16 +33,16 @@ class WebViewCatcher(private val context: Context) {
 				settings.blockNetworkImage = true
 				userAgent?.takeIf { it.isNotBlank() }?.let { settings.userAgentString = it }
 				CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-				addJavascriptInterface(object {
-					@JavascriptInterface fun report(u: String?, how: String?) = collector.offer(u, how ?: "js")
-				}, CatcherScript.BRIDGE)
+				// T8.11: the shared media probe, in every frame from document start where the WebView supports it
+				val docStart = org.websnake.vidchain.web.probe.WebProbe.attach(this, autoplay = true) { f -> collector.offer(f.url, f.how) }
+				val pageScript = if (docStart) null else org.websnake.vidchain.web.probe.WebProbe.script(autoplay = true)
 				webViewClient = object : WebViewClient() {
 					override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
 						collector.offer(request.url?.toString(), "request")
 						return null                                       // observe only, never alter the page's traffic
 					}
-					override fun onPageStarted(view: WebView, u: String?, favicon: Bitmap?) { view.evaluateJavascript(CatcherScript.JS, null) }
-					override fun onPageFinished(view: WebView, u: String?) { u?.let { finalPage = it }; view.evaluateJavascript(CatcherScript.JS, null) }
+					override fun onPageStarted(view: WebView, u: String?, favicon: Bitmap?) { pageScript?.let { view.evaluateJavascript(it, null) } }
+					override fun onPageFinished(view: WebView, u: String?) { u?.let { finalPage = it }; pageScript?.let { view.evaluateJavascript(it, null) } }
 					// a lost renderer (Android reclaims memory) must not take the app down: end this catch with what it has
 					override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
 						rendererGone.set(true)
@@ -61,7 +60,7 @@ class WebViewCatcher(private val context: Context) {
 			while (!collector.done() && !rendererGone.get()) delay(250)
 		} finally {
 			withContext(Dispatchers.Main) {
-				if (!rendererGone.get()) runCatching { webView.stopLoading(); webView.loadUrl("about:blank"); webView.removeJavascriptInterface(CatcherScript.BRIDGE); webView.destroy() }
+				if (!rendererGone.get()) runCatching { webView.stopLoading(); webView.loadUrl("about:blank"); webView.destroy() }
 			}
 		}
 		return CatchResult(collector.result().map { it.copy(page = finalPage) }, collector.sawBlob, finalPage)

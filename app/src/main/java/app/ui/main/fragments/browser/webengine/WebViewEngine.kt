@@ -151,6 +151,7 @@ class WebViewEngine(val browserFragment: BrowserFragment) {
 		currentWebView.scrollBarStyle = SCROLLBARS_INSIDE_OVERLAY
 		currentWebView.webViewClient = browserWebClient
 		currentWebView.webChromeClient = browserWebChromeClient
+		org.websnake.vidchain.app.VidChainGrabber.attach(this, currentWebView) // FALLBACK-SEAM:grabber
 		
 		currentWebView.isFocusableInTouchMode = true
 		currentWebView.isFocusable = true
