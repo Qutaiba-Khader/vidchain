@@ -50,11 +50,20 @@ class Refetcher(private val rules: DisguiseRules, private val never: RefetchPoli
 		try {
 			val code = response.code
 			// not a clean answer, or one that sets cookies (the WebView must store them by its own rules): its own request
-			if (code !in 200..299 || code == 206 || response.headers("Set-Cookie").isNotEmpty()) { response.close(); return handBack(url, gate, disguised) }
+			if (code !in 200..299 || code == 206) { response.close(); return handBack(url, gate, disguised) }
 			val body = response.body
 			val source = body.source()
 			source.request(1)                                             // the first bytes, never the whole answer
 			val head = source.buffer.let { buf -> buf.copy().readByteArray(minOf(buf.size, HEAD.toLong())) }
+			if (response.headers("Set-Cookie").isNotEmpty()) {
+				// an answer that sets cookies (a CDN's load balancer often does) is still read for a find, but the page gets
+				// its own: only the WebView may store cookies. Not a failure: the address is asked for again next time.
+				RefetchPolicy.sniff(response.header("Content-Type"), head)?.let { how ->
+					if (how != "ct") rules.learn(url); gate.found(); report(url, how)
+				}
+				response.close()
+				return null
+			}
 			if (RefetchPolicy.challenge(response.header("Content-Type"), head)) { response.close(); return handBack(url, gate, disguised) }
 			val how = RefetchPolicy.sniff(response.header("Content-Type"), head)
 			when {

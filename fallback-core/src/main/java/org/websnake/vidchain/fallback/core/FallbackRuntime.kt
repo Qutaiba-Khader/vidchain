@@ -221,7 +221,7 @@ object FallbackRuntime {
 		runCatching {
 			http.newCall(req).execute().use { r ->
 				when (r.code) {
-					206 -> r.header("Content-Range")?.trim()?.let { cr -> Regex("""^bytes 0-0/(\d+)$""").find(cr)?.groupValues?.get(1)?.toLongOrNull() }
+					206 -> r.header("Content-Range")?.trim()?.let { cr -> Regex("""^bytes\s+0-\d+/(\d+)$""", RegexOption.IGNORE_CASE).find(cr)?.groupValues?.get(1)?.toLongOrNull() }
 					else -> null
 				}
 			}

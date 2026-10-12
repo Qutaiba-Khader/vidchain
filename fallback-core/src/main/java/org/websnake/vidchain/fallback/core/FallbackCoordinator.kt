@@ -199,6 +199,8 @@ class FallbackCoordinator(
 			if (stuck) {
 				val stopped = try { withContext(hostContext) { host.stopStuck(root) } } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
 				Trace.event { TraceEvent("decision", downloadId = rootId, failureClass = v.cls.name, result = if (stopped) "stuck-parent-stopped" else "stuck-parent-not-stopped") }
+				// not paused after all: its next real failure must count as one (T8.12 review)
+				if (!stopped) ledger.recordIntent(d.id, UserIntent.RESUME, clock())
 			}
 			runChain(root, v.cls.name)
 		}

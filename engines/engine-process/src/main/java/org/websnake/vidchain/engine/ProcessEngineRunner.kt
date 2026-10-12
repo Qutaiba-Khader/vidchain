@@ -60,15 +60,16 @@ class Launcher(val setsid: String?, val sh: String) {
 	 */
 	val groups: Boolean get() = mode() != Mode.NONE
 
-	fun wrap(argv: List<String>): List<String> = when (mode()) {
+	/** [mode]: decided once per engine run, so the start and every later signal agree (T8.12 review) */
+	fun wrap(argv: List<String>, mode: Mode = mode()): List<String> = when (mode) {
 		Mode.WAIT -> listOf(setsid!!, "-w")
 		Mode.BARE -> listOf(setsid!!)
 		Mode.NONE -> emptyList()
 	} + listOf(sh, "-c", WRAPPER) + argv
 
-	private fun mode(): Mode = setsid?.let { modeOf(it, sh) } ?: Mode.NONE
+	fun mode(): Mode = setsid?.let { modeOf(it, sh) } ?: Mode.NONE
 
-	private enum class Mode { WAIT, BARE, NONE }
+	enum class Mode { WAIT, BARE, NONE }
 
 	companion object {
 		const val PGID_MARK = "__VIDCHAIN_PGID__"
@@ -123,9 +124,10 @@ class ProcessEngineRunner(
 	 */
 	suspend fun run(spec: EngineSpec, onStdout: (String) -> Unit = {}, onStderr: (String) -> Unit = {}): EngineResult = slots.withSlot {
 		val started = System.currentTimeMillis()
+		val mode = withContext(Dispatchers.IO) { launcher.mode() }      // the first call probes setsid: off the caller's thread
 		val process = try {
 			withContext(Dispatchers.IO) {
-				val pb = ProcessBuilder(launcher.wrap(spec.argv))         // first call checks setsid -w: off the caller's thread
+				val pb = ProcessBuilder(launcher.wrap(spec.argv, mode))
 				pb.environment().putAll(spec.env)
 				spec.workDir?.let { pb.directory(it) }
 				pb.redirectInput(ProcessBuilder.Redirect.from(File("/dev/null")))
@@ -174,7 +176,7 @@ class ProcessEngineRunner(
 						if (now - lastActivity.get() >= stallMs) {
 							stalledFlag.set(true)
 							log("engine stalled (${stallMs / 1000} s without progress): ${spec.argv.firstOrNull()?.substringAfterLast('/')}")
-							withContext(NonCancellable) { killGroup(process, pgid) }
+							withContext(NonCancellable) { killGroup(process, pgid, mode) }
 							break
 						}
 					}
@@ -184,10 +186,10 @@ class ProcessEngineRunner(
 				withTimeout(spec.timeoutMs) { runInterruptible(Dispatchers.IO) { process.waitFor() } }
 			} catch (e: TimeoutCancellationException) {
 				timedOut = true
-				withContext(NonCancellable) { killGroup(process, pgid) }
+				withContext(NonCancellable) { killGroup(process, pgid, mode) }
 			} catch (e: CancellationException) {
 				withContext(NonCancellable) {
-					killGroup(process, pgid)
+					killGroup(process, pgid, mode)
 					withTimeoutOrNull(killGraceMs) { readers.forEach { it.join() } }
 				}
 				log("engine cancelled: ${spec.argv.firstOrNull()?.substringAfterLast('/')}")
@@ -195,7 +197,7 @@ class ProcessEngineRunner(
 			}
 			watchdog?.cancel()
 			// whatever the engine left running in its group goes too
-			withContext(NonCancellable) { signalGroup(pgid, ExitCodes.SIGKILL) }
+			withContext(NonCancellable) { signalGroup(pgid, ExitCodes.SIGKILL, mode) }
 			if (withTimeoutOrNull(killGraceMs) { readers.forEach { it.join() } } == null) readers.forEach { it.cancel() }
 		}
 		val outcome = if (stalledFlag.get()) EngineOutcome.Failed(-1, "no progress for ${(spec.stallMs ?: 0) / 1000} s (stopped)")
@@ -211,17 +213,17 @@ class ProcessEngineRunner(
 	}
 
 	/** TERM to the group, KILL after the grace period, then the direct child as a last resort */
-	private suspend fun killGroup(process: Process, pgid: CompletableDeferred<Int?>) {
-		signalGroup(pgid, ExitCodes.SIGTERM)
+	private suspend fun killGroup(process: Process, pgid: CompletableDeferred<Int?>, mode: Launcher.Mode) {
+		signalGroup(pgid, ExitCodes.SIGTERM, mode)
 		val exited = withContext(Dispatchers.IO) { process.waitFor(killGraceMs, TimeUnit.MILLISECONDS) }
-		signalGroup(pgid, ExitCodes.SIGKILL)
+		signalGroup(pgid, ExitCodes.SIGKILL, mode)
 		if (!exited) process.destroyForcibly()
 	}
 
-	private suspend fun signalGroup(pgid: CompletableDeferred<Int?>, sig: Int) {
+	private suspend fun signalGroup(pgid: CompletableDeferred<Int?>, sig: Int, mode: Launcher.Mode) {
 		val id = withTimeoutOrNull(500) { pgid.await() } ?: return
 		// with setsid the shell's pid is its group id; without it only that pid is signalled
-		val target = if (launcher.groups) "-$id" else "$id"
+		val target = if (mode != Launcher.Mode.NONE) "-$id" else "$id"
 		withContext(Dispatchers.IO) {
 			runCatching {
 				ProcessBuilder(launcher.sh, "-c", "kill -$sig $target 2>/dev/null").redirectErrorStream(true).start().waitFor(2, TimeUnit.SECONDS)

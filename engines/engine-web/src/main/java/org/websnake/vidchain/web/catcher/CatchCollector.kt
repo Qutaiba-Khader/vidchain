@@ -21,7 +21,10 @@ class CatchCollector(
 	var sawBlob = false
 		private set
 
-	private val headersOf = HashMap<String, Map<String, String>>()
+	/** the newest 500 requests' headers (T8.12 review: an LRU, so a busy page never crowds out the media request) */
+	private val headersOf = object : LinkedHashMap<String, Map<String, String>>(64, 0.75f, true) {
+		override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Map<String, String>>?) = size > 500
+	}
 
 	/** [headers]: what the page's request for [rawUrl] carried (only network observations have them) */
 	@Synchronized
@@ -29,11 +32,9 @@ class CatchCollector(
 		val url = rawUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return
 		if (url.startsWith("blob:", ignoreCase = true)) { sawBlob = true; return }
 		if (!url.startsWith("http", ignoreCase = true)) return
-		val kind = classify(url, how)
-		if (kind == null) return
-		// headers only for media addresses (T8.12 review: every script and picture used to fill the 500 places first);
-		// a re-fetched address proven media by its body is offered again with its request's headers
-		if (headers.isNotEmpty() && headersOf.size < 500) headersOf[url] = org.websnake.vidchain.web.headers.RequestHeaders.keep(headers)
+		// every request's headers, also for an address that is proven media only later by its body or its player
+		if (headers.isNotEmpty()) headersOf[url] = org.websnake.vidchain.web.headers.RequestHeaders.keep(headers)
+		val kind = classify(url, how) ?: return
 		if (JUNK.containsMatchIn(url)) return
 		val score = when (how) {
 			"ct-hls", "ct-dash", "body-hls", "body-dash", "play" -> 95

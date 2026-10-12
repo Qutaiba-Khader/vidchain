@@ -14,7 +14,11 @@ class DisguiseRulesTest {
 				"https://c.example/x/chunklist_w1.txt", "https://c.example/f.html?file=a.m3u8", "https://c.example/f.txt?hls=1"))
 			assertEquals(u, true, r.match(u) != null)
 		for (u in listOf("https://c.example/img/logo.png", "https://c.example/css/site.css", "https://c.example/index.html",
-				"https://c.example/robots.txt", "https://c.example/api/data", "https://c.example/v/master.m3u8"))
+				"https://c.example/robots.txt", "https://c.example/api/data", "https://c.example/v/master.m3u8",
+				// ordinary files the v1 rules named (T8.12 review)
+				"https://news.example/world/live/2026/live-blog.html", "https://news.example/news/live/assets/live-page.css",
+				"https://cdn.example/vod/thumbnails/abc_001.jpg", "https://tv.example/static/streams/preview.jpg",
+				"https://c.example/live/ads.txt", "https://c.example/img/a.png?shlsk=1", "https://c.example/hls-player/skin.css"))
 			assertNull(u, r.match(u))
 	}
 

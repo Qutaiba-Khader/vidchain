@@ -33,7 +33,8 @@ object RequestHeaders {
 		for ((k, v) in headers) {
 			val name = k.trim()
 			if (!NAME.matches(name) || name.lowercase(Locale.ROOT) in DROP || v.length > MAX_VALUE || v.any { it != '\t' && (it < ' ' || it > '~') }) continue
-			if (out.size >= MAX_HEADERS || total + name.length + v.length > MAX_TOTAL) break
+			if (out.size >= MAX_HEADERS) break
+			if (total + name.length + v.length > MAX_TOTAL) continue          // a big one is left out, the small ones after it kept
 			out[name] = v
 			total += name.length + v.length
 		}

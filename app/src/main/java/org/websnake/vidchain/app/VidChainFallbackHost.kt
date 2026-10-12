@@ -77,8 +77,9 @@ object VidChainFallbackHost : FallbackHost {
 		val m = findModel(parent.id) ?: return false
 		if (m.isComplete) return false
 		if (m.isRunning) return true                     // the user resumed it meanwhile: nothing to take over (T8.12 review)
-		// the cookies captured with the download belong to its old host: they never go to another one (T8.12 review)
-		if (!sameHost(url, m.fileURL)) m.siteCookieString = ""
+		// the cookies captured with the download belong to its old host: they never go to another one, and they stay
+		// with the download for method S - so a fresh address on another host is not resumed here (T8.12 review)
+		if (!sameHost(url, m.fileURL) && m.siteCookieString.isNotBlank()) return false
 		m.fileURL = url
 		m.isFileUrlExpired = false
 		AIOApp.downloadSystem.resumeDownload(m, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))

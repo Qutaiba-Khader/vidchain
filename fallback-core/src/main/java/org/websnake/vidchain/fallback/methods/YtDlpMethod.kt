@@ -74,8 +74,11 @@ class YtDlpMethod(
 		}
 	}
 
+	/** yt-dlp's --add-header takes only these names; one other name would make it refuse the whole command */
+	private val YTDLP_NAME = Regex("^[A-Za-z0-9_-]+$")
+
 	private fun addHeaders(headers: Map<String, String>): List<String> =
 		org.websnake.vidchain.web.headers.RequestHeaders.keep(headers)
-			.filterKeys { !it.equals("User-Agent", true) && !it.equals("Referer", true) }
+			.filterKeys { !it.equals("User-Agent", true) && !it.equals("Referer", true) && YTDLP_NAME.matches(it) }
 			.flatMap { (k, v) -> listOf("--add-header", "$k:$v") }
 }
