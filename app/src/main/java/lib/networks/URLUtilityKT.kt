@@ -48,6 +48,7 @@ object URLUtilityKT {
 			.connectTimeout(30, TimeUnit.SECONDS)
 			.readTimeout(30, TimeUnit.SECONDS)
 			.writeTimeout(30, TimeUnit.SECONDS)
+			.callTimeout(90, TimeUnit.SECONDS) // T8.13: a server sending a byte now and then held one fetch for good
 			.build()
 	}
 

@@ -1678,13 +1678,19 @@ class DownloadDataModel : Serializable {
 	 * Copies file to secure directory and updates database records.
 	 */
 	fun moveToPrivateFolder(onError: (String) -> Unit, onSuccess: () -> Unit) {
-		ThreadsUtility.executeInBackground(codeBlock = {
+		// T8.13 (inherited bug fix): a copy longer than the 30 s job limit lost onSuccess, and a failed copy reached
+		// neither callback, so the "Moving" dialog (no button, not cancelable) stayed until the app was killed
+		val answered = java.util.concurrent.atomic.AtomicBoolean(false) // T8.13: one answer only (the error path never after a success)
+		ThreadsUtility.executeInBackground(timeOutInMilli = org.websnake.vidchain.app.VidChainWaits.MOVE_FILE_MS, errorHandler = { error ->
+			if (answered.compareAndSet(false, true))
+				android.os.Handler(android.os.Looper.getMainLooper()).post { onError.invoke(error.message ?: "Moving the file failed.") }
+		}, codeBlock = {
 			logger.d("moveToPrivateFolder: Starting migration for $fileName")
 			
 			// Validate download is complete
 			if (status != DownloadStatus.COMPLETE) {
 				logger.d("moveToPrivateFolder: Download not complete - status: $status")
-				ThreadsUtility.executeOnMain { onError.invoke("Download is not completed.") }
+				ThreadsUtility.executeOnMain { if (answered.compareAndSet(false, true)) onError.invoke("Download is not completed.") }
 				return@executeInBackground
 			}
 			
@@ -1715,7 +1721,7 @@ class DownloadDataModel : Serializable {
 			updateInStorage()
 			
 			logger.d("moveToPrivateFolder: Successfully migrated $fileName to private storage")
-			ThreadsUtility.executeOnMain { onSuccess.invoke() }
+			ThreadsUtility.executeOnMain { if (answered.compareAndSet(false, true)) onSuccess.invoke() }
 		})
 	}
 	
@@ -1724,13 +1730,19 @@ class DownloadDataModel : Serializable {
 	 * Copies file to system downloads/gallery directory and updates records.
 	 */
 	fun moveToSysGalleryFolder(onError: (String) -> Unit, onSuccess: () -> Unit) {
-		ThreadsUtility.executeInBackground(codeBlock = {
+		// T8.13 (inherited bug fix): a copy longer than the 30 s job limit lost onSuccess, and a failed copy reached
+		// neither callback, so the "Moving" dialog (no button, not cancelable) stayed until the app was killed
+		val answered = java.util.concurrent.atomic.AtomicBoolean(false) // T8.13: one answer only (the error path never after a success)
+		ThreadsUtility.executeInBackground(timeOutInMilli = org.websnake.vidchain.app.VidChainWaits.MOVE_FILE_MS, errorHandler = { error ->
+			if (answered.compareAndSet(false, true))
+				android.os.Handler(android.os.Looper.getMainLooper()).post { onError.invoke(error.message ?: "Moving the file failed.") }
+		}, codeBlock = {
 			logger.d("moveToSysGalleryFolder: Starting migration for $fileName")
 			
 			// Validate download is complete
 			if (status != DownloadStatus.COMPLETE) {
 				logger.d("moveToSysGalleryFolder: Download not complete - status: $status")
-				ThreadsUtility.executeOnMain { onError.invoke("Download is not completed.") }
+				ThreadsUtility.executeOnMain { if (answered.compareAndSet(false, true)) onError.invoke("Download is not completed.") }
 				return@executeInBackground
 			}
 			
@@ -1756,7 +1768,7 @@ class DownloadDataModel : Serializable {
 			updateInStorage()
 			
 			logger.i("moveToSysGalleryFolder: Successfully migrated $fileName to system gallery")
-			ThreadsUtility.executeOnMain { onSuccess.invoke() }
+			ThreadsUtility.executeOnMain { if (answered.compareAndSet(false, true)) onSuccess.invoke() }
 		})
 	}
 	

@@ -53,14 +53,15 @@ object VideoParserUtility {
 	@JvmStatic
 	fun getYtdlpVideoFormatsWithRetry(
 		url: String,
-		cookie: String? = null, retryLimit: Int = 1
+		cookie: String? = null, retryLimit: Int = 1,
+		processId: String? = null // T8.13: lets the caller stop yt-dlp when its wait ends
 	): List<VideoFormat> {
 		var attempts = 0 // Initialize attempt counter
 		var videoFormats: List<VideoFormat>
 		// Loop to attempt fetching video formats
 		do {
 			// Fetch the list of video formats
-			videoFormats = getYtdlpVideoFormatsList(url, cookie)
+			videoFormats = getYtdlpVideoFormatsList(url, cookie, processId)
 			attempts++ // Increment the attempt counter
 			// Continue retrying if the list is empty and the attempt limit has not been reached
 		} while (videoFormats.isEmpty() && attempts < retryLimit)
@@ -207,7 +208,7 @@ object VideoParserUtility {
 	 *         list if the extraction fails or no formats are found.
 	 */
 	@JvmStatic
-	private fun getYtdlpVideoFormatsList(url: String, cookie: String? = null): List<VideoFormat> {
+	private fun getYtdlpVideoFormatsList(url: String, cookie: String? = null, processId: String? = null): List<VideoFormat> {
 		try {
 			logger.d(
 				"Retrieving video formats list for URL: '$url'. " +
@@ -250,7 +251,13 @@ object VideoParserUtility {
 			request.addOption("--playlist-items", "1") // Process only the first item in a playlist.
 			
 			// Execute the command and get the raw output.
-			val response = ytdlpInstance.execute(request).out
+			// T8.13: the cookie file is removed also when yt-dlp is stopped or fails (it stayed in the app's storage)
+			val response = try {
+				ytdlpInstance.execute(request, processId).out // T8.13: processId (null = as before)
+			} catch (error: Exception) {
+				temporaryCookieFile.delete()
+				throw error
+			}
 			
 			// Parse the raw output into a list of VideoFormat objects.
 			val videoFormats = VideoFormatsUtils.getVideoFormatsList(response)

@@ -223,29 +223,44 @@ class IntentInterceptActivity : BaseActivity() {
 			loadingMessage = getString(R.string.title_analyzing_url_please_wait),
 		)
 
+		// T8.13 (inherited bug fix): the fetches below block, so the 30 s job limit never ended this wait (about 6 min
+		// when the site does not answer); the deadline ends it like the app's own "server busy" path
+		val deadline = org.websnake.vidchain.app.VidChainWaits.Deadline(org.websnake.vidchain.app.VidChainWaits.SOCIAL_MS) {
+			waitingDialog.close()
+			activityRef.doSomeVibration(50)
+			showToast(activityInf = activityRef, msgId = R.string.title_server_busy_opening_browser)
+			forwardIntentToMotherActivity(dontParseURLAnymore = true)
+			org.websnake.vidchain.app.VidChainShareRescue.rescue(activityRef, intentUrl, null) // FALLBACK-SEAM:share-social-timeout
+		}
+
 		// Setup waiting dialog "Okay" button click handler
 		waitingDialog.dialogBuilder?.setOnClickForPositiveButton {
 			logger.d("WaitingDialog: User cancelled analyzing process.")
+			deadline.settle() // T8.13
 			waitingDialog.close()
 			isParsingTitleFromUrlAborted = true
 			closeActivityWithFadeAnimation(shouldAnimate = true)
 		}
 
 		waitingDialog.show()
+		deadline.start() // T8.13
 		logger.d("WaitingDialog: Displayed analyzing message.")
 
 		// Perform background parsing for social media URLs
 		ThreadsUtility.executeInBackground(codeBlock = {
 			logger.d("Background Task: Fetching HTML content for URL.")
 			val htmlBody = fetchWebPageContent(url = intentUrl, retry = true, numOfRetry = 3)
+			if (deadline.isSettled) return@executeInBackground // T8.13: the wait has ended, fetch nothing more
 
 			logger.d("Background Task: Parsing thumbnail URL.")
 			val thumbnailUrl = startParsingVideoThumbUrl(videoUrl = intentUrl, userGivenHtmlBody = htmlBody)
+			if (deadline.isSettled) return@executeInBackground // T8.13
 
 			logger.d("Background Task: Extracting webpage title or description.")
 			getWebpageTitleOrDescription(
 				websiteUrl = intentUrl, userGivenHtmlBody = htmlBody
 			) { resultedTitle ->
+				if (!deadline.settle()) return@getWebpageTitleOrDescription // T8.13: ended already (deadline or Cancel)
 
 				// Close the waiting dialog in UI thread
 				logger.d("Background Task: Parsing completed. Closing waiting dialog.")
@@ -286,10 +301,11 @@ class IntentInterceptActivity : BaseActivity() {
 						val stringResId = R.string.title_server_busy_opening_browser
 						showToast(activityInf = activityRef, msgId = stringResId)
 						forwardIntentToMotherActivity(dontParseURLAnymore = true)
+						if (validIntentUrl == false) org.websnake.vidchain.app.VidChainShareRescue.rescue(activityRef, intentUrl, null) // FALLBACK-SEAM:share-social-empty
 					}
 				}
 			}
-		})
+		}, errorHandler = { deadline.expireNow() }) // T8.13: an error ends the wait at once
 	}
 
 	/**
@@ -314,7 +330,8 @@ class IntentInterceptActivity : BaseActivity() {
 			closeActivityOnSuccessfulDownload = true,
 			onOpeningBuiltInBrowser = {
 				logger.d("interceptNonSocialMediaUrl: Opening browser as fallback.")
-				forwardIntentToMotherActivity()
+				// T8.13: open the page; without the flag the main screen analysed a YouTube link again (a second wait)
+				forwardIntentToMotherActivity(dontParseURLAnymore = true)
 			}
 		)
 

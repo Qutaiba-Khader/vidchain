@@ -150,19 +150,34 @@ class VideoLinkPasteEditor(
 							dialog.dismiss()
 						}
 					); waitingDialog.show()
+					// T8.13 (inherited bug fix): the blocking fetches outlived the 30 s job limit; end the wait at a
+					// deadline the way the app's own "server busy" path does
+					val deadline = org.websnake.vidchain.app.VidChainWaits.Deadline(org.websnake.vidchain.app.VidChainWaits.SOCIAL_MS) {
+						waitingDialog.close()
+						safeActivity.doSomeVibration(50)
+						showToast(activityInf = safeActivity, msgId = R.string.title_server_busy_opening_browser)
+						safeActivity.browserFragment?.getBrowserWebEngine()?.let {
+							safeActivity.sideNavigation?.addNewBrowsingTab(userGivenURL, it)
+							safeActivity.openBrowserFragment()
+						}
+					}.start()
+					org.websnake.vidchain.app.VidChainWaits.onCancel(waitingDialog) { deadline.settle() } // a late result is then ignored
 
 					ThreadsUtility.executeInBackground(codeBlock = {
 						val htmlBody = fetchWebPageContent(userGivenURL, true)
 						logger.d("Fetched HTML content for URL: $userGivenURL")
+						if (deadline.isSettled) return@executeInBackground // T8.13
 
 						val thumbnailUrl = startParsingVideoThumbUrl(userGivenURL, htmlBody)
 						logger.d("Parsed thumbnail URL: ${thumbnailUrl ?: "none"}")
+						if (deadline.isSettled) return@executeInBackground // T8.13
 
 						getWebpageTitleOrDescription(
 							userGivenURL,
 							userGivenHtmlBody = htmlBody
 						) { resultedTitle ->
-							waitingDialog.close()
+							if (!deadline.settle()) return@getWebpageTitleOrDescription // T8.13
+							executeOnMainThread { waitingDialog.close() } // T8.13: was closed off the main thread
 							if (!resultedTitle.isNullOrEmpty() && !isParsingTitleFromUrlAborted) {
 								logger.d("Extracted title: $resultedTitle")
 								executeOnMainThread {
@@ -195,7 +210,7 @@ class VideoLinkPasteEditor(
 								}
 							}
 						}
-					})
+					}, errorHandler = { deadline.expireNow() }) // T8.13
 				} else {
 					logger.d("Direct video URL detected. Starting interception.")
 					startParingVideoURL(safeActivity)

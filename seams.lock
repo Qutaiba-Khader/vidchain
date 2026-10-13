@@ -26,6 +26,9 @@
 #                                            the file also carries owner changes declared in CHANGES.md)
 #   SharedVideoURLIntercept.kt share-rejected link not on the app's list: VidChain asks yt-dlp (picker if found)
 #   SharedVideoURLIntercept.kt share-empty   the app's analysis found no formats: the same yt-dlp rescue
+#   SharedVideoURLIntercept.kt share-timeout the analysis ran past its deadline or failed (T8.13): the same yt-dlp rescue
+#   IntentInterceptActivity.kt share-social-timeout  a social link's page analysis ran past its deadline (T8.13): the same rescue
+#   IntentInterceptActivity.kt share-social-empty    a social link's page gave no title (the app opens the browser, T8.13): the same rescue
 #   IntentInterceptActivity.kt share-entry   a shared magnet / torrent link (chain B6, aria2c) or a text with a link in it
 #                                            (continues in the same share screen as that link, T8.10), before the app rejects it as "Invalid URL" (T6.2)
 #   WebViewEngine.kt         grabber       VidChainGrabber.attach(...) after the WebView clients are set: the media probe in every frame (T8.11)

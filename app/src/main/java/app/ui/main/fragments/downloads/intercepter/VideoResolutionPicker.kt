@@ -219,12 +219,23 @@ class VideoResolutionPicker(
 			return
 		}
 
+		// T8.13 (inherited bug fix): Download is refused until a title exists, and a page that does not answer held the
+		// title fetch (up to 4 attempts of 30 s) for minutes; after 20 s the title is made up from the format instead
+		val titleDeadline = org.websnake.vidchain.app.VidChainWaits.Deadline(org.websnake.vidchain.app.VidChainWaits.TITLE_MS) {
+			if (videoInfo.videoTitle.isNullOrEmpty()) {
+				closeAnyAnimation(videoTitleView)
+				videoTitleView.isSelected = true
+				updateTitleByFormatId(videoTitleView)
+			}
+		}.start()
+
 		// Fetch title from webpage asynchronously
 		executeInBackground(codeBlock = {
 			logger.d("Fetching video title from webpage: ${videoInfo.videoUrl}")
 			executeOnMain { animateFadInOutAnim(videoTitleView) }
 			val websiteUrl = videoInfo.videoUrlReferer ?: videoInfo.videoUrl
 			getWebpageTitleOrDescription(websiteUrl) { fetchedUrlTitle ->
+				if (!titleDeadline.settle()) return@getWebpageTitleOrDescription // T8.13: a title was made up already
 				executeOnMainThread {
 					videoTitleView.isSelected = true
 					closeAnyAnimation(videoTitleView)

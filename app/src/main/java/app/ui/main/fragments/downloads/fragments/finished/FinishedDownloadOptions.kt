@@ -575,13 +575,22 @@ class FinishedDownloadOptions(finishedFragment: FinishedTasksFragment?) : OnClic
 			activityRef.runCodeOnAttachedThread(isUIThread = false) {
 				val msgId = R.string.title_fixing_mp4_done_successfully
 				executeOnMainThread { waitingDialog.show() }
-				moveMoovAtomToStart(destinationFile, destinationFile)
-				val safeActivity = getSafeActivity()
-				if (safeActivity != null) {
-					executeOnMainThread {
-						showToast(safeActivity, msgId)
-						waitingDialog.close()
+				try {
+					moveMoovAtomToStart(destinationFile, destinationFile)
+					val safeActivity = getSafeActivity()
+					if (safeActivity != null) {
+						executeOnMainThread {
+							showToast(safeActivity, msgId)
+							waitingDialog.close()
+						}
 					}
+				} catch (error: Exception) {
+					// T8.13 (inherited bug fix): a failed fix crashed the app (the error left the coroutine unhandled)
+					logger.e("Error in fixing unseekable mp4 file:", error)
+					executeOnMainThread { getSafeActivity()?.let { showToast(it, R.string.title_something_went_wrong) } }
+				} finally {
+					// T8.13 (inherited bug fix): a failed fix left the dialog (no button, not cancelable) up for good
+					executeOnMainThread { waitingDialog.close() }
 				}
 			}
 		}
@@ -607,7 +616,7 @@ class FinishedDownloadOptions(finishedFragment: FinishedTasksFragment?) : OnClic
 				executeMovingFile(waitingDialog, destinationFile)
 			} catch (error: Exception) {
 				logger.e("Error in fixing unseekable mp4 file:", error)
-				executeOnMainThread { waitingDialog.show() }
+				executeOnMainThread { waitingDialog.close() } // T8.13 (inherited bug fix): it showed the dialog instead
 			}
 
 		}

@@ -84,6 +84,13 @@ class SharedVideoURLIntercept(
 	 */
 	private var shouldOpenBrowserAsFallback = true
 	
+	/** T8.13: ends the "Analyzing URL" wait at a fixed time even while yt-dlp or NewPipe still blocks */
+	@Volatile
+	private var analysisDeadline: org.websnake.vidchain.app.VidChainWaits.Deadline? = null
+	
+	/** T8.13: the format lookup's yt-dlp process, stopped when the wait ends (deadline or Cancel) */
+	private val ytdlpProcessId = "vidchain-analyze-${System.nanoTime()}"
+	
 	/**
 	 * Initiates the interception and analysis of a shared video URL.
 	 *
@@ -146,7 +153,36 @@ class SharedVideoURLIntercept(
 			}
 		)
 		
+		// T8.13 (inherited bug fix): the dialog's Cancel button removed the cancel listener above before it could run,
+		// so Cancel only hid the dialog: the share screen stayed and the result appeared later anyway
+		interceptWaitingDialog?.let { waitingDialog ->
+			org.websnake.vidchain.app.VidChainWaits.onCancel(waitingDialog) {
+				analysisDeadline?.settle()
+				stopYtdlpLookup()
+				onCancelInterceptRequested(waitingDialog) // closes the dialog and the share screen
+			}
+		}
 		logger.d("Waiting dialog initialized successfully")
+	}
+	
+	/** T8.13: stops the format lookup's yt-dlp process, if one runs */
+	private fun stopYtdlpLookup() {
+		runCatching { com.yausername.youtubedl_android.YoutubeDL.getInstance().destroyProcessById(ytdlpProcessId) }
+	}
+	
+	/**
+	 * T8.13: the wait ended without a result (deadline, or the analysis failed): close the dialog, stop yt-dlp and go
+	 * on the way the app does when no format is found. Replaces the T8.9 error path, which ran only after the
+	 * blocking call returned.
+	 */
+	private fun endAnalysisWithoutResult(waitingDialog: WaitingDialog, targetVideoUrl: String) {
+		runCatching { waitingDialog.close() }
+		isInterceptingInProcess = false
+		isInterceptingTerminated = true
+		stopYtdlpLookup()
+		org.websnake.vidchain.app.VidChainShareRescue.rescue(safeBaseActivityRef, targetVideoUrl, userGivenVideoInfo?.videoCookie) // FALLBACK-SEAM:share-timeout
+		if (shouldOpenBrowserAsFallback) runCatching { openInBuiltInBrowser(targetVideoUrl) }
+		else showToast(activityInf = safeBaseActivityRef, msgId = R.string.title_no_video_found_try_later)
 	}
 	
 	/**
@@ -205,13 +241,17 @@ class SharedVideoURLIntercept(
 			// Show waiting dialog and mark process as active
 			waitingDialog.show()
 			isInterceptingInProcess = true
+			val deadline = org.websnake.vidchain.app.VidChainWaits.Deadline { endAnalysisWithoutResult(waitingDialog, targetVideoUrl) }
+			analysisDeadline = deadline.start() // T8.13
 			
 			// Execute network and parsing logic on background thread
-			ThreadsUtility.executeInBackground(codeBlock = {
+			// T8.13: the job limit is the deadline's plus a margin, so a result that arrives in time is not thrown away
+			ThreadsUtility.executeInBackground(timeOutInMilli = org.websnake.vidchain.app.VidChainWaits.ANALYSIS_MS + 5_000, codeBlock = {
 				// Handle unsupported yt-dlp URLs
 				if (!isYtdlpSupportedUrl(targetVideoUrl)) {
 					logger.d("URL not supported by yt-dlp: $targetVideoUrl")
 					ThreadsUtility.executeOnMain {
+						if (!deadline.settle()) return@executeOnMain // T8.13: the wait already ended
 						waitingDialog.close()
 						isInterceptingInProcess = false // T8.7 d: the original never cleared it on this path
 						safeBaseActivityRef?.doSomeVibration(50)
@@ -229,13 +269,9 @@ class SharedVideoURLIntercept(
 				logger.d("Supported URL detected — initiating yt-dlp analysis")
 				startAnalyzingVideoUrl(targetVideoUrl)
 			}, errorHandler = {
-				// T8.9 (inherited bug fix): a failed or timed-out analysis (30 s job limit) left the non-cancelable
-				// "Analyzing URL" dialog on screen for good; close it and offer the page in the browser instead
-				android.os.Handler(android.os.Looper.getMainLooper()).post {
-					runCatching { waitingDialog.close() }
-					isInterceptingInProcess = false
-					if (!isInterceptingTerminated) runCatching { openInBuiltInBrowser(targetVideoUrl) }
-				}
+				// T8.9 (inherited bug fix): a failed or timed-out analysis left the non-cancelable "Analyzing URL" dialog
+				// on screen for good; T8.13: it ends the wait at once (endAnalysisWithoutResult) unless it already ended
+				deadline.expireNow()
 			})
 		} ?: logger.d("No waiting dialog initialized — interception aborted")
 	}
@@ -284,7 +320,7 @@ class SharedVideoURLIntercept(
 				getYoutubeVideoResolutionsFrom(ytStreamInfo)
 			} else {
 				logger.d("Fetching video formats via yt-dlp for: $videoUrl")
-				ArrayList(getYtdlpVideoFormatsWithRetry(videoUrl, videoCookie))
+				ArrayList(getYtdlpVideoFormatsWithRetry(videoUrl, videoCookie, processId = ytdlpProcessId)) // T8.13: processId
 			}
 			org.websnake.vidchain.app.VidChainFormats.refineYouTube(videoUrl, videoCookie, videoFormats) // FALLBACK-SEAM:yt-sizes
 			
@@ -304,6 +340,7 @@ class SharedVideoURLIntercept(
 			// Step 5: Switch to main thread to update UI
 			ThreadsUtility.executeOnMain(codeBlock = {
 				logger.d("Video analysis complete — preparing UI update")
+				if (analysisDeadline?.settle() == false) return@executeOnMain // T8.13: the wait already ended (deadline or Cancel)
 				interceptWaitingDialog?.let { waitingDialog ->
 					waitingDialog.close()
 					isInterceptingInProcess = false

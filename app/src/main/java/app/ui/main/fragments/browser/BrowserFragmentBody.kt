@@ -151,15 +151,25 @@ class BrowserFragmentBody(val browserFragment: BrowserFragment) {
                     dialog.dismiss()
                 }
             ); waitingDialog.show()
+            // T8.13 (inherited bug fix): the blocking fetches outlived the 30 s job limit; end the wait at a deadline
+            val deadline = org.websnake.vidchain.app.VidChainWaits.Deadline(org.websnake.vidchain.app.VidChainWaits.SOCIAL_MS) {
+                waitingDialog.close()
+                safeMotherActivityRef.doSomeVibration(50)
+                showToast(activityInf = safeMotherActivityRef, msgId = R.string.title_server_busy_opening_browser)
+            }.start()
+            org.websnake.vidchain.app.VidChainWaits.onCancel(waitingDialog) { deadline.settle() } // a late result is then ignored
 
             ThreadsUtility.executeInBackground(codeBlock = {
                 val htmlBody = fetchWebPageContent(intentURL, true)
+                if (deadline.isSettled) return@executeInBackground // T8.13
                 val thumbnailUrl = startParsingVideoThumbUrl(intentURL, htmlBody)
+                if (deadline.isSettled) return@executeInBackground // T8.13
                 getWebpageTitleOrDescription(
                     intentURL,
                     userGivenHtmlBody = htmlBody
                 ) { resultedTitle ->
-                    waitingDialog.close()
+                    if (!deadline.settle()) return@getWebpageTitleOrDescription // T8.13
+                    executeOnMainThread { waitingDialog.close() } // T8.13: was closed off the main thread
                     if (!resultedTitle.isNullOrEmpty() && !isParsingTitleFromUrlAborted) {
                         executeOnMainThread {
                             SingleResolutionPrompter(
@@ -185,7 +195,7 @@ class BrowserFragmentBody(val browserFragment: BrowserFragment) {
                         }
                     }
                 }
-            })
+            }, errorHandler = { deadline.expireNow() }) // T8.13
         } else {
             // Handle YouTube or generic URLs
             if (IS_ULTIMATE_VERSION_UNLOCKED && isYouTubeUrl(intentURL)) {

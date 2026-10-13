@@ -374,6 +374,10 @@ public class URLUtility {
 			URLConnection urlConnection = new URL(fileURL).openConnection();
 			HttpURLConnection connection = (HttpURLConnection) urlConnection;
 			connection.setInstanceFollowRedirects(false);
+			// T8.13 (inherited bug fix): no timeouts here meant a server that never answers kept every new download on
+			// "Filtering URL" for good (Java's default is to wait forever); on a timeout the download goes on unchanged
+			connection.setConnectTimeout(30_000);
+			connection.setReadTimeout(60_000);
 			int responseCode = connection.getResponseCode();
 			if (responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
 					responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||

@@ -22,6 +22,7 @@ import org.websnake.vidchain.ytdlp.YtDlpFormats
  */
 object VidChainFormats {
 	// T8.9: the app's analysis job ends at 30 s in all (ThreadsUtility); the size lookup must fit inside it
+	// (T8.13: the wait now ends at VidChainWaits.ANALYSIS_MS = 40 s, the job at 45 s)
 	private const val LOOKUP_MS = 12_000L
 
 	@JvmStatic
