@@ -4,6 +4,25 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## 1.1.5
+- Checked by the full emulator test pass ([run 38442777392](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38442777392), 55 / 55).
+
+Owner's report (2026-10-13): a shared X link stayed on "Analyzing URL, Please Wait..." for good.
+- The cause: links from X, Instagram, Facebook and TikTok go through the original app's own page check, which read the page
+  up to 11 times, 30 s each, under a 30 s limit that could not stop it. When X did not answer, the dialog stayed about
+  6 minutes (measured on an Android 11 phone). Now every "Analyzing URL" wait ends by itself: after 60 s for these
+  links, 40 s for others. The link then opens in the browser, as the app already did when its check failed, and
+  VidChain also looks the video up itself when the fallbacks are on. A slow but working X page still shows the picker.
+- Cancel on "Analyzing URL" now really cancels: the share screen closes and no result pops up later; the yt-dlp lookup
+  behind it is stopped.
+
+Found by the review (the original app's own bugs):
+- "Moving To Private Folder" / "Moving To Gallery Folder" stayed on screen for good when the copy failed or took more
+  than 30 s, and "Fixing MP4" when the fix failed (it could also close the app).
+- A new download could stay on "Filtering URL" for good: the redirect check had no network time limit.
+- The resolution picker refused Download until the page title arrived, which could take minutes; after 35 s it now
+  makes up the title the way it already did when no title was found.
+
 ## 1.1.4
 - Checked by the full emulator test pass ([run 38241779554](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38241779554), 55 / 55).
 
