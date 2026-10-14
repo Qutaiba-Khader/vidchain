@@ -52,6 +52,10 @@ object WebVideoParser {
 
 		// Handle YTDLP supported URLs
 		if (isYtdlpSupportedUrl(webpageUrl) && !isHostOnly(webpageUrl)) {
+			// T9 decision 6: the page is fetched once per address, not on every 200 ms browser tick (it was about 5
+			// page requests a second on YouTube, Instagram, X... while the page was open)
+			if (webpageUrl == checkedUrl) return
+			checkedUrl = webpageUrl
 			ThreadsUtility.executeInBackground(codeBlock = {
 				val thumbnailUrl = startParsingVideoThumbUrl(webpageUrl)
 				if (!thumbnailUrl.isNullOrEmpty() || isYtdlpSupportedUrlPattern(webpageUrl)) {
@@ -93,8 +97,19 @@ object WebVideoParser {
 				}
 			})
 		} else {
+			checkedUrl = null
 			showSniffedVideos(webviewEngine)
 		}
+	}
+
+	/** T9 decision 6: the address whose page was last checked (its button state stands until the address changes) */
+	@Volatile private var checkedUrl: String? = null
+
+	/** T9: check the current page again (the VidChain grabber found its first video on it) */
+	@JvmStatic
+	fun refresh(webpageUrl: String?, webviewEngine: WebViewEngine) {
+		checkedUrl = null
+		analyzeUrl(webpageUrl, webviewEngine)
 	}
 
 	/** The videos the page itself loaded (request sniffing + the VidChain probe), or the "play the video first" hint. */

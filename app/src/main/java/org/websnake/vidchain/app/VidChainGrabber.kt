@@ -98,7 +98,7 @@ object VidChainGrabber {
 				isM3U8 = kind == MediaCandidate.Kind.HLS, totalResolutions = 0, fileDuration = 0L))
 		}
 		if (wasEmpty && engine.currentWebView === view) main.postDelayed({
-			runCatching { if (engine.currentWebView === view) view.url?.let { WebVideoParser.analyzeUrl(it, engine) } }
+			runCatching { if (engine.currentWebView === view) view.url?.let { WebVideoParser.refresh(it, engine) } }
 		}, 800)
 	}
 

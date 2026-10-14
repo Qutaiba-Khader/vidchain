@@ -297,15 +297,19 @@ open class RegularDownloadPart(private val regularDownloader: RegularDownloader)
 				logger.d("Connected to URL ${downloadDataModel.fileURL} with range $fileByteRange")
 
 				// Download loop
-				val bufferSize = downloadDataModel.globalSettings.downloadBufferSize
+				// T9 decision 7: a 256 KB buffer at least (the setting was 8 KB: one file write per 8 KB), and the
+				// destination is checked every 4 MB instead of before every read; no log text built per read
+				val bufferSize = maxOf(downloadDataModel.globalSettings.downloadBufferSize, 256 * 1024)
 				val buffer = ByteArray(bufferSize)
 				var fetchedBytes = 0
 				val startTime = System.currentTimeMillis()
+				var sinceCheck = 0L
 
 				while (
-					!isServerConnectionTerminated && destinationFile.exists() &&
+					!isServerConnectionTerminated && (sinceCheck < 4L * 1024 * 1024 || destinationFile.exists().also { sinceCheck = 0 }) &&
 					inputStream.read(buffer).also { fetchedBytes = it } != -1
 				) {
+					sinceCheck += fetchedBytes
 					limitDownloadSpeed(startTime, fetchedBytes)
 
 					if (isSingleThreaded()) {
@@ -318,7 +322,6 @@ open class RegularDownloadPart(private val regularDownloader: RegularDownloader)
 						if (partDownloadedByte >= partChunkSize) break
 					}
 
-					logger.d("Part $partIndex downloaded $partDownloadedByte / $partChunkSize bytes")
 				}
 
 				inputStream.close()

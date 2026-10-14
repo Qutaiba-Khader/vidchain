@@ -456,7 +456,8 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 		aioTimer // T9 decision 4: created here, on the main thread
 		org.websnake.vidchain.fallback.core.FallbackSeams.appStarted(this, org.websnake.vidchain.app.VidChainFallbackHost) // FALLBACK-SEAM:start
 		initializeObjectBoxDB(INSTANCE)
-		initializeSupabaseClient()
+		// T9 decision 7: the login client (login itself was removed, CHANGES.md T8.2) is no longer built on the main thread
+		Thread({ runCatching { initializeSupabaseClient() } }, "vidchain-supabase").start()
 		aioBackend.initParseBackend()
 		
 		startupManager.apply {
@@ -984,6 +985,8 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 	 * @see executeInBackground for the asynchronous execution wrapper.
 	 */
 	fun initializeYtDLP() {
+		// T9 decision 7: once per launch (every screen resume used to call it), the network update at most once a day
+		if (!org.websnake.vidchain.app.VidChainOnce.first("ytdlp-init")) return
 		executeInBackground(timeOutInMilli = 12000, codeBlock = {
 			try {
 				logger.d("Initializing YouTube-DL and FFmpeg libraries...")
@@ -994,12 +997,13 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 				ytdlpInstance = getInstance()
 				
 				// Conditional binary updates based on network availability
-				if (isInternetConnected()) {
+				if (isInternetConnected() && org.websnake.vidchain.app.VidChainOnce.due(this, "ytdlp-update", 24 * 3_600_000L)) {
 					logger.d("Updating YouTube-DL binaries...")
 					getInstance().updateYoutubeDL(INSTANCE)
 				} // No else needed, skipping is the default action
 			} catch (error: Exception) {
 				logger.e("Error initializing YouTube-DL/FFmpeg: ${error.message}", error)
+				org.websnake.vidchain.app.VidChainOnce.reset("ytdlp-init") // T9: a failed set-up is tried again on the next screen
 			}
 			
 			// Store the instance for global access (also when initialisation failed, as before; the same singleton)

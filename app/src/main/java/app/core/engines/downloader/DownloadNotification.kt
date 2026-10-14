@@ -93,6 +93,9 @@ class DownloadNotification {
 		}
 
 		// Update the progress notification with current download state
+		// T9 decision 7: at most once a second while it runs (a status change or the end at once)
+		if (!org.websnake.vidchain.app.VidChainSaveThrottle.notifyNow(downloadDataModel.downloadId, downloadDataModel.status,
+				downloadDataModel.isRunning && !downloadDataModel.isComplete)) return
 		updateDownloadProgress(downloadDataModel)
 	}
 

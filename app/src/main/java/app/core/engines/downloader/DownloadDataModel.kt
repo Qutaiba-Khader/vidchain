@@ -974,6 +974,10 @@ class DownloadDataModel : Serializable {
 	 */
 	@Synchronized
 	fun updateInStorage() {
+		// T9 decision 7: while a download runs with an unchanged status its progress is saved at most every 2.5 s (it
+		// was about 4 times a second: two files, the cookie file and a database row each time); a status change or the
+		// end saves at once, and the last progress is always saved by the delayed save
+		if (!org.websnake.vidchain.app.VidChainSaveThrottle.saveNow(downloadId, status, isRunning) { updateInStorage() }) return
 		logger.d("Starting storage update for download ID: $downloadId")
 		ThreadsUtility.executeInBackground(codeBlock = {
 			// Validate that the model has essential data before saving

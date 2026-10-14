@@ -414,7 +414,7 @@ abstract class BaseActivity : LocaleActivityImpl(), BaseActivityInf {
 			// Refresh ad-blocking filters to ensure up-to-date protection
 			// Maintains effective ad-blocking with latest filter definitions
 			logger.d("Fetching latest ad-blocker filters for updated protection")
-			aioAdblocker.fetchAdFilters()
+			if (org.websnake.vidchain.app.VidChainOnce.first("ad-filters")) aioAdblocker.fetchAdFilters() // T9 decision 7: once per launch
 			
 			// Register base-activity at download UI manager for proper UI updates
 			// Ensures download progress and status are properly displayed
