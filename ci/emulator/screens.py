@@ -75,8 +75,8 @@ report, problems_total = [], 0
 screen_size = tuple(map(int, re.search(r"(\d+)x(\d+)", sh("wm size").split("Override")[-1]).groups()))
 
 
-def look(name):
-    """screenshot + dump + overlap check of what is on screen now"""
+def look(name, spinner=False):
+    """screenshot + dump + overlap check of what is on screen now ([spinner]: a busy dialog that may not be dumped)"""
     global problems_total
     time.sleep(1.5)
     xml = dump()
@@ -84,14 +84,19 @@ def look(name):
     (OUT / f"{name}.xml").write_text(xml)
     (OUT / f"{name}.insets.txt").write_text("\n".join(l for l in win.splitlines() if "InsetsSource" in l or "mCurrentFocus" in l))
     subprocess.run(f"adb exec-out screencap -p > '{OUT / (name + '.png')}'", shell=True, timeout=60)
-    if "<hierarchy" not in xml:                   # no dump (the screen never went idle): screenshot only, not judged
-        probs, system, titles = [], {}, []
-        print(f"{name}: no UI dump (screen never idle), screenshot only", flush=True)
+    if "<hierarchy" not in xml:
+        # no dump: a screen with a spinner never goes idle (allowed for the analysis dialog only); anything else not
+        # checked is a failure, never a silent pass (the first survey "passed" 60 screens it could not read)
+        probs = [] if spinner else ["not checked: no UI dump"]
+        system, titles = {}, []
+        print(f"{name}: no UI dump{' (spinner, allowed)' if spinner else ''}", flush=True)
     else:
         try:
             probs, system, titles = overlap.check(xml, win, PKG)
         except Exception as e:                    # an unreadable dump is reported, not fatal
             probs, system, titles = [f"check failed: {e}"], {}, []
+        if not system.get("statusBars") and not probs:
+            probs = ["not checked: the window reported no system bars"]
     front = (re.search(r"mCurrentFocus=Window\{\S+ \S+ ([^}\s]+)", win) or [None, "?"])[1]
     report.append({"screen": name, "front": front, "problems": probs, "bars": system, "titles": titles})
     problems_total += len(probs)
@@ -146,12 +151,16 @@ def visit(prefix):
                       ("app.ui.others.information.UserFeedbackActivity", "feedback")):
         start(cls)
         look(f"{prefix}{name}")
-    # the share flow: the analysis dialog, then the picker
+    sh(f"am force-stop {PKG}")
+
+
+def share(prefix):
+    """the share flow: the analysis dialog, then the picker (last: its yt-dlp run slows the emulator down)"""
     sh(f"am force-stop {PKG}")
     sh(f"am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT '{SHARE_URL}' -p {PKG}")
     time.sleep(2)
-    look(f"{prefix}share-analysing")
-    for _ in range(10):
+    look(f"{prefix}share-analysing", spinner=True)
+    for _ in range(15):
         time.sleep(2)
         if any(n["text"] in ("Download Now", "Download The File To Private Folder") for n in nodes(dump())):
             break
@@ -175,7 +184,10 @@ for nav in NAVS:
         sh(f"settings put system user_rotation {ROT}")
         time.sleep(2)
         visit(f"api{api}-{nav or 'nav'}-rot{ROT}-")
+ROT = 0
 sh("settings put system user_rotation 0")
+time.sleep(2)
+share(f"api{api}-{NAVS[-1] or 'nav'}-rot0-")
 
 lines = write_report()
 print("\n".join(lines[:3]))
