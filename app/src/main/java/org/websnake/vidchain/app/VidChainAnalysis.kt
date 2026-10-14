@@ -35,6 +35,8 @@ object VidChainAnalysis {
 	class Record(val info: YtDlpInfo, val file: File, val replayable: Boolean)
 
 	private const val ANALYSIS_MS = 60_000L
+	/** yt-dlp's answers a newer extractor may fix (not a network, login or geo problem) */
+	private val NIGHTLY_HELPS = setOf(YtDlpEngine.Problem.FORMAT, YtDlpEngine.Problem.OTHER)
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private val store = AnalysisStore<Record>(onDrop = { runCatching { it.file.delete() } })
 
@@ -76,15 +78,24 @@ object VidChainAnalysis {
 			}
 			try {
 				val ua = runCatching { AIOApp.aioSettings.downloadHttpUserAgent }.getOrNull()?.ifBlank { null }
-				val r = withTimeoutOrNull(ANALYSIS_MS) {
-					engine.infoWithJson(page, YtDlpEngine.Options(userAgent = ua, cookiesFile = cookieFile), timeoutMs = ANALYSIS_MS)
-				}
+				val options = YtDlpEngine.Options(userAgent = ua, cookiesFile = cookieFile)
+				val stable = withTimeoutOrNull(ANALYSIS_MS) { engine.infoWithJson(page, options, timeoutMs = ANALYSIS_MS) }
+				// T9 (corpus test): the stable yt-dlp could not read the page (an extractor out of date): the nightly one
+				// tries with the time left (Dailymotion "No video formats found" with 2025.11.12)
+				val left = ANALYSIS_MS - (System.currentTimeMillis() - t0)
+				val night = if (stable is YtDlpEngine.Result.Failed && stable.problem in NIGHTLY_HELPS && left > 15_000)
+					runCatching { FallbackRuntime.nightlyYtdlp() }.getOrNull()
+						?.let { e -> withTimeoutOrNull(left) { e.infoWithJson(page, options, timeoutMs = left) } }
+						?.takeIf { it is YtDlpEngine.Result.Ok }
+				else null
+				val r = night ?: stable
+				val via = if (night != null) " via the nightly yt-dlp" else ""
 				when (r) {
 					is YtDlpEngine.Result.Ok -> {
 						val clean = YtDlpInfo.stripSecrets(r.value.second)
 						val file = File(dir(), "${sha(k.url + k.cookieGeneration)}.info.json").apply { writeText(clean) }
 						val rec = Record(r.value.first, file, YtDlpInfo.replayable(clean))
-						Trace.event { TraceEvent("analysis", result = "ok", reason = "$why: ${rec.info.formats.size} formats, replayable=${rec.replayable}", durationMs = System.currentTimeMillis() - t0) }
+						Trace.event { TraceEvent("analysis", result = "ok", reason = "$why: ${rec.info.formats.size} formats, replayable=${rec.replayable}$via", durationMs = System.currentTimeMillis() - t0) }
 						rec
 					}
 					is YtDlpEngine.Result.Failed -> {

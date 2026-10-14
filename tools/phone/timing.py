@@ -126,6 +126,17 @@ def share_once(url, warm, download):
                 time.sleep(0.3)
     if not pick:
         rec["picker_s"] = None
+        # T9: when nothing could read the link, VidChain's own methods look for the video and save it to Finished
+        # downloads with no picker: wait for that file too (up to 10 minutes)
+        if download:
+            deadline = time.time() + 600
+            while time.time() < deadline:
+                done = completed_since(mark)
+                if done:
+                    rec["result"] = "complete without picker (VidChain)"
+                    rec["vidchain_s"] = round(uptime_ms(sh("cat /proc/uptime")) / 1000 - t0 / 1000, 1)
+                    return rec
+                time.sleep(3)
         rec["result"] = "no picker in 120 s"
         return rec
     rec["picker_s"] = round((pick[0] - t0) / 1000, 2)

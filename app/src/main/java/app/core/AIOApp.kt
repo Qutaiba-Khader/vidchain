@@ -996,11 +996,10 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 				// T9 (issue 3): usable as soon as it is initialised, not only after the network update below
 				ytdlpInstance = getInstance()
 				
-				// Conditional binary updates based on network availability
-				if (isInternetConnected() && org.websnake.vidchain.app.VidChainOnce.due(this, "ytdlp-update", 24 * 3_600_000L)) {
-					logger.d("Updating YouTube-DL binaries...")
-					getInstance().updateYoutubeDL(INSTANCE)
-				} // No else needed, skipping is the default action
+				// T9 corpus test (2026-10-15): the update ran inside this 12 s job and the day was marked done before it,
+				// so a download that took longer was cancelled and never tried again: the phone kept yt-dlp 2025.11.12
+				// (Dailymotion: "No video formats found"). It now runs on its own, and the day counts only after it worked.
+				org.websnake.vidchain.app.VidChainYtDlpUpdate.start(INSTANCE) { isInternetConnected() }
 			} catch (error: Exception) {
 				logger.e("Error initializing YouTube-DL/FFmpeg: ${error.message}", error)
 				org.websnake.vidchain.app.VidChainOnce.reset("ytdlp-init") // T9: a failed set-up is tried again on the next screen

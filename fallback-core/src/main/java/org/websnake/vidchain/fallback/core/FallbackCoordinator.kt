@@ -833,6 +833,12 @@ class FallbackCoordinator(
 		true
 	}
 
+	/** T9: a standalone chain (a shared torrent or page): null while it runs, else whether it delivered a file */
+	fun standaloneDelivered(id: String): Boolean? = runCatching {
+		if (running[id]?.isActive == true) null
+		else ledger.attempts(id).any { it.state == AttemptState.DELIVERED || it.state == AttemptState.CHILD }
+	}.getOrNull()
+
 	enum class Manual { STARTED, BUSY, ALREADY_DELIVERED, NOTHING_LEFT, NOT_FOUND }
 
 	/**

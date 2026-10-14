@@ -125,6 +125,18 @@ object FallbackRuntime {
 		org.websnake.vidchain.fallback.methods.PlainGetMethod(org.websnake.vidchain.http.PlainGetFetcher(http), DeliveryVerifier(AndroidDurationProbe)),
 	))
 
+	/**
+	 * T9 (corpus test, 2026-10-15): the nightly yt-dlp (method N's, refreshed daily), for the share analysis when the
+	 * stable one cannot read a site (a site changes faster than yt-dlp's releases); null when it is not there.
+	 */
+	suspend fun nightlyYtdlp(): org.websnake.vidchain.ytdlp.YtDlpEngine? {
+		val k = engines ?: return null
+		val c = appContext ?: return null
+		val store = org.websnake.vidchain.ytdlp.nightly.NightlyToolStore(java.io.File(c.noBackupFilesDir, "vidchain-tools/yt-dlp-nightly"), http, k.store)
+		val tool = store.current() as? org.websnake.vidchain.ytdlp.nightly.NightlyToolStore.Result.Ready ?: return null
+		return org.websnake.vidchain.ytdlp.YtDlpEngine(k.runner, k.layout, ytdlp = tool.file).takeIf { it.ready }
+	}
+
 	/** T8.12: YouTube PO tokens minted in a hidden WebView for method C; the trace says only whether it worked */
 	private suspend fun poTokens(videoId: String): org.websnake.vidchain.ytdlp.youtube.PoTokens? {
 		val minter = poMinter ?: appContext?.let { org.websnake.vidchain.web.po.PoTokenMinter(it) }?.also { poMinter = it } ?: return null

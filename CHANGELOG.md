@@ -19,6 +19,16 @@ method failed on Facebook.
 - Method D (Android's own downloader) gives up after 75 s without a first byte, like the app's own download (it
   waited up to 10 minutes on a server that never answered; found by the full test pass).
 
+Found by testing 31 real links on the Android 11 phone (2026-10-15):
+- yt-dlp was never updated: its daily update ran inside a 12-second job and the day was counted before it ran, so
+  the phone kept the yt-dlp the app shipped (2025.11.12) and Dailymotion, among others, failed. It now updates on
+  its own, counts the day only when it worked, and the nightly yt-dlp tries a page the stable one cannot read.
+- When nothing could read a shared link, the app only opened its browser. Now VidChain's own methods look for the
+  video on the page (its hidden browser listens to the page's requests, as Web Video Caster's detection does, and
+  reads the page's players) and save it to Finished downloads, with a message when they start and when they end.
+- A download that only passes through "stopped" while it starts is no longer taken for a failure, and a reused
+  download number no longer inherits the earlier download's history.
+
 ## 1.2.0 (T9 improvement round)
 - Checked by the full emulator test pass ([run 38600707739](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38600707739), 33 / 33: every test link and every link under an injected fault ends as expected).
 

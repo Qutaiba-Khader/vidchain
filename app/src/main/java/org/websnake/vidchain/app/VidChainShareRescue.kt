@@ -154,7 +154,11 @@ object VidChainShareRescue {
 					val a = ref.get()?.takeIf { !it.isFinishing && !it.isDestroyed }
 						?: front?.get()?.takeIf { !it.isFinishing && !it.isDestroyed } ?: return@launch
 					if (found == null || found.videoFormats.isEmpty()) {
-						Toast.makeText(a.applicationContext, "VidChain: no downloadable video found on this page", Toast.LENGTH_SHORT).show()
+						// T9 (owner, 2026-10-15: "if there's a stream link, there's a download"): yt-dlp found nothing, so
+						// VidChain's other methods look for the video on the page (its hidden browser W, as Web Video
+						// Caster's in-page detection does, the page scan H, the other downloaders)
+						if (!pageChain(a.applicationContext, url))
+							Toast.makeText(a.applicationContext, "VidChain: no downloadable video found on this page", Toast.LENGTH_SHORT).show()
 						return@launch
 					}
 					VideoResolutionPicker(baseActivity = a, videoInfo = found).show()
@@ -167,6 +171,39 @@ object VidChainShareRescue {
 		} catch (t: Throwable) {
 			busy.set(false)
 		}
+	}
+
+	/**
+	 * T9: VidChain's method chain on a shared page nothing else could read; the file appears in Finished downloads.
+	 * The same link shared again while it runs is one chain (its id is the link's hash). false = could not start.
+	 */
+	private fun pageChain(context: android.content.Context, url: String): Boolean {
+		val c = FallbackRuntime.coordinator ?: return false
+		val dir = app.core.engines.downloader.DownloadDataModel().fileDirectory.takeIf { it.isNotEmpty() } ?: return false
+		val hash = java.security.MessageDigest.getInstance("SHA-1").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
+		val host = runCatching { URI(url).host?.removePrefix("www.") }.getOrNull()?.replace(Regex("[^A-Za-z0-9.-]"), "_") ?: "video"
+		val id = "share-$hash"
+		val root = org.websnake.vidchain.fallback.core.HostDownload(
+			id = id, url = url, mediaUrl = url,
+			snapshot = org.websnake.vidchain.fallback.classifier.DownloadSnapshot(org.websnake.vidchain.fallback.classifier.Engine.REGULAR, org.websnake.vidchain.fallback.classifier.DownloadSnapshot.CLOSE),
+			filePath = File(dir, "$host-${hash.take(6)}.mp4").path, expectMedia = true,
+		)
+		Trace.event { TraceEvent("share.rescue", downloadId = id, chain = UrlClass.of(url).chain, result = "page-chain") }
+		scope.launch {
+			val started = withContext(Dispatchers.Default) { c.startStandalone(root) }
+			Toast.makeText(context, if (started) "VidChain: looking for the video with its other methods - it will appear in Finished downloads"
+				else "VidChain: already looking for this video", Toast.LENGTH_LONG).show()
+			if (!started) return@launch
+			var delivered: Boolean? = null
+			val until = System.currentTimeMillis() + 30 * 60_000L
+			while (delivered == null && System.currentTimeMillis() < until) {
+				kotlinx.coroutines.delay(3_000)
+				delivered = c.standaloneDelivered(id)
+			}
+			if (delivered != null) Toast.makeText(context, if (delivered) "VidChain: the video is in Finished downloads"
+				else "VidChain: no method found a video on this page", Toast.LENGTH_LONG).show()
+		}
+		return true
 	}
 
 	/** how long the app's own path (browser sniffing, its picker) has before VidChain offers yt-dlp's formats */
@@ -193,7 +230,12 @@ object VidChainShareRescue {
 		try {
 			// (the browser's User-Agent: the cookies may be tied to it; YtDlpEngine gives Facebook yt-dlp's own - T9)
 			val options = YtDlpEngine.Options(userAgent = AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null }, cookiesFile = cookieFile)
-			return when (val r = engine.info(url, options)) {
+			val stable = engine.info(url, options)
+			// T9 (corpus test): an out-of-date extractor -> the nightly yt-dlp (method N's) tries once
+			val r = if (stable is YtDlpEngine.Result.Failed && (stable.problem == YtDlpEngine.Problem.FORMAT || stable.problem == YtDlpEngine.Problem.OTHER))
+				runCatching { FallbackRuntime.nightlyYtdlp() }.getOrNull()?.info(url, options)?.takeIf { it is YtDlpEngine.Result.Ok } ?: stable
+			else stable
+			return when (r) {
 				is YtDlpEngine.Result.Ok -> {
 					val info = r.value
 					Trace.event { TraceEvent("share.rescue", method = "Y", result = "found", reason = "${info.formats.size} formats via ${info.extractor}") }
