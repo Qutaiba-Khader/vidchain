@@ -1262,7 +1262,7 @@ class M3U8VideoDownloader(
 			request.addOption("--playlist-items", "1")
 			request.addOption("--user-agent", downloadGlobalSettings.downloadHttpUserAgent)
 			request.addOption("--retries", downloadGlobalSettings.downloadAutoResumeMaxErrors)
-			request.addOption("--socket-timeout", downloadGlobalSettings.downloadMaxHttpReadingTimeout)
+			request.addOption("--socket-timeout", org.websnake.vidchain.fallback.fixes.YtDlpTimeout.seconds(downloadGlobalSettings.downloadMaxHttpReadingTimeout)) // T9: the setting is in ms, yt-dlp reads seconds
 			request.addOption("--concurrent-fragments", 10)
 			request.addOption("--fragment-retries", 10)
 			request.addOption("--no-check-certificate")

@@ -15,6 +15,7 @@ import lib.process.ThreadsUtility
 import lib.process.ThreadsUtility.executeOnMain
 import lib.texts.CommonTextUtils.getText
 import java.util.regex.Pattern
+import kotlinx.coroutines.ensureActive
 
 /**
  * Handles asynchronous extraction of video metadata such as resolutions and duration.
@@ -76,9 +77,11 @@ class M3U8InfoExtractor {
 					extractDuration(parser, spec2, stream, m3u8Url)
 				}
 
+				kotlin.coroutines.coroutineContext.ensureActive() // T9 (issue 2): a stopped lookup reports nothing
 				logger.d("Done: resolutions=$resolutions, duration=${duration}ms")
 				executeOnMain { callback.onResolutionsAndDuration(resolutions, duration) }
 			} catch (err: Exception) {
+			org.websnake.vidchain.fallback.fixes.CancelAware.rethrowCancel(err) // T9 (issue 2)
 				logger.e("Extraction failed for: $m3u8Url", err)
 				executeOnMain { callback.onError("Extraction failed: ${err.message}") }
 			}
@@ -144,6 +147,7 @@ class M3U8InfoExtractor {
 				}
 			}
 		} catch (error: Exception) {
+			org.websnake.vidchain.fallback.fixes.CancelAware.rethrowCancel(error) // T9 (issue 2)
 			logger.d("Error while parsing resolutions from: $m3u8FileLink -> ${error.localizedMessage}")
 			logger.e("Failed to extract resolutions from M3U8: $m3u8FileLink", error)
 			emptyList()
@@ -203,6 +207,7 @@ class M3U8InfoExtractor {
 								}
 							}
 						} catch (variantError: Exception) {
+			org.websnake.vidchain.fallback.fixes.CancelAware.rethrowCancel(variantError) // T9 (issue 2)
 							logger.e("Failed to fetch duration from variant: ${variant.url}", variantError)
 							0L
 						}
@@ -225,6 +230,7 @@ class M3U8InfoExtractor {
 				}
 			}
 		} catch (error: Exception) {
+			org.websnake.vidchain.fallback.fixes.CancelAware.rethrowCancel(error) // T9 (issue 2)
 			logger.d("Error parsing M3U8 for: $m3u8UrlFileLink -> ${error.localizedMessage}")
 			logger.e("Failed to extract duration from M3U8: $m3u8UrlFileLink", error)
 			0L

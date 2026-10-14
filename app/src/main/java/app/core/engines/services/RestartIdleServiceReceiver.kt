@@ -24,6 +24,6 @@ class RestartIdleServiceReceiver : BroadcastReceiver() {
 	 */
 	override fun onReceive(context: Context, intent: Intent) {
 		// Trigger an update or restart of the idle foreground service
-		AIOForegroundService.updateService()
+		if (AIOForegroundService.isWanted()) AIOForegroundService.updateService() // T9 decision 4
 	}
 }

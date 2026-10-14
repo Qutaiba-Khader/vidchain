@@ -1,7 +1,9 @@
 name: Screens + cold start (manual)
 
-# A short emulator run for UI work (T8.5/T8.6, owner INBOX #8): screenshots of the main screen, the settings
-# screen and VidChain's settings on a fresh install (default theme), and cold start v1.0.1 vs this build.
+# A short emulator run for UI work (T8.5/T8.6, owner INBOX #8): screenshots of every screen on a fresh install
+# (default theme) and cold start v1.0.1 vs this build. T9 decision 11: also on Android 15 and 16 (API 35/36, where
+# edge-to-edge is enforced), in portrait and landscape, with gesture and 3-button navigation, and every screen is
+# checked for text, buttons or switches under a system bar or the title bar (ci/emulator/overlap.py).
 # No fixture world, no downloads: the full test stays the proof for download behaviour.
 on:
   workflow_dispatch:
@@ -52,10 +54,16 @@ jobs:
           if-no-files-found: error
 
   screens:
-    name: Screenshots and cold start in the CI emulator
+    name: Screens on API ${{ matrix.api }} (overlap check)
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [33, 35, 36]
+    env:
+      API: ${{ matrix.api }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -73,10 +81,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release download v1.0.1 --repo "$GITHUB_REPOSITORY" --pattern vidchain-x86_64.apk --dir before
-      - name: Cold start, then screenshots of a fresh install
+      - name: Cold start, then every screen of a fresh install with the overlap check
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
-          api-level: 33
+          api-level: ${{ matrix.api }}
           arch: x86_64
           target: google_apis
           disable-animations: true
@@ -86,15 +94,15 @@ jobs:
             adb install -r -g apk/app-x86_64-release.apk
             adb shell appops set org.websnake.vidchain MANAGE_EXTERNAL_STORAGE allow
             adb shell dumpsys deviceidle whitelist +org.websnake.vidchain
-            python3 ci/emulator/screens.py screens || true
+            python3 ci/emulator/screens.py screens --check --rotations 0,1 --nav gestural,threebutton
       - name: Summary
         if: always()
         run: |
-          { echo "### Cold start (launcher tap to main screen drawn, ms)"; echo '```'; cat coldstart.json 2>/dev/null || echo "no measurement"; echo '```'; ls screens 2>/dev/null; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### API $API: cold start (launcher tap to main screen drawn, ms)"; echo '```'; cat coldstart.json 2>/dev/null || echo "no measurement"; echo '```'; cat screens/overlap-report.md 2>/dev/null; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
         with:
-          name: screens
+          name: screens-api${{ matrix.api }}
           path: |
             coldstart.json
             screens/

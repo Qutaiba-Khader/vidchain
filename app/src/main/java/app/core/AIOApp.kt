@@ -397,7 +397,9 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 		 *
 		 * @see AIOTimer
 		 */
-		val aioTimer: AIOTimer by lazy { AIOTimer(3600000, 200).apply { start() } }
+		// T9 decision 4: created on the main thread in onCreate (its Handler needs the main looper) and started only
+		// by its first listener; it stops by itself when nothing listens any more (AIOTimer)
+		val aioTimer: AIOTimer by lazy { AIOTimer(3600000, 200) }
 		
 		/**
 		 * User engagement and application usage tracking system.
@@ -451,6 +453,7 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 		logger.d("Application startup sequence initiated")
 		
 		INSTANCE = this
+		aioTimer // T9 decision 4: created here, on the main thread
 		org.websnake.vidchain.fallback.core.FallbackSeams.appStarted(this, org.websnake.vidchain.app.VidChainFallbackHost) // FALLBACK-SEAM:start
 		initializeObjectBoxDB(INSTANCE)
 		initializeSupabaseClient()
@@ -987,6 +990,8 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 				getInstance().init(this)
 				FFmpeg.getInstance().init(this)
 				logger.d("YouTube-DL and FFmpeg libraries initialized successfully")
+				// T9 (issue 3): usable as soon as it is initialised, not only after the network update below
+				ytdlpInstance = getInstance()
 				
 				// Conditional binary updates based on network availability
 				if (isInternetConnected()) {
@@ -997,7 +1002,7 @@ class AIOApp : LocaleApplicationImpl(), LifecycleObserver {
 				logger.e("Error initializing YouTube-DL/FFmpeg: ${error.message}", error)
 			}
 			
-			// Store the instance for global access
+			// Store the instance for global access (also when initialisation failed, as before; the same singleton)
 			ytdlpInstance = getInstance()
 		})
 	}

@@ -22,8 +22,12 @@ import java.util.concurrent.CopyOnWriteArrayList
 /** The running fallback system: one ledger, one coordinator, one observer loop. Started from the app seam. */
 object FallbackRuntime {
 	const val TICK_MS = 2_000L
-	/** nothing running or waiting: look less often (main-thread read of the lists) */
-	const val IDLE_TICK_MS = 10_000L
+	/** T9 decision 4: the longest the idle observer sleeps without a wake-up (a safety look, not a poll) */
+	const val IDLE_MAX_MS = 15 * 60_000L
+	private val wakeups = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
+
+	/** T9 decision 4: a download was added, resumed or runs, or the user recorded an intent: look now */
+	@JvmStatic fun wake() { wakeups.trySend(Unit) }
 
 	/** P1 test path: the always-failing stub ran first in every chain; off since the first real method (T2.1). */
 	const val INCLUDE_STUB = false
@@ -192,7 +196,9 @@ object FallbackRuntime {
 					resumed = true
 					runCatching { c.resumeInterrupted() }
 				}
-				delay(if (busy) TICK_MS else IDLE_TICK_MS)
+				// T9 decision 4: with nothing to watch the observer sleeps until a download starts (wake), with one
+				// safety look every IDLE_MAX_MS; it used to look every 10 s for as long as the app lived
+				if (busy) delay(TICK_MS) else kotlinx.coroutines.withTimeoutOrNull(IDLE_MAX_MS) { wakeups.receive() }
 			}
 		}
 		Trace.event { TraceEvent("runtime.started", reason = "methods=${methods.joinToString(",") { it.id }}") }
@@ -233,6 +239,7 @@ object FallbackRuntime {
 	fun recordIntent(downloadId: String, intent: UserIntent) {
 		ledger?.recordIntent(downloadId, intent, System.currentTimeMillis())
 		Trace.event { TraceEvent("intent", downloadId = downloadId, result = intent.name) }
+		wake() // T9 decision 4
 		// deleted / cleared: its running chain stops now (engines killed), nothing more is saved for it
 		if (intent == UserIntent.DELETE || intent == UserIntent.CLEAR || intent == UserIntent.CANCEL) {
 			val c = coordinator; val s = scope

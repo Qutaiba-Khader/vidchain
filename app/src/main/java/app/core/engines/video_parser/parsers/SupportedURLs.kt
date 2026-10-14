@@ -22,6 +22,7 @@ import kotlin.text.RegexOption.*
  *   based on its domain or by matching specific URL patterns.
  * - Identifying HLS stream URLs (`.m3u8`), which are common in web video players.
  */
+// T9 (issue 5): every host check below matches the domain or its subdomains, not any host that contains the text
 object SupportedURLs {
 
 	/**
@@ -85,13 +86,13 @@ object SupportedURLs {
 
 			// Handle both youtu.be and youtube.com cases
 			val normalizedUrl = when {
-				host.contains("youtu.be") -> {
+				org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "youtu.be") -> {
 					// Extract video ID from the last path segment
 					val videoId = uri.lastPathSegment ?: return url
 					"https://www.youtube.com/watch?v=$videoId"
 				}
 
-				host.contains("youtube.com") -> {
+				org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "youtube.com") -> {
 					// Extract video ID from query parameter ?v=
 					val videoId = uri.getQueryParameter("v") ?: return url
 					"https://www.youtube.com/watch?v=$videoId"
@@ -149,10 +150,10 @@ object SupportedURLs {
 	fun isInstagramUrl(url: String): Boolean {
 		return try {
 			val host = URL(url).host.lowercase()
-			host.contains("instagram.com") ||
-					host.contains("instagr.am") ||        // Official Instagram short URL
-					host.contains("ig.me") ||             // Often used in DMs for sharing
-					host.contains("ig.com")               // Sometimes used for redirects
+			org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "instagram.com") ||
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "instagr.am") ||        // Official Instagram short URL
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "ig.me") ||             // Often used in DMs for sharing
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "ig.com")               // Sometimes used for redirects
 		} catch (error: Exception) {
 			logger.e("Error while checking Instagram URL: ${error.message}", error)
 			false
@@ -175,10 +176,10 @@ object SupportedURLs {
 	fun isFacebookUrl(url: String): Boolean {
 		return try {
 			val host = URL(url).host.lowercase()
-			host.contains("facebook.com") ||
-					host.contains("m.facebook.com") ||    // Mobile site version
-					host.contains("fb.me") ||             // Facebook’s official short links
-					host.contains("fb.watch")             // Facebook video/watch pages
+			org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "facebook.com") ||
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "m.facebook.com") ||    // Mobile site version
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "fb.me") ||             // Facebook’s official short links
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "fb.watch")             // Facebook video/watch pages
 		} catch (error: Exception) {
 			logger.e("Error while checking Facebook URL: ${error.message}", error)
 			false
@@ -198,8 +199,8 @@ object SupportedURLs {
 	fun isTiktokUrl(url: String): Boolean {
 		return try {
 			val host = URL(url).host.lowercase()
-			host.contains("tiktok.com") ||
-					host.contains("vm.tiktok.com")        // TikTok’s shortened links
+			org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "tiktok.com") ||
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "vm.tiktok.com")        // TikTok’s shortened links
 		} catch (error: Exception) {
 			logger.e("Error while checking TikTok URL: ${error.message}", error)
 			false
@@ -219,8 +220,8 @@ object SupportedURLs {
 	fun isPinterestUrl(url: String): Boolean {
 		return try {
 			val host = URL(url).host.lowercase()
-			host.contains("pinterest.com") ||
-					host.contains("pin.it")               // Common short domain for pins
+			org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "pinterest.com") ||
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "pin.it")               // Common short domain for pins
 		} catch (error: Exception) {
 			logger.e("Error while checking Pinterest URL: ${error.message}", error)
 			false
@@ -242,9 +243,9 @@ object SupportedURLs {
 	fun isTwitterOrXUrl(url: String): Boolean {
 		return try {
 			val host = URL(url).host.lowercase()
-			host.contains("twitter.com") ||
-					host.contains("x.com") ||             // New official Twitter domain
-					host.contains("t.co")                 // Twitter/X short URLs for posts
+			org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "twitter.com") ||
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "x.com") ||             // New official Twitter domain
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "t.co")                 // Twitter/X short URLs for posts
 		} catch (error: Exception) {
 			logger.e("Error while checking Twitter/X URL: ${error.message}", error)
 			false
@@ -266,9 +267,9 @@ object SupportedURLs {
 	fun isSnapchatUrl(url: String): Boolean {
 		return try {
 			val host = URL(url).host.lowercase()
-			host.contains("snapchat.com") ||
-					host.contains("snp.ac") ||            // Snapchat’s short sharing links
-					host.contains("snap.link")            // Promotional or spotlight links
+			org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "snapchat.com") ||
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "snp.ac") ||            // Snapchat’s short sharing links
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "snap.link")            // Promotional or spotlight links
 		} catch (error: Exception) {
 			logger.e("Error while checking Snapchat URL: ${error.message}", error)
 			false
@@ -288,8 +289,8 @@ object SupportedURLs {
 			val host = URL(url).host.lowercase()
 
 			// Vimeo main + player + shortened hosts
-			host.contains("vimeo.com") ||
-					host.contains("player.vimeo.com")
+			org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "vimeo.com") ||
+					org.websnake.vidchain.fallback.fixes.HostMatch.isHost(host, "player.vimeo.com")
 
 		} catch (error: Exception) {
 			logger.e("Error while checking Vimeo URL: ${error.message}", error)

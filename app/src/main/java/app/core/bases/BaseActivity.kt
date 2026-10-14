@@ -393,7 +393,8 @@ abstract class BaseActivity : LocaleActivityImpl(), BaseActivityInf {
 			// Update the state of foreground services to ensure they're running correctly
 			// Important for ongoing downloads and other persistent operations
 			logger.d("Updating foreground service state for background tasks")
-			AIOForegroundService.updateService()
+			// T9 decision 4: only when a download waits or runs (it used to start the service on every screen resume)
+			runCatching { app.core.AIOApp.downloadSystem }.getOrNull()?.let { if (!it.isInitializing && it.hasActiveWork()) it.wakeUp() }
 			
 			// Validate user-selected folders to ensure they're still accessible
 			// Prevents issues with storage permissions changes or folder deletion

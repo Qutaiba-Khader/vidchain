@@ -87,8 +87,8 @@ public class AIOForegroundService extends Service {
 
         stopForeground(true); // Ensure notification is removed promptly
 
-        // Restart service automatically if killed by the system.
-        sendBroadcast(new Intent(this, RestartIdleServiceReceiver.class));
+        // Restart service automatically if killed by the system (T9: only while a download still needs it).
+        if (wanted) sendBroadcast(new Intent(this, RestartIdleServiceReceiver.class));
     }
 
     /**
@@ -114,13 +114,33 @@ public class AIOForegroundService extends Service {
     /**
      * Starts the service only if it is not already running.
      */
+    /**
+     * T9 decision 4: true while a download needs the service. The service used to be started every second for as long
+     * as the app lived, and restarted itself when Android stopped it; now it runs only while a download waits or runs.
+     */
+    private static volatile boolean wanted = false;
+
+    public static boolean isWanted() {
+        return wanted;
+    }
+
     public static void updateService() {
+        wanted = true;
+        AIOForegroundService running = instance;
+        if (running != null && running.isServiceRunning) return;   // T9: already in the foreground, nothing to ask
         try {
             Intent serviceIntent = new Intent(INSTANCE, AIOForegroundService.class);
             INSTANCE.startForegroundService(serviceIntent);
         } catch (Exception err) {
             err.printStackTrace();
         }
+    }
+
+    /** T9 decision 4: no download left: leave the foreground and stop (no restart) */
+    public static void stopWhenIdle() {
+        wanted = false;
+        AIOForegroundService running = instance;
+        if (running != null) running.stopService();
     }
 
     /**

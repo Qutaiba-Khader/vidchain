@@ -35,7 +35,7 @@ its author (see `ATTRIBUTION.md`).
 | A | aria2c (several connections; magnet links, .torrent, Metalink) | 64-bit (arm64-v8a, x86_64) |
 
 Each card shows which method is running; *Try another method* and *Methods tried* are in the download's options.
-Every method has its own switch in Settings -> VidChain fallbacks; one switch turns them all off. Sites are never
+Every method has its own switch in Settings -> VidChain fallbacks; at least one always stays on. Sites are never
 blocked or hidden.
 
 ## Install

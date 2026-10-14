@@ -1,8 +1,6 @@
 package app.core
 
 import android.os.*
-import app.core.AIOTimer.Companion.GC_INTERVAL_MILLIS
-import app.core.AIOTimer.Companion.GC_INTERVAL_SECONDS
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.Dispatchers.IO
@@ -98,7 +96,6 @@ open class AIOTimer(
 	 *
 	 * @see GC_INTERVAL_MILLIS
 	 */
-	private val gcIntervalTicks: Int = (GC_INTERVAL_MILLIS / countDownInterval).toInt()
 	
 	companion object {
 		
@@ -142,17 +139,9 @@ open class AIOTimer(
 	override fun onTick(millisUntilFinished: Long) {
 		loopCount++
 		hasTimerActive = true
-		logger.d("Tick $loopCount (GC check every $gcIntervalTicks ticks)")
+		logger.d("Tick $loopCount")
 		
-		// Periodically trigger garbage collection to manage memory.
-		// This helps in reclaiming memory from objects that are no longer referenced,
-		// particularly the WeakReferences to listeners that have been nulled out.
-		if (loopCount.toInt() % gcIntervalTicks == 0) {
-			listenerScope.launch(IO) {
-				logger.d("Forcing Garbage Collection via System.gc() at tick $loopCount")
-				System.gc()
-			}
-		}
+		// T9 decision 4: no forced garbage collection every 30 s (Android collects by itself)
 		
 		// Clean up the listeners list: remove any WeakReference whose listener has been garbage collected.
 		val iterator = timerListeners.iterator()
@@ -161,6 +150,16 @@ open class AIOTimer(
 			// If the weak reference's get() returns null, the listener object has been GC'd.
 			if (listenerRef.get() == null) {
 				timerListeners.remove(listenerRef)
+			}
+		}
+		
+		// T9 decision 4: the timer runs only while something listens (a visible screen, a running download)
+		synchronized(this) {
+			if (timerListeners.isEmpty()) {
+				this.cancel()
+				hasTimerActive = false
+				logger.d("No listener left: timer stopped until the next register")
+				return
 			}
 		}
 		
@@ -190,8 +189,11 @@ open class AIOTimer(
 	 * This implementation automatically restarts the timer, creating a continuous loop.
 	 */
 	override fun onFinish() {
-		logger.d("Timer finished. Restarting.")
-		this.start()
+		synchronized(this) {
+			if (timerListeners.isEmpty()) { hasTimerActive = false; return }   // T9 decision 4
+			logger.d("Timer finished. Restarting.")
+			this.start()
+		}
 	}
 	
 	/**
@@ -206,11 +208,15 @@ open class AIOTimer(
 	 */
 	fun register(listener: AIOTimerListener) {
 		val classSimpleName = listener.javaClass.simpleName
-		if (timerListeners.none { it.get() == listener }) {
-			timerListeners.add(WeakReference(listener))
-			logger.d("Listener registered: $classSimpleName")
-		} else if (timerListeners.any { it.get() == listener }) {
-			logger.d("Listener already registered: $classSimpleName")
+		synchronized(this) {
+			if (timerListeners.none { it.get() == listener }) {
+				timerListeners.add(WeakReference(listener))
+				logger.d("Listener registered: $classSimpleName")
+			} else if (timerListeners.any { it.get() == listener }) {
+				logger.d("Listener already registered: $classSimpleName")
+			}
+			// T9 decision 4: the first listener starts the timer again
+			if (!hasTimerActive) { hasTimerActive = true; this.start() }
 		}
 	}
 	

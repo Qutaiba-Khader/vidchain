@@ -167,7 +167,7 @@ class SharedVideoURLIntercept(
 	
 	/** T8.13: stops the format lookup's yt-dlp process, if one runs */
 	private fun stopYtdlpLookup() {
-		runCatching { com.yausername.youtubedl_android.YoutubeDL.getInstance().destroyProcessById(ytdlpProcessId) }
+		app.core.engines.video_parser.parsers.VideoParserUtility.stopYtdlpProcess(ytdlpProcessId) // T9: also no retry
 	}
 	
 	/**

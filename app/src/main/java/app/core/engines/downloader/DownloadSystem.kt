@@ -9,6 +9,7 @@ import app.core.engines.downloader.DownloadStatus.COMPLETE
 import app.core.engines.downloader.DownloadStatus.DOWNLOADING
 import app.core.engines.services.AIOForegroundService
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -135,8 +136,30 @@ class DownloadSystem : AIOTimerListener, DownloadSysInf, DownloadTaskListener {
 	fun initializeSystem() {
 		// Initialize system and register with timer for periodic operations
 		initSystem()
-		aioTimer.register(this)
-		logger.d("DownloadSystem initialized & timer registered.")
+		// T9 decision 4: the timer and the foreground service run only while a download is waiting or running
+		wakeUp()
+		logger.d("DownloadSystem initialized.")
+	}
+
+	/** T9 decision 4: guards "nothing left to do" against a download added at the same moment */
+	private val idleLock = Any()
+
+	/** T9 decision 4: a download was added, resumed or is running: tick (start waiting tasks, keep the service) */
+	fun wakeUp() {
+		synchronized(idleLock) { aioTimer.register(this) }
+		runCatching { org.websnake.vidchain.fallback.core.FallbackRuntime.wake() } // VidChain's observer looks now
+	}
+
+	/** T9 decision 4: true while a download waits for a slot or runs */
+	fun hasActiveWork(): Boolean = waitingDownloadTasks.isNotEmpty() || runningDownloadTasks.isNotEmpty()
+
+	/** T9 decision 4: nothing waits and nothing runs: stop ticking and let the foreground service go */
+	private fun sleepIfIdle(): Boolean = synchronized(idleLock) {
+		if (hasActiveWork()) return false
+		aioTimer.unregister(this)
+		AIOForegroundService.stopWhenIdle()
+		logger.d("No download waiting or running: timer listener and foreground service stopped")
+		true
 	}
 
 	/**
@@ -176,12 +199,16 @@ class DownloadSystem : AIOTimerListener, DownloadSysInf, DownloadTaskListener {
 	 * @param loopCount Current tick count from the timer, used for periodic operations
 	 *                  like service updates that don't need to run every cycle.
 	 */
+	private val tickScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
 	@Synchronized
 	private fun monitorPendingWaitingDownloadTask(loopCount: Double) {
 		logger.d("Timer tick received. Loop count: $loopCount")
-		CoroutineScope(Dispatchers.IO).launch {
+		// T9 decision 4: one shared scope instead of a new one every tick; the service is asked for only when it is not running
+		tickScope.launch {
 			logger.d("Starting pending tasks from waiting list.")
 			startPendingTasksFromWaitingList()
+			if (sleepIfIdle()) return@launch
 
 			if (loopCount.toInt() % 5 == 0) {
 				logger.d("Updating foreground service.")
@@ -231,6 +258,7 @@ class DownloadSystem : AIOTimerListener, DownloadSysInf, DownloadTaskListener {
 				// Only proceed if this task is not already in the waiting list
 				if (!waitingDownloadTasks.contains(downloadTask)) {
 					waitingDownloadTasks.add(downloadTask)
+					wakeUp() // T9 decision 4
 					addAndSortActiveDownloadModelList(downloadModel)
 					logger.d("Download task added to waiting list: ${downloadModel.fileName}")
 
@@ -294,6 +322,7 @@ class DownloadSystem : AIOTimerListener, DownloadSysInf, DownloadTaskListener {
 				// Only add the task if it is not already in the waiting queue
 				if (!waitingDownloadTasks.contains(downloadTask)) {
 					waitingDownloadTasks.add(downloadTask)
+					wakeUp() // T9 decision 4
 					logger.d("Download task added to waiting list for resume: ${downloadModel.fileName}")
 
 					// Update the UI to reflect resumed state
@@ -603,6 +632,7 @@ class DownloadSystem : AIOTimerListener, DownloadSysInf, DownloadTaskListener {
 			// Add task to running list if currently downloading
 			if (downloadDataModel.isRunning && downloadDataModel.status == DOWNLOADING) {
 				addToRunningDownloadTasksList(downloadTaskInf)
+				wakeUp() // T9 decision 4
 				logger.d("Added to running tasks: ${downloadDataModel.fileName}")
 			}
 

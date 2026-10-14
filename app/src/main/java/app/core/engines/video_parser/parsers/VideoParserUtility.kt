@@ -56,16 +56,21 @@ object VideoParserUtility {
 		cookie: String? = null, retryLimit: Int = 1,
 		processId: String? = null // T8.13: lets the caller stop yt-dlp when its wait ends
 	): List<VideoFormat> {
-		var attempts = 0 // Initialize attempt counter
-		var videoFormats: List<VideoFormat>
-		// Loop to attempt fetching video formats
-		do {
-			// Fetch the list of video formats
-			videoFormats = getYtdlpVideoFormatsList(url, cookie, processId)
-			attempts++ // Increment the attempt counter
-			// Continue retrying if the list is empty and the attempt limit has not been reached
-		} while (videoFormats.isEmpty() && attempts < retryLimit)
-		return videoFormats
+		// T9 (issue 7): a lookup the caller stopped (its yt-dlp process killed) is not started again
+		return org.websnake.vidchain.fallback.fixes.StoppableRetry.run(retryLimit,
+			stopped = { processId != null && processId in stoppedProcesses }, empty = { it: List<VideoFormat> -> it.isEmpty() }) {
+			getYtdlpVideoFormatsList(url, cookie, processId)
+		}
+	}
+
+	/** T9 (issue 7): yt-dlp processes their caller stopped; a stopped lookup is not retried */
+	private val stoppedProcesses: MutableSet<String> = java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap())
+
+	/** T9: stop a format lookup started with [processId] (T8.13 deadline / Cancel) and keep it from retrying */
+	@JvmStatic
+	fun stopYtdlpProcess(processId: String) {
+		stoppedProcesses.add(processId)
+		runCatching { com.yausername.youtubedl_android.YoutubeDL.getInstance().destroyProcessById(processId) }
 	}
 	
 	/**
