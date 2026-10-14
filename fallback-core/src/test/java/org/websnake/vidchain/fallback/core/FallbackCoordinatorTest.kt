@@ -58,11 +58,13 @@ class FallbackCoordinatorTest {
 	private fun failed(key: StatusKey = StatusKey.DOWNLOAD_FAILED) = DownloadSnapshot(Engine.REGULAR, CLOSE, statusKey = key)
 	private fun paused() = DownloadSnapshot(Engine.REGULAR, CLOSE, statusKey = StatusKey.PAUSED)
 
-	private class World(scope: CoroutineScope, methods: List<FallbackMethod>, stub: Boolean = true, refresher: LinkRefresher? = null, methodOn: (String) -> Boolean = { true }) {
+	private class World(scope: CoroutineScope, methods: List<FallbackMethod>, stub: Boolean = true, refresher: LinkRefresher? = null, methodOn: (String) -> Boolean = { true },
+						config: FallbackCoordinator.Config? = null, realClock: Boolean = false) {
 		val host = FakeHost()
 		val ledger = InMemoryLedger()
 		var now = 1_000_000L
-		val c = FallbackCoordinator(host, ledger, methods, scope, FallbackCoordinator.Config(stub, methodOn = methodOn), clock = { now }, refresher = refresher)
+		val c = FallbackCoordinator(host, ledger, methods, scope, config ?: FallbackCoordinator.Config(stub, methodOn = methodOn),
+			clock = if (realClock) System::currentTimeMillis else ({ now }), refresher = refresher)
 		suspend fun tick() { c.tick(); c.drain() }
 	}
 
@@ -569,5 +571,121 @@ class FallbackCoordinatorTest {
 		assertTrue(org.websnake.vidchain.fallback.classifier.TerminalClassifier.classify(gone) is org.websnake.vidchain.fallback.classifier.Verdict.Failure)
 		val paused = DownloadSnapshot(Engine.REGULAR, DOWNLOADING, userIntent = UserIntent.PAUSE, msSinceLastProgress = 600_000)
 		assertTrue(org.websnake.vidchain.fallback.classifier.TerminalClassifier.classify(paused) is org.websnake.vidchain.fallback.classifier.Verdict.UserStopped)
+	}
+
+	// --- T9 decision 1: methods in batches --------------------------------------------------------------------------
+
+	private class Exec(override val id: String, val body: suspend (FallbackContext) -> MethodOutcome) : FallbackMethod {
+		val calls = AtomicInteger()
+		override val kind = FallbackMethod.Kind.EXECUTOR
+		override suspend fun attempt(ctx: FallbackContext): MethodOutcome { calls.incrementAndGet(); return body(ctx) }
+	}
+
+	private val batch3 = org.websnake.vidchain.fallback.race.BatchPlanner.Config(batchSize = 3, maxLight = 5, staggerMs = 0, killGraceMs = 1_000)
+	private val cancelledForWinner = "cancelled: another method seemed to win"
+
+	private suspend fun failAndRun(w: World) {
+		w.host.set("1", running(), url = fileUrl); w.tick()
+		w.host.set("1", failed()); w.tick()
+	}
+
+	@Test fun aBatchRunsTogetherAndTheFirstGoodFileStopsTheOthers() = runBlocking {
+		val r = Counting("R") { MethodOutcome.Failed("x") }
+		val l = Exec("L") { kotlinx.coroutines.awaitCancellation() }
+		val o = Exec("O") { kotlinx.coroutines.delay(50); MethodOutcome.Delivered(goodMp4()) }
+		val w = World(this, listOf(r, l, o), config = FallbackCoordinator.Config(false, race = batch3), realClock = true)
+		failAndRun(w)
+		assertEquals(1, w.host.delivered.size)
+		val rows = w.ledger.attempts("1").associateBy { it.method }
+		assertEquals(AttemptState.DELIVERED, rows.getValue("O").state)
+		assertEquals(AttemptState.FAILED, rows.getValue("L").state)
+		assertEquals(cancelledForWinner, rows.getValue("L").reason)
+		assertEquals(1, l.calls.get())
+	}
+
+	@Test fun aDecoyCandidateDoesNotWinAndCancelsNothing() = runBlocking {
+		val r = Counting("R") { MethodOutcome.Resolved(Candidate("https://ads.example/decoy.html")) }
+		val o = Exec("O") { kotlinx.coroutines.delay(100); MethodOutcome.Resolved(Candidate("https://cdn.example/v.mp4")) }
+		val probe: suspend (Candidate, FallbackContext) -> Boolean = { c, _ -> c.url.endsWith(".mp4") }
+		val w = World(this, listOf(r, o), config = FallbackCoordinator.Config(false, race = batch3, probe = probe), realClock = true)
+		failAndRun(w)
+		assertEquals(listOf("https://cdn.example/v.mp4"), w.host.queued.map { it.second.url })
+		val rows = w.ledger.attempts("1").associateBy { it.method }
+		assertEquals("its candidate is not a media file (probe)", rows.getValue("R").reason)
+		assertEquals(AttemptState.CHILD, rows.getValue("O").state)
+	}
+
+	@Test fun firstMediaBytesCancelTheOthersBeforeTheWinnerFinishes() = runBlocking {
+		val stoppedAt = java.util.concurrent.atomic.AtomicLong()
+		val l = Exec("L") { try { kotlinx.coroutines.awaitCancellation() } finally { stoppedAt.set(System.nanoTime()) } }
+		val o = Exec("O") { ctx -> ctx.onProven?.invoke(); kotlinx.coroutines.delay(300); MethodOutcome.Delivered(goodMp4()) }
+		val w = World(this, listOf(l, o), config = FallbackCoordinator.Config(false, race = batch3), realClock = true)
+		val t0 = System.nanoTime()
+		failAndRun(w)
+		assertEquals(1, w.host.delivered.size)
+		assertTrue("the loser stopped before the winner's 300 ms were over", (stoppedAt.get() - t0) / 1_000_000 < 300)
+		assertEquals(cancelledForWinner, w.ledger.attempts("1").first { it.method == "L" }.reason)
+	}
+
+	@Test fun twoHeavyMethodsNeverRunTogether() = runBlocking {
+		val live = AtomicInteger(); var most = 0
+		fun heavy(id: String) = Exec(id) { live.incrementAndGet().let { n -> if (n > most) most = n }; kotlinx.coroutines.delay(60); live.decrementAndGet(); MethodOutcome.Failed("nothing") }
+		val weights: (String) -> org.websnake.vidchain.fallback.race.BatchPlanner.Weight =
+			{ if (it == "R") org.websnake.vidchain.fallback.race.BatchPlanner.Weight.LIGHT else org.websnake.vidchain.fallback.race.BatchPlanner.Weight.HEAVY }
+		val r = Counting("R") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(r, heavy("L"), heavy("S"), heavy("O")), config = FallbackCoordinator.Config(false, race = batch3, weightOf = weights), realClock = true)
+		failAndRun(w)
+		assertEquals(1, most)
+		assertEquals(setOf("R", "L", "S", "O"), w.ledger.attempts("1").map { it.method }.toSet())
+	}
+
+	@Test fun whenTheEarlyWinnersFileFailsTheCancelledMethodRunsAgain() = runBlocking {
+		val second = AtomicInteger()
+		val l = Exec("L") { if (second.incrementAndGet() == 1) kotlinx.coroutines.awaitCancellation() else MethodOutcome.Delivered(goodMp4()) }
+		val o = Exec("O") { ctx -> ctx.onProven?.invoke(); kotlinx.coroutines.delay(50); MethodOutcome.Delivered(htmlAsMp4()) }
+		val w = World(this, listOf(l, o), config = FallbackCoordinator.Config(false, race = batch3), realClock = true)
+		failAndRun(w)
+		assertEquals(2, l.calls.get())
+		assertEquals(1, w.host.delivered.size)
+		assertEquals(AttemptState.DELIVERED, w.ledger.attempts("1").last { it.method == "L" }.state)
+	}
+
+	// --- T9 decision 1: the hedged start ------------------------------------------------------------------------------
+
+	private fun own(bytes: Long = 0) = HostDownload("1", fileUrl, fileUrl, running(), bytes, ownPath = OwnPath.DIRECT)
+
+	@Test fun anOwnPathThatProvesInTimeRunsAlone() = runBlocking {
+		val o = Exec("O") { MethodOutcome.Delivered(goodMp4()) }
+		val w = World(this, listOf(o), config = FallbackCoordinator.Config(false, race = batch3, hedge = true))
+		w.host.list["1"] = own(); w.tick()
+		w.now += 3_000; w.host.list["1"] = own(200_000); w.tick()
+		w.now += 10_000; w.tick()
+		assertEquals(0, o.calls.get())
+		assertTrue(w.ledger.attempts("1").isEmpty())
+	}
+
+	@Test fun aSlowOwnPathGetsTheMethodsBesideItAndIsPausedWhenOneWins() = runBlocking {
+		val o = Exec("O") { kotlinx.coroutines.delay(30); MethodOutcome.Delivered(goodMp4()) }
+		val w = World(this, listOf(o), config = FallbackCoordinator.Config(false, race = batch3, hedge = true))
+		w.host.list["1"] = own(); w.tick()
+		w.now += OwnPath.defaultProofMs(OwnPath.DIRECT) - 1; w.tick()
+		assertEquals(0, o.calls.get())                                          // not yet late
+		w.now += 1; w.tick()
+		assertEquals(1, w.host.delivered.size)
+		assertEquals(listOf("1"), w.host.stopped)                              // the own download was paused
+		assertEquals(UserIntent.PAUSE, w.ledger.intentOf("1"))
+	}
+
+	@Test fun whenTheOwnPathProvesFirstTheRaceStopsAndItsMethodsStayUntried() = runBlocking {
+		val l = Exec("L") { kotlinx.coroutines.awaitCancellation() }
+		val w = World(this, listOf(l), config = FallbackCoordinator.Config(false, race = batch3, hedge = true))
+		w.host.list["1"] = own(); w.tick()
+		w.now += 6_000; w.c.tick()
+		repeat(50) { if (l.calls.get() == 0) kotlinx.coroutines.delay(20) }
+		assertEquals(1, l.calls.get())
+		w.host.list["1"] = own(500_000); w.c.tick(); w.c.drain()
+		assertEquals(cancelledForWinner, w.ledger.attempts("1").single().reason)
+		assertTrue(w.host.stopped.isEmpty())
+		assertTrue(w.host.delivered.isEmpty())
 	}
 }

@@ -15,6 +15,8 @@ data class FallbackContext(
 	val expectMedia: Boolean = true,
 	val preferredHeight: Int? = null,      // the resolution the user picked for the current method (yt-dlp format choice)
 	val audioOnly: Boolean = false,
+	/** T9 decision 1: an executor calls this once when its first bytes prove a media file (the race cancels the others) */
+	val onProven: (() -> Unit)? = null,
 )
 
 /** A resolved media source for the existing downloaders (resolver output) - headers never go into traces. */

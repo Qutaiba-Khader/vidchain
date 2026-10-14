@@ -183,6 +183,7 @@ object VidChainFallbackHost : FallbackHost {
 			preferredHeight = m.videoFormat?.formatResolution?.let(::heightOf),
 			audioOnly = m.videoFormat?.let { it.formatVcodec == "none" || it.formatResolution.contains("audio", ignoreCase = true) } ?: false,
 			startedAtMs = m.startTimeDate.takeIf { it > 0 },
+			ownPath = VidChainOwnPath.of(m),
 			snapshot = DownloadSnapshot(
 				engine = if (viaExtractor) Engine.M3U8 else Engine.REGULAR,
 				status = m.status,

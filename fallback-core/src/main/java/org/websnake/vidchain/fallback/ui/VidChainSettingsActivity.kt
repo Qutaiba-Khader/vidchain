@@ -58,7 +58,7 @@ class VidChainSettingsActivity : AppCompatActivity() {
 	}
 
 	private fun buildMethodSwitches(box: LinearLayout) {
-		val built = FallbackRuntime.methods.map { it.id }.toSet()
+		val built = FallbackRuntime.methods.map { it.id }.toSet() + org.websnake.vidchain.fallback.core.OwnPath.ALL
 		for (id in TrailText.ALL_METHODS) {
 			box.addView(SwitchCompat(this).apply {
 				text = if (id in built) TrailText.name(id) else getString(R.string.vidchain_method_not_built, TrailText.name(id))

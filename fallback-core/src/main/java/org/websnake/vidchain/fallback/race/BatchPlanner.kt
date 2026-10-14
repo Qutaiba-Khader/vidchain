@@ -36,6 +36,16 @@ class BatchPlanner(steps: List<Step>, private val cfg: Config = Config(), startM
 		object Exhausted : Action()
 	}
 
+	companion object {
+		/** how many batches [steps] make (for the status text "batch 1/3") */
+		fun batchesFor(steps: List<Step>, cfg: Config): Int {
+			val p = BatchPlanner(steps, cfg, 0L)
+			var n = 0
+			while (p.batch.isNotEmpty()) { n++; p.queue.let { if (it.isEmpty()) return n }; p.formBatch(0L) }
+			return n
+		}
+	}
+
 	private enum class State { WAITING, RUNNING, PROBING, DONE, CANCELLED, STOPPED, WON }
 
 	private class Slot(val step: Step) {

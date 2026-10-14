@@ -770,6 +770,11 @@ class DownloadSystem : AIOTimerListener, DownloadSysInf, DownloadTaskListener {
 	 */
 	private fun startDownloadTask(downloadTaskInf: DownloadTaskInf) {
 		ThreadsUtility.executeInBackground(codeBlock = {
+			// T9 decision 1: the user switched this download's own path off in VidChain's Methods: VidChain takes it
+			if (org.websnake.vidchain.app.VidChainOwnPath.skip(downloadTaskInf.downloadDataModel)) {
+				downloadTaskInf.updateDownloadStatus(statusInfo = lib.texts.CommonTextUtils.getText(com.aio.R.string.title_download_failed), status = CLOSE)
+				return@executeInBackground
+			}
 			try {
 				// Log the start of the download task
 				logger.d("Starting download task: ${downloadTaskInf.downloadDataModel.fileName}")

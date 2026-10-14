@@ -171,10 +171,17 @@ object FallbackRuntime {
 		})
 		val kit = EngineKit(app)
 		// decision 10: the removed master switch is forgotten and a stored "every method off" is repaired
-		runCatching { FallbackSettings.repair(app, methods.map { it.id }) }
+		runCatching { FallbackSettings.repair(app, methods.map { it.id } + OwnPath.ALL) }
 		val c = FallbackCoordinator(host, l, methods.toList(), s,
 			FallbackCoordinator.Config(INCLUDE_STUB, methodOn = { FallbackSettings.methodOn(app, it) },
-				keepAlive = { reason, block -> kit.keptAlive(reason) { block() } }),
+				keepAlive = { reason, block -> kit.keptAlive(reason) { block() } },
+				// T9 decision 1: batches of about 3 (up to 5 light methods), one heavy method at a time, staggered
+				race = org.websnake.vidchain.fallback.race.BatchPlanner.Config(batchSize = 3, maxLight = 5, staggerMs = 400, killGraceMs = 5_000),
+				weightOf = { if (it in HEAVY) org.websnake.vidchain.fallback.race.BatchPlanner.Weight.HEAVY else org.websnake.vidchain.fallback.race.BatchPlanner.Weight.LIGHT },
+				scorecard = scorecardFor(app),
+				probe = ::probe,
+				onChainEnd = { saveScorecard(app) },
+				hedge = true),
 			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe), refresher = linkRefresher(app))
 		ledger = l; coordinator = c; this.host = host; scope = s
 		engines = kit
@@ -223,6 +230,53 @@ object FallbackRuntime {
 	 * null when it ignores the range (a 200): the app's resume needs ranges, or it would write the file's start at the
 	 * saved offset (T8.12 review)
 	 */
+	/**
+	 * T9 decision 1: methods that start a process (yt-dlp, gallery-dl, you-get, Streamlink, lux, ffmpeg, aria2c), a
+	 * WebView (W) or a media pipeline (NewPipe's and Media3's merges): never two of them in one batch on a 4 GB phone
+	 */
+	private val HEAVY = setOf("C", "S", "Y", "N", "G", "U", "T", "X", "W", "F", "M", "P", "A")
+
+	/** T9: the learned per-site order (site, method, cause and time only), kept in the app's private files */
+	@Volatile private var scorecard: org.websnake.vidchain.fallback.race.Scorecard? = null
+	private fun scorecardFile(app: android.content.Context) = java.io.File(app.filesDir, "vidchain-scorecard.json")
+	private fun scorecardFor(app: android.content.Context): org.websnake.vidchain.fallback.race.Scorecard =
+		org.websnake.vidchain.fallback.race.Scorecard(seeds = org.websnake.vidchain.fallback.race.SeedOrder.SEEDS).also { card ->
+			runCatching { scorecardFile(app).takeIf { it.isFile }?.readText()?.let(card::load) }
+			scorecard = card
+		}
+	private fun saveScorecard(app: android.content.Context) {
+		val card = scorecard ?: return
+		runCatching {
+			val f = scorecardFile(app); val tmp = java.io.File(f.path + ".tmp")
+			tmp.writeText(card.toJson()); tmp.renameTo(f)
+		}
+	}
+
+	/**
+	 * T9 decision 1: a resolver's candidate wins only when its first bytes prove it: one ranged read of the first 64 KB
+	 * with the candidate's headers (never a cookie), judged by ProofRule. Only a clear "not media" refuses it; an
+	 * answer it cannot judge (a timeout, an unknown type) lets it through to the download's own checks.
+	 */
+	private suspend fun probe(c: Candidate, ctx: FallbackContext): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+		if (c.kind == "magnet" || !c.url.startsWith("http", ignoreCase = true)) return@withContext true
+		if (org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(c.url) && !org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(ctx.url)) return@withContext false
+		val req = okhttp3.Request.Builder().url(c.url).header("Range", "bytes=0-${org.websnake.vidchain.fallback.race.ProofRule.PROBE_BYTES - 1}").apply {
+			c.headers.filterKeys { !it.equals("Cookie", true) && !it.equals("Range", true) }.forEach { (k, v) -> runCatching { header(k, v) } }
+			if (c.headers.keys.none { it.equals("User-Agent", true) }) ctx.userAgent?.let { header("User-Agent", it) }
+			if (c.headers.keys.none { it.equals("Referer", true) }) ctx.referer?.takeIf { it.startsWith("http") }?.let { header("Referer", it) }
+		}.build()
+		val verdict = runCatching {
+			http.newBuilder().callTimeout(20, java.util.concurrent.TimeUnit.SECONDS).build().newCall(req).execute().use { r ->
+				val head = r.body?.source()?.let { src -> src.request(org.websnake.vidchain.fallback.race.ProofRule.PROBE_BYTES); src.buffer.readByteArray(minOf(src.buffer.size, org.websnake.vidchain.fallback.race.ProofRule.PROBE_BYTES)) } ?: ByteArray(0)
+				val total = r.header("Content-Range")?.substringAfterLast('/')?.trim()?.toLongOrNull()
+					?: r.header("Content-Length")?.toLongOrNull()?.takeIf { r.code == 200 }
+				org.websnake.vidchain.fallback.race.ProofRule.judge(r.code, r.header("Content-Type"), head, total, c.kind)
+			}
+		}.getOrDefault(org.websnake.vidchain.fallback.race.ProofRule.Verdict.UNSURE)
+		Trace.event { TraceEvent("probe", result = verdict.name.lowercase(), reason = c.kind) }
+		verdict != org.websnake.vidchain.fallback.race.ProofRule.Verdict.NOT_MEDIA
+	}
+
 	private suspend fun totalSize(url: String, referer: String?): Long? = kotlinx.coroutines.withContext(Dispatchers.IO) {
 		if (org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(url)) return@withContext null   // never the user's own network
 		val req = okhttp3.Request.Builder().url(url).header("Range", "bytes=0-0").apply { referer?.let { header("Referer", it) } }.build()

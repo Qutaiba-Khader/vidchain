@@ -11,6 +11,8 @@ data class Trail(
 	val total: Int,
 	val method: String,
 	val state: State,
+	/** T9 decision 1: the methods running now in a batch (then [step]/[total] count batches); empty = one at a time */
+	val running: List<String> = emptyList(),
 ) {
 	enum class State { RUNNING, WAITING_CHILD, VERIFYING, DELIVERED, BEST_SO_FAR, EXHAUSTED, INTERRUPTED, NO_METHOD }
 }
@@ -42,7 +44,9 @@ object TrailBoard {
 /** Card / sheet texts. English for now (the app's own strings stay upstream's). Pure, JVM-tested. */
 object TrailText {
 	private val NAMES = mapOf(
-		"STUB" to "Self-check stub", "C" to "YouTube client retry", "S" to "Session retry", "Y" to "yt-dlp (any URL)",
+		"STUB" to "Self-check stub",
+		// T9: the original app's own paths, first in the Methods list
+		"OY" to "Original: yt-dlp", "OS" to "Original: social page", "OD" to "Original: direct", "OB" to "Original: browser", "C" to "YouTube client retry", "S" to "Session retry", "Y" to "yt-dlp (any URL)",
 		"P" to "NewPipe streams", "F" to "ffmpeg", "N" to "yt-dlp nightly", "W" to "Page player catcher", "R" to "Redirect unwrap",
 		"L" to "File-host link", "H" to "Page scan", "G" to "gallery-dl", "U" to "you-get", "T" to "Streamlink", "X" to "lux",
 		"O" to "Plain download", "A" to "aria2c", "D" to "Android downloader", "M" to "Media3 stream saver",
@@ -54,7 +58,8 @@ object TrailText {
 	fun name(id: String): String = NAMES[id] ?: id
 
 	fun card(t: Trail): String = when (t.state) {
-		Trail.State.RUNNING -> "Fallback: trying ${name(t.method)} (${t.step}/${t.total})"
+		Trail.State.RUNNING -> if (t.running.isEmpty()) "Fallback: trying ${name(t.method)} (${t.step}/${t.total})"
+			else "Trying: ${t.running.joinToString(", ") { name(it) }} · batch ${t.step}/${t.total}"
 		Trail.State.WAITING_CHILD -> "Fallback: ${name(t.method)} found a source, downloading (${t.step}/${t.total})"
 		Trail.State.VERIFYING -> "Fallback: checking the file from ${name(t.method)}"
 		Trail.State.DELIVERED -> "Fallback: saved by ${name(t.method)}"

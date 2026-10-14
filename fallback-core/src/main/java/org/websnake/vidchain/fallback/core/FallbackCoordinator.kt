@@ -63,11 +63,27 @@ class FallbackCoordinator(
 		val methodOn: (String) -> Boolean = { true },
 		/** wraps executor attempts (in the app: an EngineHost lease keeps the process alive while the method works) */
 		val keepAlive: suspend (reason: String, block: suspend () -> MethodOutcome) -> MethodOutcome = { _, block -> block() },
+		/** T9 decision 1: how many methods run at once (default: one at a time) */
+		val race: org.websnake.vidchain.fallback.race.BatchPlanner.Config = org.websnake.vidchain.fallback.race.BatchPlanner.Config(batchSize = 1, maxLight = 1, staggerMs = 0),
+		val weightOf: (String) -> org.websnake.vidchain.fallback.race.BatchPlanner.Weight = { org.websnake.vidchain.fallback.race.BatchPlanner.Weight.LIGHT },
+		/** a method running this long is cancelled (its own time limits come first; this is the watchdog's) */
+		val limitMs: Long = 30 * 60_000L,
+		/** T9: the learned per-site order and results; null = the chain order */
+		val scorecard: org.websnake.vidchain.fallback.race.Scorecard? = null,
+		/** T9: proves a resolver's candidate before it wins (first bytes); null = trusted as before */
+		val probe: (suspend (Candidate, FallbackContext) -> Boolean)? = null,
+		/** T9: a chain ended (the runtime keeps the scorecard) */
+		val onChainEnd: () -> Unit = {},
+		/** T9: start the methods beside a slow own download (the hedged start); off = only after it failed */
+		val hedge: Boolean = false,
 	)
 
 	private val methods = methods.associateBy { it.id }
 	private class Seen(var bytes: Long, var status: Int, var lastChangeMs: Long, var armed: Boolean, var intentSeq: Long, var done: Boolean = false,
-		var armedAtMs: Long = 0, var startedSinceArm: Boolean = true)
+		var armedAtMs: Long = 0, var startedSinceArm: Boolean = true,
+		// T9 hedged start: when this look first saw the app's own path running, whether it proved its first bytes,
+		// whether the other methods were started beside it, and whether its result went into the scorecard
+		var runningSinceMs: Long = 0, var ownProven: Boolean = false, var hedged: Boolean = false, var ownScored: Boolean = false)
 	private val seen = HashMap<String, Seen>()
 	private var baselined = false
 	/** downloads the app created after this moment are new, also when the first look (the baseline) finds them failed */
@@ -126,6 +142,7 @@ class FallbackCoordinator(
 		)
 		val v = TerminalClassifier.classify(snap)
 		if (v != Verdict.Success) st.done = false
+		hedge(d, st, v, now)
 		when (v) {
 			Verdict.InProgress, is Verdict.Waiting -> st.armed = true
 			is Verdict.UserStopped -> st.armed = false
@@ -143,6 +160,56 @@ class FallbackCoordinator(
 				st.armed = false
 				if (trigger) onFailure(d, v, list, now)
 			}
+		}
+	}
+
+	/**
+	 * T9 decision 1, the hedged start (adhd 2026-10-14): the app's own path runs alone; when it has not proven its first
+	 * bytes within its site's usual time (the scorecard's p90, else [OwnPath.defaultProofMs]), VidChain's methods start
+	 * beside it. The first proven one wins and the own download is paused; when the own path proves first, the race is
+	 * stopped (its methods still count as not tried). The own path's results go into the scorecard like any method's.
+	 */
+	private fun hedge(d: HostDownload, st: Seen, v: Verdict, now: Long) {
+		val own = d.ownPath ?: return
+		if (ledger.parentOf(d.id) != null) return                                     // a child download is a method's work
+		val site = org.websnake.vidchain.fallback.race.Scorecard.siteOf(d.url)
+		val card = config.scorecard
+		when (v) {
+			Verdict.InProgress -> {
+				if (d.snapshot.status == DownloadSnapshot.DOWNLOADING && st.runningSinceMs == 0L) st.runningSinceMs = now
+				if (st.runningSinceMs == 0L || st.ownProven) return
+				if (d.bytes >= OWN_PROOF_BYTES) {
+					st.ownProven = true
+					if (!st.ownScored) { st.ownScored = true; card?.record(site, own, org.websnake.vidchain.fallback.race.Scorecard.Cause.OK, now - st.runningSinceMs) }
+					if (st.hedged && running[d.id]?.isActive == true) {
+						// the own path proved first: the methods beside it stop and stay untried
+						ledger.attempts(d.id).filter { it.state == AttemptState.RUNNING }
+							.forEach { ledger.update(d.id, it.attemptNo, AttemptState.FAILED, null, CANCELLED_FOR_WINNER, now) }
+						running[d.id]?.cancel()
+						TrailBoard.remove(d.id)
+						Trace.event { TraceEvent("hedge.stopped", downloadId = d.id, method = own, reason = "the app's own path proved first") }
+					}
+					return
+				}
+				if (!config.hedge || st.hedged || running[d.id]?.isActive == true || ledger.intentOf(d.id) in PAUSES_AND_REMOVAL) return
+				val wait = card?.proofTimeMs(site, own, OwnPath.defaultProofMs(own)) ?: OwnPath.defaultProofMs(own)
+				if (now - st.runningSinceMs < wait || !chainCanRun(d)) return
+				st.hedged = true
+				Trace.event { TraceEvent("hedge.start", downloadId = d.id, method = own, reason = "no first bytes after ${now - st.runningSinceMs} ms (usual ${wait} ms)") }
+				running[d.id] = scope.launch { runChain(d, LATE) }
+			}
+			is Verdict.Failure -> if (!st.ownScored && st.runningSinceMs > 0) {
+				st.ownScored = true
+				val cause = when (v.cls) {
+					FailureClass.STALLED -> org.websnake.vidchain.fallback.race.Scorecard.Cause.TIMEOUT
+					FailureClass.EXTRACTOR_LOGIN -> org.websnake.vidchain.fallback.race.Scorecard.Cause.LOGIN
+					FailureClass.EXTRACTOR_UNAVAILABLE -> org.websnake.vidchain.fallback.race.Scorecard.Cause.GEO
+					FailureClass.STORAGE -> null
+					else -> org.websnake.vidchain.fallback.race.Scorecard.Cause.NOT_UNDERSTOOD
+				}
+				cause?.let { card?.record(site, own, it, now - st.runningSinceMs) }
+			}
+			else -> Unit
 		}
 	}
 
@@ -253,6 +320,10 @@ class FallbackCoordinator(
 	}
 
 	private suspend fun runChain(original: HostDownload, failureClass: String) {
+		try { runChainInner(original, failureClass) } finally { runCatching { config.onChainEnd() } }
+	}
+
+	private suspend fun runChainInner(original: HostDownload, failureClass: String) {
 		var root = withEffectiveUrl(original)
 		var urlClass = UrlClass.of(root.url)
 		var steps = ChainSpec.stepsFor(urlClass, config.includeStub)
@@ -270,11 +341,17 @@ class FallbackCoordinator(
 				Trace.event { TraceEvent("decision", downloadId = root.id, chain = urlClass.chain, result = "waiting-for-child-or-delivered") }
 				return
 			}
-			val next = ChainSpec.nextMethod(steps, done.map { it.method }) { it in methods && config.methodOn(it) }
+			val next = ChainSpec.nextMethod(steps, tried(done)) { it in methods && config.methodOn(it) }
 			if (next == null && done.isEmpty() && MethodSwitches.noCapableMethod(steps, methods.keys) { config.methodOn(it) }) {
 				TrailBoard.put(Trail(root.id, urlClass.chain, 0, 0, "-", Trail.State.NO_METHOD))
 				Trace.event { TraceEvent("chain.exhausted", downloadId = root.id, chain = urlClass.chain, failureClass = failureClass,
 					result = "nothing", reason = "no switched-on method for this kind of link") }
+				return
+			}
+			if (next == null && failureClass == LATE) {
+				// the methods beside a slow own download found nothing: it goes on alone (its own failure, if any, ends the chain)
+				TrailBoard.remove(root.id)
+				Trace.event { TraceEvent("hedge.exhausted", downloadId = root.id, chain = urlClass.chain, reason = "${done.size} attempts") }
 				return
 			}
 			if (next == null) {
@@ -286,121 +363,305 @@ class FallbackCoordinator(
 					result = if (best != null) "best-so-far" else "nothing", reason = "${done.size} attempts" + (best?.let { ", keeping attempt ${it.attemptNo} (${it.method}, unsure)" } ?: "")) }
 				return
 			}
-			val no = (done.maxOfOrNull { it.attemptNo } ?: 0) + 1
-			val step = steps.indexOf(next)
-			if (!ledger.claim(root.id, no, next, clock())) {
-				Trace.event { TraceEvent("decision", downloadId = root.id, chain = urlClass.chain, step = step, method = next, result = "claim-lost") }
-				return
-			}
-			val ctx = FallbackContext(parentId = root.id, url = root.url, mediaUrl = root.mediaUrl, urlClass = urlClass, referer = root.referer,
-				userAgent = root.userAgent, fileName = root.fileName, failureClass = failureClass, attemptNo = no,
-				destPath = root.filePath, expectMedia = root.expectMedia, preferredHeight = root.preferredHeight, audioOnly = root.audioOnly)
-			Trace.event { TraceEvent("attempt.start", downloadId = root.id, chain = urlClass.chain, step = step, method = next, failureClass = failureClass) }
-			val runnable = steps.filter { it in methods && config.methodOn(it) }
-			TrailBoard.put(Trail(root.id, urlClass.chain, runnable.indexOf(next) + 1, runnable.size, next, Trail.State.RUNNING))
-			val t0 = clock()
-			val outcome = try {
-				val m = methods.getValue(next)
-				suspend fun once() = if (m.kind == FallbackMethod.Kind.EXECUTOR) config.keepAlive("method $next") { m.attempt(ctx) } else m.attempt(ctx)
-				val first = once()
-				if (first is MethodOutcome.Failed && first.retryable) {
-					Trace.event { TraceEvent("attempt.retry", downloadId = root.id, chain = urlClass.chain, step = step, method = next, reason = first.reason) }
-					once()
-				} else first
-			} catch (e: CancellationException) {
-				ledger.update(root.id, no, AttemptState.FAILED, null, "cancelled", clock())
-				throw e
-			} catch (e: Throwable) {
-				MethodOutcome.Failed("method crashed: ${e.javaClass.simpleName}: ${e.message}")
-			}
-			val dur = clock() - t0
-			fun end(result: String, reason: String?) = Trace.event {
-				TraceEvent("attempt.end", downloadId = root.id, chain = urlClass.chain, step = step, method = next, result = result, reason = reason, durationMs = dur)
-			}
-			when (outcome) {
-				is MethodOutcome.Resolved -> {
-					val childId = lock.withLock {
-						val id = try {
-							withContext(hostContext) { host.enqueueChild(root, outcome.candidate, no, next) }
-						} catch (e: CancellationException) {
-							throw e
-						} catch (e: Exception) {
-							null
-						}
-						if (id != null) {
-							TrailBoard.linkChild(id, root.id, next)
-							TrailBoard.update(root.id) { it.copy(state = Trail.State.WAITING_CHILD) }
-							ledger.mapChild(id, root.id)
-							ledger.update(root.id, no, AttemptState.CHILD, id, null, clock())
-						}
-						id
-					}
-					if (childId != null) { end("child-queued", "child $childId"); return }
-					ledger.update(root.id, no, AttemptState.FAILED, null, "could not queue the child download", clock())
-					end("failed", "could not queue the child download")
-				}
-				is MethodOutcome.Delivered -> {
-					end("delivered", null)
-					var temp = File(outcome.path)
-					var extras = outcome.extras.map(::File).filter { it.isFile }
-					// a torrent's files were checked piece by piece by the engine: any non-empty file is what was asked for
-					val exp = Expectation(root.expectMedia, null, root.expectedDurationMs, root.fileName, trusted = root.keepNames)
-					var r = verifier.verify(temp, exp)
-					if (r.check == Check.FAIL) {
-						// another file of the same delivery (gallery, page with several files) may be the wanted one
-						extras.firstNotNullOfOrNull { x -> verifier.verify(x, exp).takeIf { it.check != Check.FAIL }?.let { x to it } }?.let { (x, rx) ->
-							extras = extras - x + temp; temp = x; r = rx
-						}
-					}
-					traceVerify(root.id, next, r, "file")
-					if (r.check != Check.FAIL && !root.keepNames) extras = extras.filter { x ->
-						(verifier.verify(x, exp.copy(expectedDurationMs = null)).check != Check.FAIL).also { ok -> if (!ok) x.delete() }
-					}
-					if (r.check == Check.FAIL) {
-						record(root.id, no, next, r, null)
-						temp.delete(); extras.forEach { it.delete() }
-					} else if (ledger.intentOf(root.id) in REMOVAL) {
-						ledger.update(root.id, no, AttemptState.FAILED, null, "the download was removed meanwhile", clock())
-						temp.delete(); extras.forEach { it.delete() }
-						return
-					} else {
-						val planned = root.filePath?.let(::File) ?: File(temp.parentFile, root.fileName ?: temp.name)
-						val dest = if (root.keepNames) File(planned.parentFile, temp.name) else deliveredName(planned, temp)
-						val final = runCatching { DeliveryVerifier.commit(temp, dest) }.getOrNull()
-						Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = if (final != null) "ok" else "failed", reason = final?.name) }
-						val listed = final?.let { f -> try { withContext(hostContext) { host.registerDelivered(root, f, next) } } catch (e: CancellationException) { throw e } catch (e: Exception) { null } }
-						if (final == null || listed == null) {
-							// the file never reached the user's list: not a delivery, the chain goes on
-							ledger.update(root.id, no, AttemptState.FAILED, null, if (final == null) "could not move the file into place" else "could not list the file ${final.name}", clock())
-							if (final == null) temp.delete()
-							extras.forEach { it.delete() }
-						} else {
-							val state = record(root.id, no, next, r, listed, "; saved as ${final.name}")
-							TrailBoard.linkChild(listed, root.id, next)
-							// the other files of a multi-file delivery: next to the first one, each listed
-							for (x in extras) {
-								val xf = runCatching { DeliveryVerifier.commit(x, File(final.parentFile, x.name)) }.getOrNull() ?: continue
-								try { withContext(hostContext) { host.registerDelivered(root, xf, next) } } catch (e: CancellationException) { throw e } catch (e: Exception) { }
-							}
-							if (extras.isNotEmpty()) Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = "extras", reason = "${extras.size} more file(s)") }
-							if (state == AttemptState.DELIVERED) return
-						}
-					}
-				}
-				is MethodOutcome.Failed -> { ledger.update(root.id, no, AttemptState.FAILED, null, outcome.reason, clock()); end("failed", outcome.reason) }
-				is MethodOutcome.Redirected -> {
-					ledger.setEffectiveUrl(root.id, outcome.url)
-					val from = urlClass.chain
+			when (runBatches(root, urlClass, steps, done, failureClass)) {
+				RaceEnd.STOP -> return
+				RaceEnd.AGAIN -> Unit
+				RaceEnd.REDIRECTED -> {
 					root = withEffectiveUrl(original)
 					urlClass = UrlClass.of(root.url)
 					steps = ChainSpec.stepsFor(urlClass, config.includeStub)
-					val note = "unwrapped${if (outcome.note.isNotEmpty()) " (${outcome.note})" else ""}; chain $from -> ${urlClass.chain}"
-					ledger.update(root.id, no, AttemptState.REDIRECTED, null, note, clock())
-					end("redirected", note)
 				}
-				is MethodOutcome.Unsupported -> { ledger.update(root.id, no, AttemptState.UNSUPPORTED, null, outcome.reason, clock()); end("unsupported", outcome.reason) }
 			}
 		}
+	}
+
+	private enum class RaceEnd { STOP, AGAIN, REDIRECTED }
+
+	/** how one attempt ended (T9: several run at once) */
+	private enum class AttemptEnd { Delivered, Failed, Unsure, Redirect }
+
+	/** T9: a method that was cancelled because another one seemed to win is not counted as tried */
+	private fun tried(done: List<org.websnake.vidchain.fallback.ledger.AttemptRow>) =
+		done.filterNot { it.state == AttemptState.FAILED && it.reason?.startsWith(CANCELLED_FOR_WINNER) == true }.map { it.method }
+
+	/**
+	 * T9 decision 1: the methods left run in batches (BatchPlanner: weights, staggered start, cancel only after a proven
+	 * success, losers stopped by the watchdog). [Config.race] sets the batch size; 1 = one at a time.
+	 */
+	private suspend fun runBatches(root: HostDownload, urlClass: UrlClass, steps: List<String>,
+								   done: List<org.websnake.vidchain.fallback.ledger.AttemptRow>, failureClass: String): RaceEnd = kotlinx.coroutines.coroutineScope {
+		val triedIds = tried(done)
+		val left = steps.filter { it in methods && config.methodOn(it) && it !in triedIds }
+		val site = org.websnake.vidchain.fallback.race.Scorecard.siteOf(root.url)
+		val ranked = config.scorecard?.rank(site, left) ?: left
+		val planner = org.websnake.vidchain.fallback.race.BatchPlanner(
+			ranked.map { org.websnake.vidchain.fallback.race.BatchPlanner.Step(it, config.weightOf(it), config.limitMs) }, config.race, clock())
+		val plannedBatches = org.websnake.vidchain.fallback.race.BatchPlanner.batchesFor(ranked.map { org.websnake.vidchain.fallback.race.BatchPlanner.Step(it, config.weightOf(it)) }, config.race)
+		val events = kotlinx.coroutines.channels.Channel<Ev>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+		val jobs = HashMap<String, Job>()
+		val nos = HashMap<String, Int>()
+		val starts = HashMap<String, Long>()
+		val ctxs = HashMap<String, FallbackContext>()
+		val resolved = HashMap<String, MethodOutcome.Resolved>()
+		var nextNo = (done.maxOfOrNull { it.attemptNo } ?: 0) + 1
+		var winner: String? = null
+		var end: RaceEnd? = null
+
+		fun trail() {
+			val now = planner.running()
+			if (now.isEmpty()) return
+			if (config.race.batchSize <= 1) {                                     // one at a time: "trying X (n/k)" as before
+				val runnable = steps.filter { it in methods && config.methodOn(it) }
+				TrailBoard.put(Trail(root.id, urlClass.chain, runnable.indexOf(now.first()) + 1, runnable.size, now.first(), Trail.State.RUNNING))
+			} else TrailBoard.put(Trail(root.id, urlClass.chain, planner.batches, plannedBatches, now.first(), Trail.State.RUNNING, running = now))
+		}
+
+		suspend fun perform(actions: List<org.websnake.vidchain.fallback.race.BatchPlanner.Action>) {
+			for (a in actions) when (a) {
+				is org.websnake.vidchain.fallback.race.BatchPlanner.Action.Start -> {
+					val id = a.id
+					val no = nextNo++
+					val step = steps.indexOf(id)
+					if (!ledger.claim(root.id, no, id, clock())) {
+						Trace.event { TraceEvent("decision", downloadId = root.id, chain = urlClass.chain, step = step, method = id, result = "claim-lost") }
+						end = RaceEnd.STOP
+						return
+					}
+					val ctx = FallbackContext(parentId = root.id, url = root.url, mediaUrl = root.mediaUrl, urlClass = urlClass, referer = root.referer,
+						userAgent = root.userAgent, fileName = root.fileName, failureClass = failureClass, attemptNo = no,
+						destPath = root.filePath, expectMedia = root.expectMedia, preferredHeight = root.preferredHeight, audioOnly = root.audioOnly,
+						onProven = { events.trySend(Ev.Proven(id)) })
+					nos[id] = no; starts[id] = clock(); ctxs[id] = ctx
+					Trace.event { TraceEvent("attempt.start", downloadId = root.id, chain = urlClass.chain, step = step, method = id, failureClass = failureClass,
+						reason = if (config.race.batchSize > 1) "batch ${planner.batches}" else null) }
+					jobs[id] = launch {
+						val o = execute(root, urlClass, step, id, no, ctx)
+						events.send(Ev.Done(id, o))
+					}
+					trail()
+				}
+				is org.websnake.vidchain.fallback.race.BatchPlanner.Action.Probe -> {
+					val id = a.id
+					val c = resolved[id]?.candidate
+					val probe = config.probe
+					launch {
+						val ok = c == null || probe == null || try { probe(c, ctxs.getValue(id)) } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
+						events.send(Ev.Proof(id, ok))
+					}
+				}
+				is org.websnake.vidchain.fallback.race.BatchPlanner.Action.Cancel -> {
+					val id = a.id
+					jobs[id]?.cancel()
+					val why = if (a.why == "time limit") "time limit" else CANCELLED_FOR_WINNER
+					nos[id]?.let { no -> ledger.update(root.id, no, AttemptState.FAILED, null, why, clock()) }
+					Trace.event { TraceEvent("attempt.end", downloadId = root.id, chain = urlClass.chain, method = id, result = "cancelled", reason = a.why,
+						durationMs = starts[id]?.let { clock() - it }) }
+					score(site, id, if (a.why == "time limit") org.websnake.vidchain.fallback.race.Scorecard.Cause.TIMEOUT else org.websnake.vidchain.fallback.race.Scorecard.Cause.CANCELLED, starts[id])
+					trail()
+				}
+				is org.websnake.vidchain.fallback.race.BatchPlanner.Action.Kill ->
+					Trace.event { TraceEvent("watchdog.kill", downloadId = root.id, method = a.id, reason = "still running after the cancel") }
+				is org.websnake.vidchain.fallback.race.BatchPlanner.Action.Win -> {
+					winner = a.id
+					Trace.event { TraceEvent("race.win", downloadId = root.id, chain = urlClass.chain, method = a.id, reason = "batch ${planner.batches}") }
+					if (failureClass == LATE) {
+						// the hedged start: the app's own download (still without bytes) is paused, recorded as a pause
+						ledger.recordIntent(root.id, UserIntent.PAUSE, clock())
+						val stopped = try { withContext(hostContext) { host.stopStuck(root) } } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
+						Trace.event { TraceEvent("decision", downloadId = root.id, result = if (stopped) "own-path-paused" else "own-path-not-paused", reason = "hedge won by ${a.id}") }
+					}
+				}
+				org.websnake.vidchain.fallback.race.BatchPlanner.Action.Exhausted -> if (end == null) end = RaceEnd.AGAIN
+			}
+		}
+
+		perform(planner.tick(clock()))
+		while (end == null) {
+			if (ledger.intentOf(root.id) in REMOVAL) {
+				Trace.event { TraceEvent("decision", downloadId = root.id, chain = urlClass.chain, result = "parent-removed") }
+				end = RaceEnd.STOP; break
+			}
+			val ev = kotlinx.coroutines.withTimeoutOrNull(RACE_TICK_MS) { events.receive() }
+			val now = clock()
+			when (ev) {
+				null -> perform(if (winner != null) planner.reap(now) else planner.tick(now))
+				is Ev.Proven -> if (winner == null && ev.id in jobs) {
+					// an executor's first bytes are media: it wins now, the others stop; it goes on to finish its file
+					Trace.event { TraceEvent("race.proven", downloadId = root.id, method = ev.id, reason = "first bytes are media") }
+					perform(planner.onCandidate(ev.id, now)); perform(planner.onProof(ev.id, true, now))
+				}
+				is Ev.Done -> {
+					val id = ev.id
+					jobs.remove(id)
+					val o = ev.outcome
+					if (o is MethodOutcome.Resolved && config.probe != null && winner == null) {
+						resolved[id] = o
+						perform(planner.onCandidate(id, now))                       // the probe decides
+						continue
+					}
+					val e = settle(root, urlClass, steps.indexOf(id), id, nos.getValue(id), o, now - (starts[id] ?: now))
+					score(site, id, causeOf(o, e), starts[id])
+					when (e) {
+						AttemptEnd.Delivered -> {
+							if (winner == null) { perform(planner.onCandidate(id, now)); perform(planner.onProof(id, true, now)) }
+							end = RaceEnd.STOP
+						}
+						AttemptEnd.Redirect -> end = RaceEnd.REDIRECTED
+						else -> if (winner == id) end = RaceEnd.AGAIN                // the early winner's file did not pass: the others get their turn again
+							else perform(planner.onEnded(id, now))
+					}
+				}
+				is Ev.Proof -> {
+					val id = ev.id
+					val o = resolved.remove(id) ?: continue
+					if (!ev.ok) {
+						nos[id]?.let { no -> ledger.update(root.id, no, AttemptState.FAILED, null, "its candidate is not a media file (probe)", clock()) }
+						Trace.event { TraceEvent("attempt.end", downloadId = root.id, chain = urlClass.chain, method = id, result = "not-proven", reason = "probe") }
+						score(site, id, org.websnake.vidchain.fallback.race.Scorecard.Cause.NOT_MEDIA, starts[id])
+						perform(planner.onProof(id, false, now))
+						continue
+					}
+					perform(planner.onProof(id, true, now))
+					val e = settle(root, urlClass, steps.indexOf(id), id, nos.getValue(id), o, now - (starts[id] ?: now))
+					score(site, id, causeOf(o, e), starts[id])
+					end = if (e == AttemptEnd.Delivered) RaceEnd.STOP else RaceEnd.AGAIN
+				}
+			}
+		}
+		// whatever still runs has lost (or the parent was removed): stop it
+		jobs.values.forEach { it.cancel() }
+		end ?: RaceEnd.AGAIN
+	}
+
+	private sealed class Ev {
+		class Done(val id: String, val outcome: MethodOutcome) : Ev()
+		class Proven(val id: String) : Ev()
+		class Proof(val id: String, val ok: Boolean) : Ev()
+	}
+
+	private fun score(site: String, method: String, cause: org.websnake.vidchain.fallback.race.Scorecard.Cause?, startedAt: Long?) {
+		val c = cause ?: return
+		val card = config.scorecard ?: return
+		card.record(site, method, c, startedAt?.let { clock() - it } ?: 0L)
+	}
+
+	/** the scorecard's cause for a method's result (T9 decision 1); null = not the method's doing (unsupported) */
+	private fun causeOf(o: MethodOutcome, e: AttemptEnd): org.websnake.vidchain.fallback.race.Scorecard.Cause? {
+		return when {
+			e == AttemptEnd.Delivered -> org.websnake.vidchain.fallback.race.Scorecard.Cause.OK
+			o is MethodOutcome.Unsupported || o is MethodOutcome.Redirected -> null
+			o is MethodOutcome.Failed -> org.websnake.vidchain.fallback.race.Scorecard.Cause.fromReason(o.reason)
+			else -> org.websnake.vidchain.fallback.race.Scorecard.Cause.NOT_MEDIA
+		}
+	}
+
+	/** runs [next] once, and once more when it asks for a retry (the per-attempt part of the one-at-a-time chain) */
+	private suspend fun execute(root: HostDownload, urlClass: UrlClass, step: Int, next: String, no: Int, ctx: FallbackContext): MethodOutcome =
+		try {
+			val m = methods.getValue(next)
+			suspend fun once() = if (m.kind == FallbackMethod.Kind.EXECUTOR) config.keepAlive("method $next") { m.attempt(ctx) } else m.attempt(ctx)
+			val first = once()
+			if (first is MethodOutcome.Failed && first.retryable) {
+				Trace.event { TraceEvent("attempt.retry", downloadId = root.id, chain = urlClass.chain, step = step, method = next, reason = first.reason) }
+				once()
+			} else first
+		} catch (e: CancellationException) {
+			// a race loser was already recorded by the canceller (T9); anything else that stops it is recorded here
+			if (ledger.attempts(root.id).firstOrNull { it.attemptNo == no }?.state == AttemptState.RUNNING)
+				ledger.update(root.id, no, AttemptState.FAILED, null, "cancelled", clock())
+			throw e
+		} catch (e: Throwable) {
+			MethodOutcome.Failed("method crashed: ${e.javaClass.simpleName}: ${e.message}")
+		}
+
+	/** what one attempt's result means for the parent: verify and commit a file, queue a child, follow a redirect */
+	private suspend fun settle(root: HostDownload, urlClass: UrlClass, step: Int, next: String, no: Int, outcome: MethodOutcome, dur: Long): AttemptEnd {
+		fun end(result: String, reason: String?) = Trace.event {
+			TraceEvent("attempt.end", downloadId = root.id, chain = urlClass.chain, step = step, method = next, result = result, reason = reason, durationMs = dur)
+		}
+	when (outcome) {
+			is MethodOutcome.Resolved -> {
+				val childId = lock.withLock {
+					val id = try {
+						withContext(hostContext) { host.enqueueChild(root, outcome.candidate, no, next) }
+					} catch (e: CancellationException) {
+						throw e
+					} catch (e: Exception) {
+						null
+					}
+					if (id != null) {
+						TrailBoard.linkChild(id, root.id, next)
+						TrailBoard.update(root.id) { it.copy(state = Trail.State.WAITING_CHILD) }
+						ledger.mapChild(id, root.id)
+						ledger.update(root.id, no, AttemptState.CHILD, id, null, clock())
+					}
+					id
+				}
+				if (childId != null) { end("child-queued", "child $childId"); return AttemptEnd.Delivered }
+				ledger.update(root.id, no, AttemptState.FAILED, null, "could not queue the child download", clock())
+				end("failed", "could not queue the child download")
+			}
+			is MethodOutcome.Delivered -> {
+				end("delivered", null)
+				var temp = File(outcome.path)
+				var extras = outcome.extras.map(::File).filter { it.isFile }
+				// a torrent's files were checked piece by piece by the engine: any non-empty file is what was asked for
+				val exp = Expectation(root.expectMedia, null, root.expectedDurationMs, root.fileName, trusted = root.keepNames)
+				var r = verifier.verify(temp, exp)
+				if (r.check == Check.FAIL) {
+					// another file of the same delivery (gallery, page with several files) may be the wanted one
+					extras.firstNotNullOfOrNull { x -> verifier.verify(x, exp).takeIf { it.check != Check.FAIL }?.let { x to it } }?.let { (x, rx) ->
+						extras = extras - x + temp; temp = x; r = rx
+					}
+				}
+				traceVerify(root.id, next, r, "file")
+				if (r.check != Check.FAIL && !root.keepNames) extras = extras.filter { x ->
+					(verifier.verify(x, exp.copy(expectedDurationMs = null)).check != Check.FAIL).also { ok -> if (!ok) x.delete() }
+				}
+				if (r.check == Check.FAIL) {
+					record(root.id, no, next, r, null)
+					temp.delete(); extras.forEach { it.delete() }
+				} else if (ledger.intentOf(root.id) in REMOVAL) {
+					ledger.update(root.id, no, AttemptState.FAILED, null, "the download was removed meanwhile", clock())
+					temp.delete(); extras.forEach { it.delete() }
+					return AttemptEnd.Delivered
+				} else {
+					val planned = root.filePath?.let(::File) ?: File(temp.parentFile, root.fileName ?: temp.name)
+					val dest = if (root.keepNames) File(planned.parentFile, temp.name) else deliveredName(planned, temp)
+					val final = runCatching { DeliveryVerifier.commit(temp, dest) }.getOrNull()
+					Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = if (final != null) "ok" else "failed", reason = final?.name) }
+					val listed = final?.let { f -> try { withContext(hostContext) { host.registerDelivered(root, f, next) } } catch (e: CancellationException) { throw e } catch (e: Exception) { null } }
+					if (final == null || listed == null) {
+						// the file never reached the user's list: not a delivery, the chain goes on
+						ledger.update(root.id, no, AttemptState.FAILED, null, if (final == null) "could not move the file into place" else "could not list the file ${final.name}", clock())
+						if (final == null) temp.delete()
+						extras.forEach { it.delete() }
+					} else {
+						val state = record(root.id, no, next, r, listed, "; saved as ${final.name}")
+						TrailBoard.linkChild(listed, root.id, next)
+						// the other files of a multi-file delivery: next to the first one, each listed
+						for (x in extras) {
+							val xf = runCatching { DeliveryVerifier.commit(x, File(final.parentFile, x.name)) }.getOrNull() ?: continue
+							try { withContext(hostContext) { host.registerDelivered(root, xf, next) } } catch (e: CancellationException) { throw e } catch (e: Exception) { }
+						}
+						if (extras.isNotEmpty()) Trace.event { TraceEvent("commit", downloadId = root.id, method = next, result = "extras", reason = "${extras.size} more file(s)") }
+						if (state == AttemptState.DELIVERED) return AttemptEnd.Delivered
+						if (state == AttemptState.UNSURE) return AttemptEnd.Unsure
+					}
+				}
+			}
+			is MethodOutcome.Failed -> { ledger.update(root.id, no, AttemptState.FAILED, null, outcome.reason, clock()); end("failed", outcome.reason) }
+			is MethodOutcome.Redirected -> {
+				ledger.setEffectiveUrl(root.id, outcome.url)
+				val to = UrlClass.of(outcome.url).chain
+				val note = "unwrapped${if (outcome.note.isNotEmpty()) " (${outcome.note})" else ""}; chain ${urlClass.chain} -> $to"
+				ledger.update(root.id, no, AttemptState.REDIRECTED, null, note, clock())
+				end("redirected", note)
+				return AttemptEnd.Redirect
+			}
+			is MethodOutcome.Unsupported -> { ledger.update(root.id, no, AttemptState.UNSUPPORTED, null, outcome.reason, clock()); end("unsupported", outcome.reason) }
+		}
+		return AttemptEnd.Failed
 	}
 
 	private val interrupted = HashSet<String>()
@@ -534,6 +795,14 @@ class FallbackCoordinator(
 		val TEMP_EXT = setOf("part", "tmp", "meta", "ytdl", "bin")
 		const val INTERRUPTED = "interrupted (the app was closed)"
 		const val MAX_INTERRUPTIONS = 2
+		/** T9: the reason of a race loser's row; such a method still counts as not tried */
+		const val CANCELLED_FOR_WINNER = "cancelled: another method seemed to win"
+		const val RACE_TICK_MS = 100L
+		/** T9: the chain started beside the app's own download (the hedged start), not after its failure */
+		const val LATE = "LATE"
+		/** T9: the app's own download proved its first bytes (a page of 64 KB is not a video yet) */
+		const val OWN_PROOF_BYTES = 64 * 1024L
+		val PAUSES_AND_REMOVAL = setOf(UserIntent.PAUSE, UserIntent.RENAME_PAUSE, UserIntent.APP_SHUTDOWN, UserIntent.CANCEL, UserIntent.CLEAR, UserIntent.DELETE)
 		/** a resumed download has this long to start before a CLOSE / paused state counts as its failure */
 		const val RESUME_GRACE_MS = 90_000L
 	}

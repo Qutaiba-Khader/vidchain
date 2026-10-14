@@ -57,7 +57,10 @@ class YtDlpMethod(
 				// T8.11: the JavaScript runtime for YouTube (N passes its own)
 				extraArgs = extraArgs + (if (extraArgs.contains("--js-runtimes")) emptyList() else e.jsRuntimeArgs()) + addHeaders(headers),
 			)
-			return when (val r = e.download(url, YtDlpFormats.selector(ctx.preferredHeight, ctx.audioOnly), dir, base, options)) {
+			// T9 decision 1: yt-dlp past its first percent proves this method's success to the race
+			var proven = false
+			val onProgress: (Double) -> Unit = { pct -> if (!proven && pct >= 1.0) { proven = true; ctx.onProven?.invoke() } }
+			return when (val r = e.download(url, YtDlpFormats.selector(ctx.preferredHeight, ctx.audioOnly), dir, base, options, onProgress = onProgress)) {
 				is YtDlpEngine.Result.Ok -> { bench?.record(id, org.websnake.vidchain.engine.EngineOutcome.Success); MethodOutcome.Delivered(r.value.path) }
 				is YtDlpEngine.Result.Failed -> {
 					bench?.record(id, r.outcome)

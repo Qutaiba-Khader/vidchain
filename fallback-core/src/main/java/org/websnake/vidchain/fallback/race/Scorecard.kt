@@ -34,7 +34,24 @@ class Scorecard(
 		GEO(false, false),               // blocked in this country: a hint, no blame
 		RATE_LIMITED(false, false),      // 429: pauses the site, no blame
 		OFFLINE(false, false),           // no network: pauses the site, no blame
-		CANCELLED(false, false),         // another method won first
+		CANCELLED(false, false);         // another method won first
+
+		companion object {
+			/** a method's failure text, as a cause (only the words engines and sites use; nothing is stored from it) */
+			fun fromReason(reason: String?): Cause {
+				val r = reason?.lowercase().orEmpty()
+				return when {
+					"429" in r || "too many requests" in r || "rate limit" in r -> RATE_LIMITED
+					"login" in r || "sign in" in r || "log in" in r || "cookies" in r && "required" in r -> LOGIN
+					"geo" in r || "country" in r || "region" in r -> GEO
+					"unable to resolve host" in r || "no network" in r || "offline" in r || "unknownhost" in r -> OFFLINE
+					"timeout" in r || "timed out" in r || "time limit" in r || "stalled" in r -> TIMEOUT
+					"no media" in r || "nothing" in r || "not found" in r || "no video" in r || "found 0" in r -> EMPTY
+					"not a media" in r || "html" in r || "not media" in r -> NOT_MEDIA
+					else -> NOT_UNDERSTOOD
+				}
+			}
+		}
 	}
 
 	data class Result(val cause: Cause, val ms: Long, val atMs: Long)
@@ -89,12 +106,12 @@ class Scorecard(
 
 	/** the time [method] usually needs on [site] to prove its first bytes (p90 of its successes); [DEFAULT_PROOF_MS] with no data */
 	@Synchronized
-	fun proofTimeMs(site: String, method: String): Long {
+	fun proofTimeMs(site: String, method: String, default: Long = DEFAULT_PROOF_MS): Long {
 		for (key in listOf(site, GENERIC)) {
 			val ok = rows[key]?.get(method).orEmpty().filter { it.cause == Cause.OK }.map { it.ms }.sorted()
 			if (ok.size >= 3) return ok[((ok.size - 1) * 0.9).toInt()].coerceIn(MIN_PROOF_MS, MAX_PROOF_MS)
 		}
-		return DEFAULT_PROOF_MS
+		return default
 	}
 
 	private fun rowFor(site: String): Map<String, ArrayDeque<Result>>? {

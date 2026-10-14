@@ -21,7 +21,11 @@ internal object HttpFileExecutor {
 	suspend fun fetch(fetcher: PlainGetFetcher, verifier: DeliveryVerifier, ctx: FallbackContext, temp: File, url: String, headers: Map<String, String>,
 					  cookieFor: ((String) -> String?)? = null): MethodOutcome {
 		val exp = Expectation(expectMedia = ctx.expectMedia, fileName = ctx.fileName)      // the same view as the final check
-		return when (val r = fetcher.fetch(PlainGetFetcher.Fetch(url, headers, temp, early = { head -> verifier.early(head, exp)?.reason }, cookieFor = cookieFor))) {
+		// T9 decision 1: first bytes that are media prove this method's success to the race (the others stop)
+		val early = { head: ByteArray ->
+			verifier.early(head, exp)?.reason.also { bad -> if (bad == null && org.websnake.vidchain.fallback.verify.Sniffer.sniff(head).media) ctx.onProven?.invoke() }
+		}
+		return when (val r = fetcher.fetch(PlainGetFetcher.Fetch(url, headers, temp, early = early, cookieFor = cookieFor))) {
 			is PlainGetFetcher.Result.Done -> MethodOutcome.Delivered(r.file.path)
 			is PlainGetFetcher.Result.Failed -> {
 				temp.delete(); File(temp.path + ".meta").delete()
