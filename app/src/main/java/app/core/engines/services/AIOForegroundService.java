@@ -9,9 +9,14 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
+import android.os.Build;
 import android.os.IBinder;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.ServiceCompat;
+
+import org.websnake.vidchain.app.VidChainServiceStarts;
 
 import com.aio.R;
 
@@ -20,7 +25,7 @@ import app.ui.main.MotherActivity;
 /**
  * AIOForegroundService is a persistent foreground service that ensures
  * background operations can continue without being interrupted by the Android system.
- * This service shows a silent notification and restarts automatically if destroyed.
+ * This service shows a silent notification while a download needs it (T9: it no longer restarts itself).
  */
 public class AIOForegroundService extends Service {
 
@@ -44,25 +49,18 @@ public class AIOForegroundService extends Service {
     public void onCreate() {
         super.onCreate();
         instance = this;
-        createNotification();
-        // T8.9 (inherited bug fix): Android 14+ refuses a foreground start that is not allowed at that moment
-        // (e.g. a restart from the background, or the dataSync time budget used up); that crashed the app here
-        try {
-            startForeground(NOTIFICATION_ID, notification);
-            isServiceRunning = true;
-        } catch (RuntimeException error) {
-            error.printStackTrace();
-            stopSelf();
-        }
+        createNotification();   // T9 P0b: the notification exists before onStartCommand promotes the service
     }
 
     /**
      * T8.9 (inherited bug fix): Android 15 stops a dataSync foreground service after 6 h in 24 h and kills the app
      * when the service does not stop itself within seconds of this call. The original had no handler, so the app
      * died while the phone lay idle and the next share always cold-started it.
+     * T9 P0b: no new ask until the user opens the app again (that is when Android gives the time back).
      */
     @Override
     public void onTimeout(int startId, int fgsType) {
+        VidChainServiceStarts.timedOut(this);
         stopService();
     }
 
@@ -72,23 +70,41 @@ public class AIOForegroundService extends Service {
         return null; // Binding not used in this service.
     }
 
+    /**
+     * T9 P0b (owner's bug report 2026-10-14, S25 Ultra soft-reboot): the promotion to the foreground is the first thing
+     * on every path. A refusal (no time budget left, a start from the background) is recorded and the service stops;
+     * nothing asks again until the start gate allows it. START_NOT_STICKY: Android does not restart it either.
+     */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // Keeps service running until explicitly stopped.
         super.onStartCommand(intent, flags, startId);
-        return START_STICKY;
+        if (!isServiceRunning) {
+            try {
+                int type = Build.VERSION.SDK_INT >= 29 ? ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC : 0;
+                ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type);
+                isServiceRunning = true;
+                VidChainServiceStarts.started();
+            } catch (RuntimeException error) {
+                VidChainServiceStarts.refused(this, error);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
+        }
+        if (!wanted) stopService();   // the last download ended before the service came up
+        return START_NOT_STICKY;
     }
 
+    /**
+     * T9 P0b: the service never restarts itself. The original sent a restart broadcast from here; when Android
+     * refused the promotion, onCreate stopped the service, this broadcast started it again, and so on: 4,105 starts in
+     * 80 s filled system_server's memory. DownloadSystem asks for the service while a download needs it.
+     */
     @Override
     public void onDestroy() {
         super.onDestroy();
         instance = null;
         isServiceRunning = false;
-
-        stopForeground(true); // Ensure notification is removed promptly
-
-        // Restart service automatically if killed by the system (T9: only while a download still needs it).
-        if (wanted) sendBroadcast(new Intent(this, RestartIdleServiceReceiver.class));
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE);
     }
 
     /**
@@ -103,7 +119,7 @@ public class AIOForegroundService extends Service {
      */
     public void stopService() {
         try {
-            stopForeground(true); // Remove notification immediately
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE); // Remove notification immediately
             stopSelf();           // Stop service
             isServiceRunning = false;
         } catch (Exception error) {
@@ -111,9 +127,6 @@ public class AIOForegroundService extends Service {
         }
     }
 
-    /**
-     * Starts the service only if it is not already running.
-     */
     /**
      * T9 decision 4: true while a download needs the service. The service used to be started every second for as long
      * as the app lived, and restarted itself when Android stopped it; now it runs only while a download waits or runs.
@@ -124,15 +137,23 @@ public class AIOForegroundService extends Service {
         return wanted;
     }
 
+    /**
+     * T9 P0b: asks for the service at most as often as the start gate allows (state kept across process restarts).
+     * Android 12+ gets a plain start: it carries no promise, so a refusal can never crash the app with
+     * ForegroundServiceDidNotStartInTimeException; onStartCommand then promotes it. Older Android has no background-start
+     * rule and no time budget, so the foreground start there is always promoted.
+     */
     public static void updateService() {
         wanted = true;
         AIOForegroundService running = instance;
         if (running != null && running.isServiceRunning) return;   // T9: already in the foreground, nothing to ask
+        if (!VidChainServiceStarts.mayAsk(INSTANCE)) return;
         try {
             Intent serviceIntent = new Intent(INSTANCE, AIOForegroundService.class);
-            INSTANCE.startForegroundService(serviceIntent);
+            if (Build.VERSION.SDK_INT >= 31) INSTANCE.startService(serviceIntent);
+            else INSTANCE.startForegroundService(serviceIntent);
         } catch (Exception err) {
-            err.printStackTrace();
+            VidChainServiceStarts.refused(INSTANCE, err);
         }
     }
 
@@ -140,7 +161,9 @@ public class AIOForegroundService extends Service {
     public static void stopWhenIdle() {
         wanted = false;
         AIOForegroundService running = instance;
-        if (running != null) running.stopService();
+        // T9 P0b: a service not yet promoted stops itself in onStartCommand (stopping it before the promotion breaks
+        // the foreground-start promise on Android 11 and older)
+        if (running != null && running.isServiceRunning) running.stopService();
     }
 
     /**

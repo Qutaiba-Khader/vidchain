@@ -63,7 +63,10 @@ object EngineHost {
 		mode = try {
 			if (Build.VERSION.SDK_INT >= 34 && appVisible() && runCatching { scheduleUserInitiatedJob(context) }.getOrDefault(false)) "user-initiated-job"
 			else {
-				context.startForegroundService(Intent(context, EngineForegroundService::class.java))
+				// T9 P0b: Android 12+ gets a plain start (no promise: a refused promotion cannot crash the app with
+				// ForegroundServiceDidNotStartInTimeException); the service promotes itself in onStartCommand
+				val intent = Intent(context, EngineForegroundService::class.java)
+				if (Build.VERSION.SDK_INT >= 31) context.startService(intent) else context.startForegroundService(intent)
 				"foreground-service"
 			}
 		} catch (e: Exception) {
@@ -143,8 +146,16 @@ class EngineForegroundService : Service() {
 
 	override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 		val n = EngineHost.notification(this)
-		if (Build.VERSION.SDK_INT >= 29) startForeground(EngineHost.NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-		else startForeground(EngineHost.NOTIFICATION_ID, n)
+		// T9 P0b: Android 15+ refuses the promotion once the dataSync budget is used up (6 h in 24 h); uncaught, that
+		// crashed the app. The engine then runs without the keep-alive (an OS kill ends it as OsKilled, re-queued).
+		try {
+			if (Build.VERSION.SDK_INT >= 29) startForeground(EngineHost.NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+			else startForeground(EngineHost.NOTIFICATION_ID, n)
+		} catch (e: RuntimeException) {
+			EngineHost.log("engine keep-alive refused: ${e.javaClass.simpleName}")
+			stopSelf()
+			return START_NOT_STICKY
+		}
 		instance = this; foreground = true
 		if (EngineHost.activeLeases == 0) stopSelf()
 		return START_NOT_STICKY
