@@ -57,6 +57,12 @@ def nodes(xml):
 def tap(pred, xml=None, last=False):
     hits = [n for n in nodes(xml or dump()) if pred(n)]
     if not hits:
+        # a screen that never goes idle has no UI dump: find the view by its id in `dumpsys activity top`
+        vs = overlap.views(sh("dumpsys activity top"), PKG)
+        hits = [{"text": "", "id": v[2].replace("app:id/", f"{PKG}:id/"), "desc": "", "x": (v[0][0] + v[0][2]) // 2,
+                 "y": (v[0][1] + v[0][3]) // 2} for v in vs]
+        hits = [n for n in hits if pred(n)]
+    if not hits:
         return False
     n = hits[-1 if last else 0]
     sh(f"input tap {n['x']} {n['y']}")
@@ -85,11 +91,22 @@ def look(name, spinner=False, scroll=None):
     (OUT / f"{name}.insets.txt").write_text("\n".join(l for l in win.splitlines() if "InsetsSource" in l or "mCurrentFocus" in l))
     subprocess.run(f"adb exec-out screencap -p > '{OUT / (name + '.png')}'", shell=True, timeout=60)
     if "<hierarchy" not in xml:
-        # no dump: a screen with a spinner never goes idle (allowed for the analysis dialog only); anything else not
-        # checked is a failure, never a silent pass (the first survey "passed" 60 screens it could not read)
-        probs = [] if spinner else ["not checked: no UI dump"]
-        system, titles = {}, []
-        print(f"{name}: no UI dump{' (spinner, allowed)' if spinner else ''}", flush=True)
+        # no dump: the screen never goes idle (the app's own screens redraw on its 200 ms timer). At rest its views are
+        # read from `dumpsys activity top` instead; a scrolled list cannot be judged that way (layout positions); the
+        # analysis spinner may stay unjudged. Anything else not checked is a failure, never a silent pass.
+        act = sh("dumpsys activity top")
+        (OUT / f"{name}.views.txt").write_text(act)
+        if spinner:
+            probs, system, titles = [], {}, []
+            print(f"{name}: no UI dump (spinner, allowed)", flush=True)
+        elif scroll in (None, "top"):
+            probs, system, titles, vs = overlap.check_views(act, win, PKG)
+            if not vs:
+                probs = ["not checked: no UI dump and no view tree"]
+            print(f"{name}: no UI dump, judged from the view tree ({len(vs)} views)", flush=True)
+        else:
+            probs, system, titles = [], {}, []
+            print(f"{name}: no UI dump while scrolled: screenshot only (its top and end are judged)", flush=True)
     else:
         try:
             probs, system, titles = overlap.check(xml, win, PKG, scroll)
@@ -106,6 +123,13 @@ def look(name, spinner=False, scroll=None):
     write_report()
 
 
+def window_size():
+    m = re.search(r"mCurrentFocus.*?\n", sh("dumpsys window"))
+    xml = sh("cat /sdcard/ui.xml 2>/dev/null")
+    b = re.search(r'<node [^>]*?bounds="\[0,0\]\[(\d+),(\d+)\]"', xml)
+    return (int(b.group(1)), int(b.group(2))) if b else screen_size
+
+
 def write_report():
     """written after every screen, so a run that stops half way still leaves its findings"""
     api_ = sh("getprop ro.build.version.sdk").strip()
@@ -119,7 +143,8 @@ def write_report():
 
 
 def swipe_up():
-    w, h = screen_size if ROT % 2 == 0 else screen_size[::-1]
+    # the app's screens are portrait-only, so the window keeps the portrait size even when the device is turned
+    w, h = window_size()
     sh(f"input swipe {w // 2} {h * 7 // 10} {w // 2} {h * 3 // 10} 500")
 
 

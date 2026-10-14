@@ -153,9 +153,22 @@ class DownloadSystem : AIOTimerListener, DownloadSysInf, DownloadTaskListener {
 	/** T9 decision 4: true while a download waits for a slot or runs */
 	fun hasActiveWork(): Boolean = waitingDownloadTasks.isNotEmpty() || runningDownloadTasks.isNotEmpty()
 
+	/** T9 review (P0b, lanes C/D): VidChain is rescuing or resuming a download (its chain runs) */
+	private fun fallbackBusy(): Boolean = runCatching { org.websnake.vidchain.fallback.core.FallbackRuntime.coordinator?.busy == true }.getOrDefault(false)
+
+	/** T9 review: a download or a VidChain chain needs the foreground service now */
+	private fun needsService(): Boolean = hasActiveWork() || fallbackBusy()
+
+	/** T9 review: when work was last seen; the service is kept this long after it, through hand-overs (a queued download
+	 *  starting, a failed download VidChain takes over): Android 12+ refuses to give it back from the background */
+	@Volatile private var lastWorkAtMs = 0L
+	private val idleGraceMs = 30_000L
+
 	/** T9 decision 4: nothing waits and nothing runs: stop ticking and let the foreground service go */
 	private fun sleepIfIdle(): Boolean = synchronized(idleLock) {
-		if (hasActiveWork()) return false
+		val now = android.os.SystemClock.elapsedRealtime()
+		if (needsService()) { lastWorkAtMs = now; return false }
+		if (lastWorkAtMs != 0L && now - lastWorkAtMs < idleGraceMs) return false
 		aioTimer.unregister(this)
 		AIOForegroundService.stopWhenIdle()
 		logger.d("No download waiting or running: timer listener and foreground service stopped")
@@ -212,7 +225,8 @@ class DownloadSystem : AIOTimerListener, DownloadSysInf, DownloadTaskListener {
 
 			if (loopCount.toInt() % 5 == 0) {
 				logger.d("Updating foreground service.")
-				AIOForegroundService.updateService()
+				// T9 review: asked only for real work (not during the idle grace), and under the same lock as the stop
+				synchronized(idleLock) { if (needsService()) AIOForegroundService.updateService() }
 			}
 		}
 	}

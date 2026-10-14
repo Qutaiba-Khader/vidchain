@@ -51,7 +51,7 @@ def one(site, url, method, run):
     while time.time() < deadline:
         time.sleep(3)
         for l in trace_lines():
-            if f"run={run} " in l:
+            if f"run={run} " in l or f'run={run}"' in l:
                 m = re.search(r"result=(\S+).*?dur=(\d+)ms", l) or re.search(r"result=(\S+)", l)
                 why = (re.search(r'reason="([^"]*)"', l) or [None, ""])[1]
                 return {"site": site, "method": method, "result": m.group(1), "ms": int(m.group(2)) if m and m.lastindex == 2 else None,

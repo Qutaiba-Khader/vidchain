@@ -46,7 +46,10 @@ object VidChainServiceStarts {
 	}
 
 	@JvmStatic
-	fun started() {
+	fun started(context: Context) {
+		load(context)
+		gate.promoted()
+		save(context)
 		Trace.event { TraceEvent("fgs", result = "foreground") }
 	}
 

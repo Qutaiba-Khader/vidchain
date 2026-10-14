@@ -109,7 +109,7 @@ class Scorecard(
 	fun proofTimeMs(site: String, method: String, default: Long = DEFAULT_PROOF_MS): Long {
 		for (key in listOf(site, GENERIC)) {
 			val ok = rows[key]?.get(method).orEmpty().filter { it.cause == Cause.OK }.map { it.ms }.sorted()
-			if (ok.size >= 3) return ok[((ok.size - 1) * 0.9).toInt()].coerceIn(MIN_PROOF_MS, MAX_PROOF_MS)
+			if (ok.size >= 3) return ok[Math.ceil(0.9 * ok.size).toInt() - 1].coerceIn(MIN_PROOF_MS, MAX_PROOF_MS)   // T9 review: nearest-rank p90
 		}
 		return default
 	}

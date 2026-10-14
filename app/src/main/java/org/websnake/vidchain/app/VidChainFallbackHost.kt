@@ -94,6 +94,14 @@ object VidChainFallbackHost : FallbackHost {
 		return true
 	}
 
+	/** T9 review H4: the hedged win paused the own download and then failed: it goes on */
+	override fun resumePaused(parent: HostDownload): Boolean {
+		val m = findModel(parent.id) ?: return false
+		if (m.isRunning || m.isComplete || m.isRemoved || m.isDeleted) return false
+		AIOApp.downloadSystem.resumeDownload(m, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
+		return true
+	}
+
 	override fun refresh(downloadId: String) {
 		val system = AIOApp.downloadSystem
 		val m = ArrayList(system.activeDownloadDataModels).firstOrNull { it.downloadId.toString() == downloadId } ?: return

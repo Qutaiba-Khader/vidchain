@@ -2,7 +2,7 @@
 <resources>
 	<string name="vidchain_settings_title">VidChain fallbacks</string>
 	<string name="vidchain_licences_title">Open-source licences</string>
-	<string name="vidchain_methods_help">VidChain tries the methods below when a download fails, one by one. Switch off the ones you never want; at least one always stays on.</string>
+	<string name="vidchain_methods_help">VidChain tries the methods below, a few at a time, when a download fails or gets no data. Switch off the ones you never want; at least one always stays on.</string>
 	<string name="vidchain_method_last_on">At least one method must stay on</string>
 	<string name="vidchain_trace_enabled">Trace log (for finding problems)</string>
 	<string name="vidchain_trace_help">Records which method ran and how it ended. Stays on this phone. Never records cookies, logins or tokens.</string>

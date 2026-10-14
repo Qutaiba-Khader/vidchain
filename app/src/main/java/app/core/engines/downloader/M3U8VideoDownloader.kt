@@ -102,6 +102,7 @@ class M3U8VideoDownloader(
 	 */
 	@Volatile
 	private var lastUpdateTime = 0L
+	@Volatile private var vcStarting = false
 
 	/** T9 decision 2: the kept yt-dlp -J analysis this download replays with --load-info-json (null = the original way) */
 	private var vcRecord: org.websnake.vidchain.app.VidChainAnalysis.Record? = null
@@ -1100,11 +1101,12 @@ class M3U8VideoDownloader(
 			startRegularDownload()
 		} else {
 			logger.d("Download initiated from browser. Resuming in background thread.")
-			executeInBackground(codeBlock = {
+			// T9 review (inherited, same as H1): the download runs in its own scope, not inside the 30 s start job
+			coroutineScope.launch {
 				downloadDataModel.isDownloadFromBrowser = false
 				downloadDataModel.updateInStorage()
 				executeDownloadProcess()
-			})
+			}
 		}
 	}
 
@@ -1128,6 +1130,12 @@ class M3U8VideoDownloader(
 		// T9 review H1/H2: the analysis and the download run in the download's own scope, never inside the caller's
 		// 30 s start job (the original returned at once too); a pause or cancel during the analysis ends it here.
 		if (retryCount == 0 && !vcNoRecord) {
+			// T9 review (lane C F3): one analysis at a time, and the stall watch (10 s without progress while the old
+			// status said "left") must not restart the download while the analysis runs: a second yt-dlp on the same file
+			if (vcStarting) return
+			vcStarting = true
+			lastUpdateTime = currentTimeMillis()
+			downloadDataModel.tempYtdlpStatusInfo = getText(R.string.title_started_downloading)
 			updateDownloadStatus(getText(R.string.title_started_downloading), DOWNLOADING)
 			coroutineScope.launch { vcReplayOrPage() }
 			return
@@ -1136,7 +1144,12 @@ class M3U8VideoDownloader(
 	}
 
 	private suspend fun vcReplayOrPage() {
-		val rec = org.websnake.vidchain.app.VidChainAnalysis.analyse(downloadDataModel.fileURL, vcCookie(), "download")?.takeIf { it.replayable }
+		val rec = try {
+			org.websnake.vidchain.app.VidChainAnalysis.analyse(downloadDataModel.fileURL, vcCookie(), "download")?.takeIf { it.replayable }
+		} finally {
+			vcStarting = false                 // the analysis is over (a refused replay may start a new one from here)
+			lastUpdateTime = currentTimeMillis()
+		}
 		if (!downloadDataModel.isRunning || downloadDataModel.isComplete) return   // paused or stopped meanwhile
 		if (rec == null) return startRegularDownloadByPage(0)
 		vcRecord = rec

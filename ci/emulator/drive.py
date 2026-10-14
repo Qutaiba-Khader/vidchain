@@ -59,7 +59,7 @@ def ui():
 def files():
     """media files written since the scenario marker, public Download and the app's private folder"""
     roots = " ".join(DL_ROOTS)
-    out = sh(f"find {roots} -type f -newer {MARK} 2>/dev/null | grep -v -E '/(youtubedl-android|no_backup|cache|code_cache|objectbox|shared_prefs|app_webview|databases|trace|\\.vidchain-partial)/'")
+    out = sh(f"find {roots} -type f -newer {MARK} 2>/dev/null | grep -v -E '/(youtubedl-android|no_backup|cache|code_cache|objectbox|shared_prefs|app_webview|databases|trace|\\.vidchain-partial)/' | grep -v -E '/files/vidchain-scorecard\\.json'")
     res = {}
     for f in filter(None, out.splitlines()):
         size = sh(f"stat -c %s '{f}'").strip()
@@ -120,7 +120,10 @@ def chain_state(lines):
         return "delivered"
     if any(" event=chain.exhausted" in l for l in lines):
         return "exhausted"
-    if any(re.search(r" event=(failure|intent|attempt\.start)\b", l) for l in lines):
+    started = [i for i, l in enumerate(lines) if re.search(r" event=(failure|intent|attempt\.start)\b", l)]
+    # T9 review D8: a hedged start (methods beside the app's own download) that stopped or found nothing is over
+    hedge_end = [i for i, l in enumerate(lines) if re.search(r" event=hedge\.(stopped|exhausted)\b", l)]
+    if started and not (hedge_end and hedge_end[-1] > started[-1]):
         return "running"
     return None
 

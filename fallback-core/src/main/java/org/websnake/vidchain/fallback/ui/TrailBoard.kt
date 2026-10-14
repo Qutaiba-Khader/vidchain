@@ -84,7 +84,8 @@ object TrailText {
 			trail?.let { append(card(it)).append("\n\n") }
 			for (r in rows) {
 				append(r.attemptNo).append(". ").append(name(r.method)).append(" — ").append(r.state.name.lowercase().replace('_', ' '))
-				val secs = r.endedMs?.let { (it - r.startedMs).coerceAtLeast(0) / 1000.0 }
+				val secs = r.endedMs?.takeIf { r.state != org.websnake.vidchain.fallback.ledger.AttemptState.RUNNING }   // a hedge row is marked while it runs
+					?.let { (it - r.startedMs).coerceAtLeast(0) / 1000.0 }
 				if (secs != null) append(String.format(java.util.Locale.US, " (%.1f s)", secs))
 				r.reason?.let { append("\n   ").append(it) }
 				append('\n')

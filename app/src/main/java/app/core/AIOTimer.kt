@@ -216,7 +216,8 @@ open class AIOTimer(
 				logger.d("Listener already registered: $classSimpleName")
 			}
 			// T9 decision 4: the first listener starts the timer again
-			if (!hasTimerActive) { hasTimerActive = true; this.start() }
+			// (T9 review: cancel() first drops the tick a cancel inside onTick left queued, so two loops never run)
+			if (!hasTimerActive) { hasTimerActive = true; this.cancel(); this.start() }
 		}
 	}
 	

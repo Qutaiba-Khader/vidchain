@@ -33,7 +33,7 @@ public class AIOForegroundService extends Service {
     private static final int NOTIFICATION_ID = 1430;
 
     private Notification notification;
-    private boolean isServiceRunning = false;
+    private volatile boolean isServiceRunning = false;   // T9 review: read from the download threads
     @Nullable private static AIOForegroundService instance;
 
     /**
@@ -83,7 +83,7 @@ public class AIOForegroundService extends Service {
                 int type = Build.VERSION.SDK_INT >= 29 ? ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC : 0;
                 ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type);
                 isServiceRunning = true;
-                VidChainServiceStarts.started();
+                VidChainServiceStarts.started(this);
             } catch (RuntimeException error) {
                 VidChainServiceStarts.refused(this, error);
                 stopSelf();

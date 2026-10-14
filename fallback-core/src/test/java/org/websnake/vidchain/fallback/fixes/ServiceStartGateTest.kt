@@ -45,6 +45,14 @@ class ServiceStartGateTest {
 		assertEquals(ASK, g.ask(600_000))                          // the next window
 	}
 
+	@Test fun downloadsInARowAreNeverHeldWhenAndroidGrantsTheService() {
+		// T9 review (lanes A/B/C/D): every short download stops the service and asks again; granted asks are given back
+		val g = ServiceStartGate(minGapMs = 10_000, windowMs = 600_000, maxPerWindow = 10)
+		var granted = 0
+		for (t in 0L until 600_000L step 30_000) { if (g.ask(t) == ASK) { granted++; g.promoted() } }
+		assertEquals(20, granted)
+	}
+
 	@Test fun aClockMovedBackCountsAsLongAgo() {
 		val g = ServiceStartGate()
 		assertEquals(ASK, g.ask(1_000_000))

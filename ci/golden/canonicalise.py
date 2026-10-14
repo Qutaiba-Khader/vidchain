@@ -8,7 +8,7 @@ import json
 import re
 import sys
 
-STATE = re.compile(r"(^\d+_download\.(dat|json|jpg)$|^aio_.*\.(dat|json)$|^browsing_history\.|^user_profile\.|\.langcode$|^profileInstalled$)")
+STATE = re.compile(r"(^\d+_download\.(dat|json|jpg)$|^aio_.*\.(dat|json)$|^browsing_history\.|^user_profile\.|\.langcode$|^profileInstalled$|^vidchain-scorecard\.json(\.tmp)?$)")
 import urllib.parse
 
 PKG = "org.websnake.vidchain"

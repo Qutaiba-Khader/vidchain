@@ -173,6 +173,7 @@ object WebVideoParser {
 	 * @param webviewEngine The WebViewEngine instance to reset.
 	 */
 	fun resetVideoGrabbingButton(webviewEngine: WebViewEngine) {
+		checkedUrl = null   // T9 review D5: a reload (same address) is checked again, so its found state comes back
 		AsyncJobUtils.executeOnMainThread {
 			val browserFragment = webviewEngine.browserFragment
 			val browserFragmentBody = browserFragment.browserFragmentBody

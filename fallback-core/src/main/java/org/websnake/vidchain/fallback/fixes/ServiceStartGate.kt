@@ -6,7 +6,9 @@ package org.websnake.vidchain.fallback.fixes
  *
  * This gate decides whether the app may ask Android for its foreground service now. It is the safety net under the
  * service fix (no self-restart, startForeground first): even a future bug that asks in a loop gets at most
- * [maxPerWindow] asks per [windowMs], one per [minGapMs], and none for [refusedPauseMs] after Android refused one.
+ * [maxPerWindow] asks per [windowMs] that did not end in the foreground (T9 review: an ask Android granted is given back by
+ * [promoted], so ordinary downloads in a row are never held), one per [minGapMs], and none for [refusedPauseMs] after
+ * Android refused one.
  * Android resets the dataSync time budget when the user brings the app to the foreground, so [appVisible] ends the
  * refusal pause; it never resets the window cap. The state is saved (the flood came right after a process restart),
  * the clock is the wall clock, and a time before the last one (clock moved back) counts as long ago.
@@ -36,6 +38,9 @@ class ServiceStartGate(
 		state = s.copy(lastAskAt = now, windowStart = if (sameWindow) s.windowStart else now, asksInWindow = if (sameWindow) s.asksInWindow + 1 else 1)
 		return Answer.ASK
 	}
+
+	/** the service reached the foreground: that ask does not count against the window's cap */
+	@Synchronized fun promoted() { state = state.copy(asksInWindow = (state.asksInWindow - 1).coerceAtLeast(0)) }
 
 	/** Android refused the start or the promotion to the foreground */
 	@Synchronized fun refused(now: Long) { state = state.copy(refusedAt = now) }

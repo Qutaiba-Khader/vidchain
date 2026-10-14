@@ -90,6 +90,14 @@ class FallbackCoordinator(
 	private val startedAtMs = clock()
 	private val running = HashMap<String, Job>()
 	private val lock = Mutex()
+	/** T9 review: the hedged (LATE) chains running now, the ones whose win paused the own download, and the ones whose
+	 *  own download failed while they ran (that failure was not a chain of its own) */
+	private val lateChains = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+	private val hedgeWins = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+	private val lateOwnFailed = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+	/** T9 review (P0b): true while a chain runs, so the app keeps its foreground service through a rescue */
+	@Volatile var busy = false
+		private set
 
 	/** One observation pass over the upstream lists. Returns true while something needs fast observation (a download is running or waiting, or a chain runs). */
 	suspend fun tick(): Boolean {
@@ -111,6 +119,7 @@ class FallbackCoordinator(
 			for (gone in seen.keys.filter { it !in ids }) if (ledger.intentOf(gone) in REMOVAL && running[gone]?.isActive != true) forgetLocked(gone)
 			seen.keys.retainAll(ids)
 			running.values.removeAll { !it.isActive }
+			busy = running.isNotEmpty()
 			baselined = true
 			running.isNotEmpty() || seen.values.any { it.armed }
 		}
@@ -196,6 +205,7 @@ class FallbackCoordinator(
 				if (now - st.runningSinceMs < wait || !chainCanRun(d)) return
 				st.hedged = true
 				Trace.event { TraceEvent("hedge.start", downloadId = d.id, method = own, reason = "no first bytes after ${now - st.runningSinceMs} ms (usual ${wait} ms)") }
+				lateChains += d.id; busy = true
 				running[d.id] = scope.launch { runChain(d, LATE) }
 			}
 			is Verdict.Failure -> if (!st.ownScored && st.runningSinceMs > 0) {
@@ -208,6 +218,15 @@ class FallbackCoordinator(
 					else -> org.websnake.vidchain.fallback.race.Scorecard.Cause.NOT_UNDERSTOOD
 				}
 				cause?.let { card?.record(site, own, it, now - st.runningSinceMs) }
+			}
+			// T9 review H3: the own download finished (or the user paused it) between two looks: the methods beside it stop
+			Verdict.Success, is Verdict.UserStopped -> if (st.hedged && running[d.id]?.isActive == true && !(v is Verdict.UserStopped && d.id in hedgeWins)) {
+				ledger.attempts(d.id).filter { it.state == AttemptState.RUNNING }
+					.forEach { ledger.update(d.id, it.attemptNo, AttemptState.FAILED, null, CANCELLED_FOR_WINNER, now) }
+				running[d.id]?.cancel()
+				TrailBoard.remove(d.id)
+				Trace.event { TraceEvent("hedge.stopped", downloadId = d.id, method = own,
+					reason = if (v == Verdict.Success) "the app's own path finished" else "the own download was paused") }
 			}
 			else -> Unit
 		}
@@ -239,6 +258,7 @@ class FallbackCoordinator(
 			return
 		}
 		if (running[rootId]?.isActive == true) {
+			if (parentId == null && rootId in lateChains) lateOwnFailed += rootId         // T9 review M1: its card shows the end
 			Trace.event { TraceEvent("decision", downloadId = rootId, result = "chain-busy") }
 			return
 		}
@@ -250,6 +270,7 @@ class FallbackCoordinator(
 		// an expired link after part of the file was saved: ask the page for the same file and resume the app's download
 		val refresh = refresher != null && parentId == null && v.cls == FailureClass.EXPIRED_URL && d.snapshot.engine == Engine.REGULAR &&
 			d.bytes > 0 && (refreshes[d.id] ?: 0) < MAX_REFRESH
+		busy = true
 		running[rootId] = scope.launch {
 			if (refresh) {
 				refreshes.merge(d.id, 1, Int::plus)
@@ -316,11 +337,14 @@ class FallbackCoordinator(
 		val done = ledger.attempts(root.id)
 		if (done.any { it.state == AttemptState.CHILD || it.state == AttemptState.DELIVERED }) return false
 		val steps = ChainSpec.stepsFor(UrlClass.of(withEffectiveUrl(root).url), config.includeStub)
-		return ChainSpec.nextMethod(steps, done.map { it.method }) { it in methods && config.methodOn(it) } != null
+		return ChainSpec.nextMethod(steps, tried(done)) { it in methods && config.methodOn(it) } != null   // T9 review M3
 	}
 
 	private suspend fun runChain(original: HostDownload, failureClass: String) {
-		try { runChainInner(original, failureClass) } finally { runCatching { config.onChainEnd() } }
+		try { runChainInner(original, failureClass) } finally {
+			if (failureClass == LATE) { lateChains.remove(original.id); lateOwnFailed.remove(original.id) }
+			runCatching { config.onChainEnd() }
+		}
 	}
 
 	private suspend fun runChainInner(original: HostDownload, failureClass: String) {
@@ -348,17 +372,23 @@ class FallbackCoordinator(
 					result = "nothing", reason = "no switched-on method for this kind of link") }
 				return
 			}
-			if (next == null && failureClass == LATE) {
+			if (next == null && failureClass == LATE && root.id !in lateOwnFailed) {
 				// the methods beside a slow own download found nothing: it goes on alone (its own failure, if any, ends the chain)
 				TrailBoard.remove(root.id)
 				Trace.event { TraceEvent("hedge.exhausted", downloadId = root.id, chain = urlClass.chain, reason = "${done.size} attempts") }
+				// T9 review H4: an early winner paused it and then failed: the own download goes on
+				if (hedgeWins.remove(root.id)) {
+					ledger.recordIntent(root.id, UserIntent.RESUME, clock())
+					val resumed = try { withContext(hostContext) { host.resumePaused(root) } } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
+					Trace.event { TraceEvent("decision", downloadId = root.id, result = if (resumed) "own-path-resumed" else "own-path-not-resumed", reason = "the hedge found nothing") }
+				}
 				return
 			}
 			if (next == null) {
 				val best = done.lastOrNull { it.state == AttemptState.UNSURE }
 				val available = steps.count { it in methods && config.methodOn(it) }
 				if (best != null) TrailBoard.put(Trail(root.id, urlClass.chain, available, available, best.method, Trail.State.BEST_SO_FAR))
-				else TrailBoard.put(Trail(root.id, urlClass.chain, done.size, done.size, done.lastOrNull()?.method ?: "-", Trail.State.EXHAUSTED))
+				else tried(done).distinct().size.let { n -> TrailBoard.put(Trail(root.id, urlClass.chain, n, n, done.lastOrNull()?.method ?: "-", Trail.State.EXHAUSTED)) }
 				Trace.event { TraceEvent("chain.exhausted", downloadId = root.id, chain = urlClass.chain, failureClass = failureClass,
 					result = if (best != null) "best-so-far" else "nothing", reason = "${done.size} attempts" + (best?.let { ", keeping attempt ${it.attemptNo} (${it.method}, unsure)" } ?: "")) }
 				return
@@ -395,7 +425,9 @@ class FallbackCoordinator(
 		val site = org.websnake.vidchain.fallback.race.Scorecard.siteOf(root.url)
 		val ranked = config.scorecard?.rank(site, left) ?: left
 		val planner = org.websnake.vidchain.fallback.race.BatchPlanner(
-			ranked.map { org.websnake.vidchain.fallback.race.BatchPlanner.Step(it, config.weightOf(it), config.limitMs) }, config.race, clock())
+			// T9 review D4: an executor downloading (a torrent can take hours) is never cut by the watchdog: its engine has its own limits
+			ranked.map { org.websnake.vidchain.fallback.race.BatchPlanner.Step(it, config.weightOf(it),
+				if (methods[it]?.kind == FallbackMethod.Kind.EXECUTOR) Long.MAX_VALUE else config.limitMs) }, config.race, clock())
 		val plannedBatches = org.websnake.vidchain.fallback.race.BatchPlanner.batchesFor(ranked.map { org.websnake.vidchain.fallback.race.BatchPlanner.Step(it, config.weightOf(it)) }, config.race)
 		val events = kotlinx.coroutines.channels.Channel<Ev>(kotlinx.coroutines.channels.Channel.UNLIMITED)
 		val jobs = HashMap<String, Job>()
@@ -431,6 +463,7 @@ class FallbackCoordinator(
 						userAgent = root.userAgent, fileName = root.fileName, failureClass = failureClass, attemptNo = no,
 						destPath = root.filePath, expectMedia = root.expectMedia, preferredHeight = root.preferredHeight, audioOnly = root.audioOnly,
 						onProven = { events.trySend(Ev.Proven(id)) })
+					if (failureClass == LATE) ledger.update(root.id, no, AttemptState.RUNNING, null, HEDGE_ROW, clock())   // T9 review M2
 					nos[id] = no; starts[id] = clock(); ctxs[id] = ctx
 					Trace.event { TraceEvent("attempt.start", downloadId = root.id, chain = urlClass.chain, step = step, method = id, failureClass = failureClass,
 						reason = if (config.race.batchSize > 1) "batch ${planner.batches}" else null) }
@@ -467,8 +500,11 @@ class FallbackCoordinator(
 					Trace.event { TraceEvent("race.win", downloadId = root.id, chain = urlClass.chain, method = a.id, reason = "batch ${planner.batches}") }
 					if (failureClass == LATE) {
 						// the hedged start: the app's own download (still without bytes) is paused, recorded as a pause
+						hedgeWins += root.id
 						ledger.recordIntent(root.id, UserIntent.PAUSE, clock())
 						val stopped = try { withContext(hostContext) { host.stopStuck(root) } } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
+						// T9 review H5: not paused after all (it had already ended): no pause intent left behind
+						if (!stopped) { hedgeWins.remove(root.id); ledger.recordIntent(root.id, UserIntent.RESUME, clock()) }
 						Trace.event { TraceEvent("decision", downloadId = root.id, result = if (stopped) "own-path-paused" else "own-path-not-paused", reason = "hedge won by ${a.id}") }
 					}
 				}
@@ -524,6 +560,10 @@ class FallbackCoordinator(
 				is Ev.Proof -> {
 					val id = ev.id
 					val o = resolved.remove(id) ?: continue
+					if (winner != null && id != winner) {                                 // T9 review: a late probe after a win
+						nos[id]?.let { no -> ledger.update(root.id, no, AttemptState.FAILED, null, CANCELLED_FOR_WINNER, clock()) }
+						continue
+					}
 					if (!ev.ok) {
 						nos[id]?.let { no -> ledger.update(root.id, no, AttemptState.FAILED, null, "its candidate is not a media file (probe)", clock()) }
 						Trace.event { TraceEvent("attempt.end", downloadId = root.id, chain = urlClass.chain, method = id, result = "not-proven", reason = "probe") }
@@ -538,8 +578,14 @@ class FallbackCoordinator(
 				}
 			}
 		}
-		// whatever still runs has lost (or the parent was removed): stop it
+		// whatever still runs has lost (or the parent was removed): stop it. T9 review H6: it stays untried (after a
+		// redirect it runs again on the new address)
 		ticker.cancel()
+		val now = clock()
+		for (id in jobs.keys) nos[id]?.let { no ->
+			if (ledger.attempts(root.id).firstOrNull { it.attemptNo == no }?.state == AttemptState.RUNNING)
+				ledger.update(root.id, no, AttemptState.FAILED, null, CANCELLED_FOR_WINNER, now)
+		}
 		jobs.values.forEach { it.cancel() }
 		end ?: RaceEnd.AGAIN
 	}
@@ -686,6 +732,12 @@ class FallbackCoordinator(
 		for (parentId in ledger.recentParents(limit)) {
 			var rows = ledger.attempts(parentId).ifEmpty { continue }
 			val wasRunning = rows.last().state == AttemptState.RUNNING
+			// T9 review M2: a hedged chain belongs beside its own download; after a restart that download goes on alone
+			if (wasRunning && rows.any { it.state == AttemptState.RUNNING && it.reason == HEDGE_ROW }) {
+				rows.filter { it.state == AttemptState.RUNNING }.forEach { ledger.update(parentId, it.attemptNo, AttemptState.FAILED, null, CANCELLED_FOR_WINNER, clock()) }
+				TrailBoard.remove(parentId)
+				continue
+			}
 			if (wasRunning) {
 				rows.filter { it.state == AttemptState.RUNNING }.forEach { ledger.update(parentId, it.attemptNo, AttemptState.FAILED, null, INTERRUPTED, clock()) }
 				rows = ledger.attempts(parentId)
@@ -719,6 +771,11 @@ class FallbackCoordinator(
 		for (id in ids) {
 			val root = list.firstOrNull { it.id == id } ?: continue
 			if (running[id]?.isActive == true || ledger.intentOf(id) in REMOVAL) continue
+			// T9 review M2: the app's own download finished or runs again since: nothing to rescue (no second copy)
+			if (root.snapshot.status == DownloadSnapshot.COMPLETE || root.snapshot.isRunning) {
+				Trace.event { TraceEvent("decision", downloadId = id, result = "not-resumed", reason = "its own download finished or runs") }
+				continue
+			}
 			val stops = ledger.attempts(id).count { it.reason == INTERRUPTED }
 			if (stops >= MAX_INTERRUPTIONS) {
 				Trace.event { TraceEvent("decision", downloadId = id, result = "not-resumed", reason = "interrupted $stops times") }
@@ -741,6 +798,7 @@ class FallbackCoordinator(
 	private fun forgetLocked(id: String, why: String = "removed by the user") {
 		ledger.forget(id)
 		refreshes.remove(id)                                                     // the app reuses download ids
+		hedgeWins.remove(id); lateOwnFailed.remove(id)
 		TrailBoard.remove(id)
 		seen.remove(id)
 		Trace.event { TraceEvent("decision", downloadId = id, result = "forgotten", reason = why) }
@@ -762,7 +820,7 @@ class FallbackCoordinator(
 	/**
 	 * The user asked for another method ("Try another method"): runs the next method of the chain now, whether or not
 	 * the current method has failed (the current download is left alone). A child still downloading is given up as an
-	 * attempt. Works even when automatic fallbacks are switched off.
+	 * attempt.
 	 */
 	suspend fun tryAnother(downloadId: String): Manual = lock.withLock {
 		val rootId = ledger.parentOf(downloadId) ?: downloadId
@@ -772,11 +830,12 @@ class FallbackCoordinator(
 		val rows = ledger.attempts(rootId)
 		if (rows.any { it.state == AttemptState.DELIVERED }) return@withLock Manual.ALREADY_DELIVERED
 		val steps = ChainSpec.stepsFor(UrlClass.of(withEffectiveUrl(root).url), config.includeStub)
-		if (ChainSpec.nextMethod(steps, rows.map { it.method }) { it in methods && config.methodOn(it) } == null) return@withLock Manual.NOTHING_LEFT
+		if (ChainSpec.nextMethod(steps, tried(rows)) { it in methods && config.methodOn(it) } == null) return@withLock Manual.NOTHING_LEFT   // T9 review M3
 		rows.filter { it.state == AttemptState.CHILD }.forEach {
 			ledger.update(rootId, it.attemptNo, AttemptState.FAILED, null, "user asked for another method", clock())
 		}
 		Trace.event { TraceEvent("decision", downloadId = rootId, result = "user-try-another") }
+		busy = true
 		running[rootId] = scope.launch { runChain(root, "USER_REQUEST") }
 		Manual.STARTED
 	}
@@ -806,6 +865,8 @@ class FallbackCoordinator(
 		val RESTART = setOf(UserIntent.START, UserIntent.RESUME)
 		val TEMP_EXT = setOf("part", "tmp", "meta", "ytdl", "bin")
 		const val INTERRUPTED = "interrupted (the app was closed)"
+		/** T9 review M2: the reason a running row of a hedged chain carries until it ends */
+		const val HEDGE_ROW = "running beside the app's own download"
 		const val MAX_INTERRUPTIONS = 2
 		/** T9: the reason of a race loser's row; such a method still counts as not tried */
 		const val CANCELLED_FOR_WINNER = "cancelled: another method seemed to win"

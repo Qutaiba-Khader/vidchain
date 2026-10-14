@@ -16,6 +16,7 @@ package org.websnake.vidchain.fallback.race
  * returned [Action]s and reports what happened.
  */
 class BatchPlanner(steps: List<Step>, private val cfg: Config = Config(), startMs: Long) {
+	init { require(cfg.batchSize >= 1) { "batchSize must be at least 1" } }   // T9 review: 0 recursed for ever
 	enum class Weight { LIGHT, HEAVY }
 
 	data class Step(val id: String, val weight: Weight, val limitMs: Long = 120_000L)

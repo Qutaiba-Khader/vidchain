@@ -72,7 +72,12 @@ def check(xml_text, window_text, package=PKG, scroll=None):
     walk(root, False, False)
     titles = sorted(set(titles))
     problems = []
+    screen_h = max((c[0][3] for c in content), default=0)
     for r, label, in_list in content:
+        # one text block filling a scrolling view (the licences text) always reaches both edges: its rows are clipped
+        # by the view's padding, which uiautomator does not report - judge the rows, not the block
+        if in_list and screen_h and (r[3] - r[1]) > 0.6 * screen_h:
+            continue
         # in a scrolling list: rows running off the list's far edge are the list going on (see [scroll])
         skip_top = in_list and scroll in ("end", "middle")
         skip_bottom = in_list and scroll in ("top", "middle")
@@ -89,6 +94,70 @@ def check(xml_text, window_text, package=PKG, scroll=None):
                 if area(r, t):
                     problems.append(f"'{label[:40]}' {r} under the title bar {t}")
     return problems, system, titles
+
+
+VIEW = re.compile(r"^(\s*)([\w.$]+)\{[0-9a-f]+ ([VIG.])[F.][E.][D.][H.][V.]([C.])[L.][X.] \S* (-?\d+),(-?\d+)-(-?\d+),(-?\d+)(?: #[0-9a-f]+ (\S+))?\}")
+LEAF_TYPES = re.compile(r"(TextView|Button|Switch|SwitchCompat|CheckBox|EditText|ImageButton)$")
+
+
+def views(activity_text, package=PKG):
+    """the resumed screen's views from `dumpsys activity top` (for screens that never go idle, so uiautomator cannot
+    dump them): [(abs rect, class, id, clickable, has_children, in_title)]. Positions are layout positions: a scrolled
+    ScrollView's children are not moved, so use this only for screens at rest (scroll "top")."""
+    sec = None
+    for part in re.split(r"\n\s*ACTIVITY ", activity_text):
+        if part.startswith(package + "/"):
+            sec = part
+            break
+    if sec is None or "View Hierarchy:" not in sec:
+        return []
+    lines = sec.split("View Hierarchy:", 1)[1].splitlines()
+    out, stack = [], []          # stack of (indent, abs_left, abs_top, visible, in_title)
+    for ln in lines:
+        m = VIEW.match(ln)
+        if not m:
+            if ln.strip() and not ln.strip().startswith("DecorView") and len(ln) - len(ln.lstrip()) <= 4:
+                break             # the next section
+            continue
+        ind = len(m.group(1))
+        while stack and stack[-1][0] >= ind:
+            stack.pop()
+        px, py, pvis, ptitle = (stack[-1][1], stack[-1][2], stack[-1][3], stack[-1][4]) if stack else (0, 0, True, False)
+        l, t, r, b = (int(m.group(i)) for i in range(5, 9))
+        rid = m.group(9) or ""
+        vis = pvis and m.group(3) == "V"
+        title = ptitle or bool(re.search(r"id/(action_bar|toolbar)$", rid))
+        rect = (px + l, py + t, px + r, py + b)
+        if out and stack and out[-1][0] is not None:
+            pass
+        entry = [rect, m.group(2), rid, m.group(4) == "C", False, title, vis]
+        if stack:
+            stack[-1][5][4] = True    # the parent has a child
+        stack.append((ind, rect[0], rect[1], vis, title, entry))
+        out.append(entry)
+    return [(e[0], e[1], e[2], e[3], e[4], e[5]) for e in out if e[6] and e[0][2] > e[0][0] and e[0][3] > e[0][1]]
+
+
+def check_views(activity_text, window_text, package=PKG):
+    """the same check as check(), from `dumpsys activity top` (screen at rest; no text, so leaves and tappables)"""
+    system = bars(window_text)
+    vs = views(activity_text, package)
+    titles = sorted({v[0] for v in vs if re.search(r"id/(action_bar|toolbar)$", v[2])})
+    problems = []
+    for rect, cls, rid, clickable, has_children, in_title in vs:
+        if in_title or not (clickable or (not has_children and LEAF_TYPES.search(cls))):
+            continue
+        label = rid.split("/")[-1] or cls.split(".")[-1]
+        for kind, rects in system.items():
+            if kind == "displayCutout":
+                continue
+            for b in rects:
+                if area(rect, b):
+                    problems.append(f"'{label}' {rect} under the {kind} {b}")
+        for t in titles:
+            if area(rect, t):
+                problems.append(f"'{label}' {rect} under the title bar {t}")
+    return problems, system, titles, vs
 
 
 def main():

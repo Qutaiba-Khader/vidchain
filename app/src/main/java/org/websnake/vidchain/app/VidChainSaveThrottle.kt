@@ -26,7 +26,9 @@ object VidChainSaveThrottle {
 		}
 		if (!l.pending) {
 			l.pending = true
-			main.postDelayed({ l.pending = false; l.atMs = 0; runCatching { later() } }, EVERY_MS - (now - l.atMs))
+			// T9 review: skipped when a newer save (a status change, the end, a delete) came first: it already wrote the
+			// newest state, and a late save would write a deleted download back to disk
+			main.postDelayed({ l.pending = false; l.atMs = 0; if (last[id] === l) runCatching { later() } }, EVERY_MS - (now - l.atMs))
 		}
 		return false
 	}

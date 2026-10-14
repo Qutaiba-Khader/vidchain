@@ -60,7 +60,9 @@ class ScorecardTest {
 		val s = card()
 		assertEquals(Scorecard.DEFAULT_PROOF_MS, s.proofTimeMs("x.com", "Y"))
 		listOf(2_000L, 2_500L, 3_000L, 8_000L).forEach { s.record("x.com", "Y", Cause.OK, it) }
-		assertEquals(3_000L, s.proofTimeMs("x.com", "Y"))
+		assertEquals(8_000L, s.proofTimeMs("x.com", "Y"))      // T9 review: nearest-rank p90 (4 results: the slowest)
+		listOf(2_000L, 2_100L, 2_200L, 2_300L, 2_400L, 2_500L).forEach { s.record("x.com", "Y", Cause.OK, it) }
+		assertEquals(3_000L, s.proofTimeMs("x.com", "Y"))      // 10 results: the 9th of 10 (the one outlier is ignored)
 	}
 
 	@Test fun onlySiteMethodCauseAndTimeAreStored() {
