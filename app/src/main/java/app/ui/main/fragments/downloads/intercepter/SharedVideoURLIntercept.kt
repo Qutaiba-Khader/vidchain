@@ -298,6 +298,7 @@ class SharedVideoURLIntercept(
 		safeBaseActivityRef?.let { safeBaseActivityRef ->
 			// T9 decision 2: one yt-dlp -J run gives the formats (with sizes), the title, the picture and the duration,
 			// and the download replays it; the app's own lookups below run only when it gives nothing
+			if (!isYouTubeUrl(videoUrl)) updateInterceptWaitingDialogMessage(org.websnake.vidchain.fallback.ui.TrailText.analysing("Y")) // T9: what runs now
 			val analysis = org.websnake.vidchain.app.VidChainAnalysis.analyse(videoUrl, userGivenVideoInfo?.videoCookie)
 			val analysedFormats = analysis?.let { org.websnake.vidchain.app.VidChainAnalysis.pickerFormats(it, videoUrl) }?.takeIf { it.isNotEmpty() }
 			if (analysis != null && analysedFormats != null) {

@@ -19,6 +19,17 @@
 			android:label="@string/vidchain_licences_title"
 			android:theme="@style/Theme.VidChain" />
 
+		<!-- T9 stage 4c: the site x method test matrix runs one method on one link from `adb shell` only (DUMP is held by
+		     the shell and the system, never by an app) -->
+		<receiver
+			android:name="org.websnake.vidchain.fallback.ui.MatrixReceiver"
+			android:exported="true"
+			android:permission="android.permission.DUMP">
+			<intent-filter>
+				<action android:name="org.websnake.vidchain.MATRIX" />
+			</intent-filter>
+		</receiver>
+
 		<!-- shares the trace log file (cache/vidchain-share only) -->
 		<provider
 			android:name="org.websnake.vidchain.fallback.ui.VidChainFileProvider"

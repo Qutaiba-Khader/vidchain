@@ -257,6 +257,12 @@ object FallbackRuntime {
 	 * with the candidate's headers (never a cookie), judged by ProofRule. Only a clear "not media" refuses it; an
 	 * answer it cannot judge (a timeout, an unknown type) lets it through to the download's own checks.
 	 */
+	/** T9 stage 4c (MatrixReceiver): the runtime's scope, the probe and the keep-alive for one method run */
+	fun scopeOrNull(): CoroutineScope? = scope
+	suspend fun probeCandidate(c: Candidate, ctx: FallbackContext): Boolean = probe(c, ctx)
+	suspend fun keepAliveFor(id: String, block: suspend () -> MethodOutcome): MethodOutcome =
+		engines?.let { k -> k.keptAlive("matrix $id") { block() } } ?: block()
+
 	private suspend fun probe(c: Candidate, ctx: FallbackContext): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
 		if (c.kind == "magnet" || !c.url.startsWith("http", ignoreCase = true)) return@withContext true
 		if (org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(c.url) && !org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(ctx.url)) return@withContext false

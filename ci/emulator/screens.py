@@ -40,7 +40,7 @@ def sh(cmd, timeout=60):
 
 
 def dump():
-    sh("rm -f /sdcard/ui.xml; uiautomator dump /sdcard/ui.xml >/dev/null 2>&1", timeout=30)
+    sh("rm -f /sdcard/ui.xml; uiautomator dump /sdcard/ui.xml >/dev/null 2>&1", timeout=90)
     return sh("cat /sdcard/ui.xml 2>/dev/null")
 
 
@@ -75,7 +75,7 @@ report, problems_total = [], 0
 screen_size = tuple(map(int, re.search(r"(\d+)x(\d+)", sh("wm size").split("Override")[-1]).groups()))
 
 
-def look(name, spinner=False):
+def look(name, spinner=False, scroll=None):
     """screenshot + dump + overlap check of what is on screen now ([spinner]: a busy dialog that may not be dumped)"""
     global problems_total
     time.sleep(1.5)
@@ -92,7 +92,7 @@ def look(name, spinner=False):
         print(f"{name}: no UI dump{' (spinner, allowed)' if spinner else ''}", flush=True)
     else:
         try:
-            probs, system, titles = overlap.check(xml, win, PKG)
+            probs, system, titles = overlap.check(xml, win, PKG, scroll)
         except Exception as e:                    # an unreadable dump is reported, not fatal
             probs, system, titles = [f"check failed: {e}"], {}, []
         if not system.get("statusBars") and not probs:
@@ -123,6 +123,18 @@ def swipe_up():
     sh(f"input swipe {w // 2} {h * 7 // 10} {w // 2} {h * 3 // 10} 500")
 
 
+def scrolled(name, ends_only=False):
+    """a scrolling screen: at its top, (in the middle,) and at its end (the first and last rows must clear the bars)"""
+    look(f"{name}-top", scroll="top")
+    if not ends_only:
+        swipe_up(); time.sleep(1)
+        look(f"{name}-middle", scroll="middle")
+    for _ in range(12):
+        swipe_up()
+    time.sleep(1.5)
+    look(f"{name}-end", scroll="end")
+
+
 def start(cls):
     sh(f"am start -n {PKG}/{cls}")
     time.sleep(3)
@@ -135,17 +147,13 @@ def visit(prefix):
     tap(by_text("Not Now"))                       # e.g. the battery-optimisation question
     for tab in ("home", "browser", "tasks"):
         tap(by_id(f"btn_{tab}_tab"))
-        look(f"{prefix}main-{tab}")
+        look(f"{prefix}main-{tab}", scroll="top")
     tap(by_id("btn_settings_tab"))
-    for i in range(4):
-        look(f"{prefix}settings-{i}")
-        swipe_up()
+    scrolled(f"{prefix}settings")
     start("org.websnake.vidchain.fallback.ui.VidChainSettingsActivity")
-    for i in range(3):
-        look(f"{prefix}vidchain-settings-{i}")
-        swipe_up()
+    scrolled(f"{prefix}vidchain-settings")
     start("org.websnake.vidchain.fallback.ui.VidChainLicencesActivity")
-    look(f"{prefix}vidchain-licences")
+    scrolled(f"{prefix}vidchain-licences", ends_only=True)
     for cls, name in (("app.ui.main.fragments.browser.activities.BookmarksActivity", "bookmarks"),
                       ("app.ui.main.fragments.browser.activities.HistoryActivity", "history"),
                       ("app.ui.others.information.UserFeedbackActivity", "feedback")):

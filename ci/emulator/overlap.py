@@ -20,14 +20,17 @@ TITLE_IDS = re.compile(r":id/(action_bar|action_bar_container|toolbar|support_ac
 BOUNDS = re.compile(r"\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]")
 
 
+OLD_NAMES = {"ITYPE_STATUS_BAR": "statusBars", "ITYPE_NAVIGATION_BAR": "navigationBars", "ITYPE_CAPTION_BAR": "captionBar"}
+
+
 def bars(window_text):
-    """visible system bar rectangles: {"statusBars": [(l,t,r,b)], ...}"""
+    """visible system bar rectangles: {"statusBars": [(l,t,r,b)], ...} (API 33 names them ITYPE_STATUS_BAR etc.)"""
     out = {}
-    for m in re.finditer(r"InsetsSource[^\n]*?type=(statusBars|navigationBars|displayCutout|captionBar)[^\n]*?frame=\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\][^\n]*?visible=(true|false)", window_text):
+    for m in re.finditer(r"InsetsSource[^\n]*?type=(statusBars|navigationBars|displayCutout|captionBar|ITYPE_STATUS_BAR|ITYPE_NAVIGATION_BAR|ITYPE_CAPTION_BAR)[^\n]*?frame=\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\][^\n]*?visible=(true|false)", window_text):
         if m.group(6) == "true":
             r = tuple(map(int, m.groups()[1:5]))
             if r[2] > r[0] and r[3] > r[1]:
-                out.setdefault(m.group(1), []).append(r)
+                out.setdefault(OLD_NAMES.get(m.group(1), m.group(1)), []).append(r)
     for k in out:
         out[k] = sorted(set(out[k]))
     return out
@@ -44,37 +47,47 @@ def area(a, b):
     return (w, h) if w > TOLERANCE and h > TOLERANCE else None
 
 
-def check(xml_text, window_text, package=PKG):
+def check(xml_text, window_text, package=PKG, scroll=None):
+    """[scroll]: None = a screen that does not scroll; "top" / "end" / "middle" = a scrolling list at that position.
+    uiautomator reports a list row's area without the list's padding clip, so a row that runs off the list's bottom
+    edge (at "top") or its top edge (at "end") is the list continuing, not a row under a bar."""
     root = ET.fromstring(xml_text[xml_text.index("<"):])
     system = bars(window_text)
     titles, content = [], []
 
-    def walk(node, in_title):
+    def walk(node, in_title, in_scroll):
         rid = node.get("resource-id", "")
         here = in_title or bool(TITLE_IDS.search(rid))
+        scrolled = in_scroll or node.get("scrollable") == "true"
         if node.tag == "node" and node.get("package") == package:
             r = rect(node)
             if r and r[2] > r[0] and r[3] > r[1]:
                 if TITLE_IDS.search(rid):
                     titles.append(r)
                 elif not here and (node.get("text") or node.get("clickable") == "true" or node.get("checkable") == "true"):
-                    content.append((r, node.get("text") or node.get("content-desc") or rid.split("/")[-1] or node.get("class", "")))
+                    content.append((r, node.get("text") or node.get("content-desc") or rid.split("/")[-1] or node.get("class", ""), in_scroll))
         for c in node:
-            walk(c, here)
+            walk(c, here, scrolled)
 
-    walk(root, False)
+    walk(root, False, False)
     titles = sorted(set(titles))
     problems = []
-    for r, label in content:
+    for r, label, in_list in content:
+        # in a scrolling list: rows running off the list's far edge are the list going on (see [scroll])
+        skip_top = in_list and scroll in ("end", "middle")
+        skip_bottom = in_list and scroll in ("top", "middle")
         for kind, rects in system.items():
             if kind == "displayCutout":
+                continue
+            if (kind == "statusBars" and skip_top) or (kind == "navigationBars" and skip_bottom):
                 continue
             for b in rects:
                 if area(r, b):
                     problems.append(f"'{label[:40]}' {r} under the {kind} {b}")
-        for t in titles:
-            if area(r, t):
-                problems.append(f"'{label[:40]}' {r} under the title bar {t}")
+        if not skip_top:
+            for t in titles:
+                if area(r, t):
+                    problems.append(f"'{label[:40]}' {r} under the title bar {t}")
     return problems, system, titles
 
 

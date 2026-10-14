@@ -444,8 +444,9 @@ class FallbackCoordinator(
 					val id = a.id
 					val c = resolved[id]?.candidate
 					val probe = config.probe
+					val ctx = ctxs[id]                                   // read here: the maps belong to this loop only
 					launch {
-						val ok = c == null || probe == null || try { probe(c, ctxs.getValue(id)) } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
+						val ok = c == null || probe == null || ctx == null || try { probe(c, ctx) } catch (e: CancellationException) { throw e } catch (e: Exception) { false }
 						events.send(Ev.Proof(id, ok))
 					}
 				}
@@ -475,16 +476,19 @@ class FallbackCoordinator(
 			}
 		}
 
+		// the clock ticks into the same channel: a receive with a time-out could drop an event that arrives as it ends
+		// (kotlinx prompt cancellation; a lost probe result left a race waiting for good)
+		val ticker = launch { while (true) { kotlinx.coroutines.delay(RACE_TICK_MS); events.send(Ev.Tick) } }
 		perform(planner.tick(clock()))
 		while (end == null) {
 			if (ledger.intentOf(root.id) in REMOVAL) {
 				Trace.event { TraceEvent("decision", downloadId = root.id, chain = urlClass.chain, result = "parent-removed") }
 				end = RaceEnd.STOP; break
 			}
-			val ev = kotlinx.coroutines.withTimeoutOrNull(RACE_TICK_MS) { events.receive() }
+			val ev = events.receive()
 			val now = clock()
 			when (ev) {
-				null -> perform(if (winner != null) planner.reap(now) else planner.tick(now))
+				Ev.Tick -> perform(if (winner != null) planner.reap(now) else planner.tick(now))
 				is Ev.Proven -> if (winner == null && ev.id in jobs) {
 					// an executor's first bytes are media: it wins now, the others stop; it goes on to finish its file
 					Trace.event { TraceEvent("race.proven", downloadId = root.id, method = ev.id, reason = "first bytes are media") }
@@ -494,6 +498,12 @@ class FallbackCoordinator(
 					val id = ev.id
 					jobs.remove(id)
 					val o = ev.outcome
+					if (winner != null && id != winner) {
+						// another method already won: this late result is dropped (never a second download or file)
+						if (o is MethodOutcome.Delivered) { File(o.path).delete(); o.extras.forEach { File(it).delete() } }
+						nos[id]?.let { no -> ledger.update(root.id, no, AttemptState.FAILED, null, CANCELLED_FOR_WINNER, clock()) }
+						continue
+					}
 					if (o is MethodOutcome.Resolved && config.probe != null && winner == null) {
 						resolved[id] = o
 						perform(planner.onCandidate(id, now))                       // the probe decides
@@ -529,11 +539,13 @@ class FallbackCoordinator(
 			}
 		}
 		// whatever still runs has lost (or the parent was removed): stop it
+		ticker.cancel()
 		jobs.values.forEach { it.cancel() }
 		end ?: RaceEnd.AGAIN
 	}
 
 	private sealed class Ev {
+		object Tick : Ev()
 		class Done(val id: String, val outcome: MethodOutcome) : Ev()
 		class Proven(val id: String) : Ev()
 		class Proof(val id: String, val ok: Boolean) : Ev()

@@ -72,6 +72,9 @@ object TrailText {
 	/** decision 10: every method that can handle this kind of link is switched off */
 	const val NO_METHOD = "No switched-on method can handle this link — open Settings › VidChain fallbacks › Methods"
 
+	/** T9 decision 1: the "Analyzing URL" dialog says which method looks at the link now (fixed names only, never the link) */
+	fun analysing(vararg methods: String): String = "Analyzing URL · trying ${methods.joinToString(", ") { name(it) }}"
+
 	fun childCard(method: String): String = "Fallback download via ${name(method)} (tap for the methods tried)"
 
 	/** pure text of the sheet (JVM-tested) */
