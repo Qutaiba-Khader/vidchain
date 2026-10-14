@@ -45,7 +45,7 @@ class YtDlpEngine(
 	 */
 	suspend fun infoWithJson(url: String, o: Options = Options(), timeoutMs: Long = 180_000): Result<Pair<YtDlpInfo, String>> {
 		if (!ready) return Result.Failed(Problem.NOT_READY, "yt-dlp runtime not extracted yet")
-		val r = runner.run(EngineSpec(argv(o, listOf("--dump-single-json", "--no-playlist", "--no-progress")) + listOf("--", url), layout.env(), timeoutMs = timeoutMs))
+		val r = runner.run(EngineSpec(argv(o.forUrl(url), listOf("--dump-single-json", "--no-playlist", "--no-progress")) + listOf("--", url), layout.env(), timeoutMs = timeoutMs))
 		if (r.outcome != EngineOutcome.Success) return failure(r.outcome, r.stderrTail)
 		val json = r.stdoutTail.lastOrNull { it.trimStart().startsWith("{") } ?: return Result.Failed(Problem.OTHER, "no JSON from yt-dlp")
 		return runCatching { Result.Ok(YtDlpInfo.parse(json) to json) }.getOrElse { Result.Failed(Problem.OTHER, "unreadable JSON: ${it.javaClass.simpleName}") }
@@ -61,7 +61,7 @@ class YtDlpEngine(
 			"-o", File(dir, "$base.%(ext)s").absolutePath, "--print", "after_move:$PATH_MARK%(filepath)s",
 		)
 		var finalPath: String? = null
-		val r = runner.run(EngineSpec(argv(o, args) + listOf("--", url), layout.env(), timeoutMs = timeoutMs, stallMs = STALL_MS, watchDir = dir), onStdout = { line ->
+		val r = runner.run(EngineSpec(argv(o.forUrl(url), args) + listOf("--", url), layout.env(), timeoutMs = timeoutMs, stallMs = STALL_MS, watchDir = dir), onStdout = { line ->
 			if (line.startsWith(PATH_MARK)) finalPath = line.removePrefix(PATH_MARK).trim()
 			else progress(line)?.let(onProgress)
 		})
@@ -93,6 +93,14 @@ class YtDlpEngine(
 		return if (known) listOf("--js-runtimes", "quickjs:${qjs.absolutePath}") else emptyList()
 	}
 
+	/**
+	 * T9 (owner's Facebook reel, 2026-10-14): with a phone browser's User-Agent Facebook serves its mobile page, and
+	 * yt-dlp's Facebook extractor fails on it ("Cannot parse data"; a share link falls back to "generic" with no format).
+	 * yt-dlp's own User-Agent works: Facebook addresses get it.
+	 */
+	internal fun Options.forUrl(url: String): Options =
+		if (userAgent != null && MOBILE.containsMatchIn(userAgent) && FACEBOOK.containsMatchIn(url)) copy(userAgent = null) else this
+
 	internal fun argv(o: Options, args: List<String>): List<String> = buildList {
 		add(python.absolutePath); add(ytdlp.absolutePath)
 		addAll(listOf("--ignore-config", "--no-warnings", "--socket-timeout", "20", "--retries", "3"))
@@ -105,6 +113,8 @@ class YtDlpEngine(
 
 	companion object {
 		private val JS_RUNTIME_SUPPORT = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+		private val MOBILE = Regex("""\b(Mobile|Android|iPhone|iPad)\b""")
+		private val FACEBOOK = Regex("""^https?://([a-z0-9-]+\.)*(facebook\.com|fb\.watch|fb\.com|fb\.gg)(/|:|$)""", RegexOption.IGNORE_CASE)
 		const val PATH_MARK = "__VIDCHAIN_FILE__"
 		/** no progress line and no byte for this long: the download is stuck (the 4 h cap stays behind it) */
 		const val STALL_MS = 180_000L

@@ -46,6 +46,20 @@ class PageScrapeMethodTest {
 		assertEquals(s.url("/live"), handed!!.referer)
 	}
 
+	@Test fun aFacebookLikePageIsAskedAsABrowserAndAsAPhone() = runBlocking {
+		// T9 (owner's Facebook reel, 2026-10-14): 400 without a browser's navigation headers; no video data for a
+		// desktop User-Agent; for a phone's, the player's file under its own key, a CDN address without an extension
+		s.route("/reel") { ex, _ ->
+			when {
+				ex.header("Sec-Fetch-Mode") != "navigate" || ex.header("Accept")?.startsWith("text/html") != true -> ex.send(400, "<title>Error</title>".toByteArray())
+				ex.header("User-Agent")?.contains("Mobile") != true -> ex.send(200, "<html>log in to continue</html>".toByteArray(), headers = mapOf("Content-Type" to "text/html"))
+				else -> ex.send(200, """<script>{is_reels_video:true,playable_url:"${s.url("/o1/v/HD1").replace("/", "\\/")}?efg=1"}</script>""".toByteArray(), headers = mapOf("Content-Type" to "text/html"))
+			}
+		}
+		s.route("/o1/v/HD1") { ex, _ -> ex.send(200, mp4, headers = mapOf("Content-Type" to "video/mp4")) }
+		assertTrue(method().attempt(ctx("/reel")) is MethodOutcome.Delivered)
+	}
+
 	@Test fun nothingOnThePage() = runBlocking {
 		s.route("/empty") { ex, _ -> ex.send(200, "<html><p>text only</p></html>".toByteArray(), headers = mapOf("Content-Type" to "text/html")) }
 		assertEquals(MethodOutcome.Failed("no media on the page"), method().attempt(ctx("/empty")))

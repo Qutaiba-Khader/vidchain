@@ -41,6 +41,9 @@ object FileHosts {
 	fun fetcher(client: OkHttpClient, userAgent: String?): suspend (String) -> Page = { url ->
 		val rb = Request.Builder().url(url).get()
 		userAgent?.let { rb.header("User-Agent", it) }
+		// T9 (owner's Facebook reel, 2026-10-14): a page asked for like a browser opening it. Facebook answers a bare
+		// request with 400 and an error page; these are the headers every browser sends for a top-level page.
+		for ((k, v) in NAVIGATION) rb.header(k, v)
 		client.newCall(rb.build()).await().use { r ->
 			val src = r.body.source()
 			src.request(MAX_PAGE)
@@ -49,6 +52,17 @@ object FileHosts {
 	}
 
 	private const val MAX_PAGE = 512L * 1024
+
+	/** what a browser sends when it opens a page (no cookie, no client hint that names the device) */
+	val NAVIGATION = linkedMapOf(
+		"Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+		"Accept-Language" to "en-US,en;q=0.9",
+		"Sec-Fetch-Dest" to "document",
+		"Sec-Fetch-Mode" to "navigate",
+		"Sec-Fetch-Site" to "none",
+		"Sec-Fetch-User" to "?1",
+		"Upgrade-Insecure-Requests" to "1",
+	)
 
 	internal fun hostIs(u: HttpUrl, vararg domains: String) = domains.any { d -> u.host.equals(d, true) || u.host.lowercase(Locale.ROOT).endsWith(".$d") }
 	internal fun loginWall(p: Page) = p.code == 401 || p.code == 403 && "sign in" in p.body.lowercase() ||

@@ -20,6 +20,8 @@ class PageScrapeMethod(
 	private val stream: (suspend (FallbackContext, MediaCandidate) -> MethodOutcome)? = null,
 	private val allowLocalTargets: Boolean = false,
 	private val maxCandidates: Int = 3,
+	/** T9: asked as a phone's browser when the page showed nothing to the download's own User-Agent */
+	private val mobileUserAgent: String? = MOBILE_UA,
 ) : FallbackMethod {
 	override val id = "H"
 	override val kind = FallbackMethod.Kind.EXECUTOR
@@ -27,8 +29,17 @@ class PageScrapeMethod(
 	override suspend fun attempt(ctx: FallbackContext): MethodOutcome {
 		val page = ctx.url.takeIf { HttpFileExecutor.isHttp(it) } ?: return MethodOutcome.Unsupported("not an http(s) page")
 		val startLocal = org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(page)
-		val found = PageScraper.discover(page, pages(ctx.userAgent), refuse = { u -> !allowLocalTargets && !startLocal && org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(u) })
+		val refuse = { u: String -> !allowLocalTargets && !startLocal && org.websnake.vidchain.http.redirect.RedirectUnwrapper.isLocal(u) }
+		// T9 (owner's Facebook reel, 2026-10-14): some sites show their video data only to a phone's browser (Facebook:
+		// a desktop User-Agent gets a page with no video at all, a phone's gets og:video and often the player's HD file)
+		var found = PageScraper.discover(page, pages(ctx.userAgent), refuse = refuse)
+		if (found.isEmpty() && mobileUserAgent != null && mobileUserAgent != ctx.userAgent)
+			found = PageScraper.discover(page, pages(mobileUserAgent), refuse = refuse)
 		if (found.isEmpty()) return MethodOutcome.Failed("no media on the page")
 		return MediaSaver.save(ctx, id, found, fetcher, verifier, stream, allowLocalTargets, maxCandidates)
+	}
+
+	companion object {
+		const val MOBILE_UA = "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36"
 	}
 }

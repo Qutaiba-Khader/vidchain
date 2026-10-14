@@ -23,22 +23,36 @@ data class MediaCandidate(val url: String, val kind: Kind, val source: String, v
 object PageScraper {
 	private val MEDIA_EXT = Regex("""\.(mp4|m4v|webm|mov|mkv|m4a|mp3|ogg|ogv|ts|flv|3gp)(?:$|[?#])""", RegexOption.IGNORE_CASE)
 	private val SCRIPT_URL = Regex("""https?:(?://|\\/\\/)[^"'\s<>\\]*(?:\\/[^"'\s<>\\]*)*?\.(?:m3u8|mpd|mp4|webm|m4v)(?:\?[^"'\s<>]*)?""", RegexOption.IGNORE_CASE)
+	/**
+	 * T9 Facebook (owner, 2026-10-14): a page player's own file addresses, written into its scripts as
+	 * `playable_url:"…"` (also quoted keys, escaped slashes). CDN addresses like video.*.fbcdn.net have no file
+	 * extension, so they are only trusted under these keys (and under a typed og:video). HD keys first.
+	 */
+	private val PLAYER_KEY = Regex("""\\?["']?\b(playable_url_quality_hd|browser_native_hd_url|hd_src_no_ratelimit|hd_src|playable_url|browser_native_sd_url|sd_src_no_ratelimit|sd_src)\\?["']?\s*:\s*\\?["'](https?:(?:[^"'\s<>\\]|\\/|\\u[0-9a-fA-F]{4})+)""")
+	private val HD_KEYS = setOf("playable_url_quality_hd", "browser_native_hd_url", "hd_src_no_ratelimit", "hd_src")
 	private val JUNK = Regex("""doubleclick|googlesyndication|/ads?/|[?&]ad=|preroll|sprite|thumb|preview\.mp4|\.vtt|\.srt|placeholder""", RegexOption.IGNORE_CASE)
 
 	fun scan(html: String, pageUrl: String): List<MediaCandidate> {
 		val doc = Jsoup.parse(html, pageUrl)
 		val out = LinkedHashMap<String, MediaCandidate>()
-		fun add(raw: String?, source: String, score: Int) {
+		fun add(raw: String?, source: String, score: Int, typed: MediaCandidate.Kind? = null) {
 			val url = absolute(unescape(raw ?: return).trim(), pageUrl) ?: return
 			if (JUNK.containsMatchIn(url) || url.startsWith("blob:") || url.startsWith("data:")) return
-			val kind = kindOf(url) ?: return
+			val kind = kindOf(url) ?: typed ?: return              // typed: the page says it is a video file
 			val prev = out[url]
 			if (prev == null || prev.score < score) out[url] = MediaCandidate(url, kind, source, pageUrl, score)
 		}
 		for (v in doc.select("video[src], audio[src]")) add(v.attr("src"), v.tagName(), 90)
 		for (v in doc.select("video[data-src], video source[data-src]")) add(v.attr("data-src"), "data-src", 85)
 		for (s in doc.select("video source[src], audio source[src]")) add(s.attr("src"), "source", 90 + qualityBonus(s.attr("label") + s.attr("res") + s.attr("size")))
-		for (m in doc.select("meta[property~=^og:video(:secure_url|:url)?$], meta[name~=^og:video(:secure_url|:url)?$]")) add(m.attr("content"), "og:video", 80)
+		val ogType = doc.select("meta[property=og:video:type], meta[name=og:video:type]").attr("content")
+		val ogTyped = MediaCandidate.Kind.FILE.takeIf { ogType.startsWith("video/", true) && !ogType.contains("html", true) }
+		for (m in doc.select("meta[property~=^og:video(:secure_url|:url)?$], meta[name~=^og:video(:secure_url|:url)?$]")) add(m.attr("content"), "og:video", 80, ogTyped)
+		// T9: the player's own files, the first one on the page (the video shown) ahead of later ones (feeds preload more)
+		PLAYER_KEY.findAll(html).take(12).forEachIndexed { i, m ->
+			val hd = m.groupValues[1] in HD_KEYS
+			add(m.groupValues[2], if (hd) "player:hd" else "player", 88 - 2 * i.coerceAtMost(6) + (if (hd) 1 else 0), MediaCandidate.Kind.FILE)
+		}
 		for (m in doc.select("meta[name=twitter:player:stream], meta[property=twitter:player:stream]")) add(m.attr("content"), "twitter:stream", 75)
 		for (l in doc.select("link[rel=video_src], link[itemprop=contentUrl]")) add(l.attr("href"), "link", 70)
 		for (m in doc.select("[itemprop=contentUrl]")) add(m.attr("content").ifEmpty { m.attr("href") }, "microdata", 70)
@@ -114,7 +128,7 @@ object PageScraper {
 		return out
 	}
 
-	private fun unescape(s: String) = s.replace("\\/", "/").replace("\\u002F", "/").replace("\\u002f", "/").replace("\\u0026", "&").replace("&amp;", "&")
+	private fun unescape(s: String) = s.replace("\\u0025", "%").replace("\\u003D", "=").replace("\\u003d", "=").replace("\\/", "/").replace("\\u002F", "/").replace("\\u002f", "/").replace("\\u0026", "&").replace("&amp;", "&")
 
 	private fun absolute(u: String, base: String): String? {
 		if (u.isEmpty()) return null

@@ -25,7 +25,7 @@ SITES = {
     "youtube.com": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
     "x.com": "https://x.com/RAVANOUS100/status/2110045035546746885",
     "instagram.com": "https://www.instagram.com/p/aye83DjauH/",
-    "facebook.com": "https://www.facebook.com/radiokicksfm/videos/3676516585958356/",
+    "facebook.com": "https://www.facebook.com/share/r/1Pf8cYahHP/",   # the owner's reel (the old /videos/ link is gone: "Discover Popular Videos")
     "tiktok.com": "https://www.tiktok.com/@scout2015/video/6718335390845095173",
     "reddit.com": "https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/",
     "dailymotion.com": "https://www.dailymotion.com/video/x5kesuj",

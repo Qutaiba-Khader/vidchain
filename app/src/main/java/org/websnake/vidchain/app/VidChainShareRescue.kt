@@ -191,7 +191,9 @@ object VidChainShareRescue {
 				.writeNetscape(File(AIOApp.INSTANCE.cacheDir, "vidchain-cookies/share-${System.nanoTime()}.txt"))
 		} else null
 		try {
-			val options = YtDlpEngine.Options(userAgent = AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null }, cookiesFile = cookieFile)
+			// T9: the same User-Agent as the app's own analysis (VidChainAnalysis): the browser's phone User-Agent made
+			// yt-dlp fail on Facebook
+			val options = YtDlpEngine.Options(userAgent = AIOApp.aioSettings.downloadHttpUserAgent.ifEmpty { null }, cookiesFile = cookieFile)
 			return when (val r = engine.info(url, options)) {
 				is YtDlpEngine.Result.Ok -> {
 					val info = r.value

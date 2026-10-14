@@ -7,12 +7,14 @@ package org.websnake.vidchain.fallback.race
  * ([Scorecard.GENERIC]), and without that the chain's own order.
  *
  * Each row: the methods that delivered on that site, fastest first, then the rest in the chain's order. Sites where
- * no method delivered on the test network (facebook.com, tiktok.com, vimeo.com, ted.com) are not listed: they keep
- * the chain's order. There is deliberately no generic ("*") row: the matrix's generic link was a direct file, which
- * says nothing about the order for an unknown page.
+ * no method delivered on the test network (tiktok.com, vimeo.com, ted.com) are not listed: they keep the chain's
+ * order. facebook.com: the matrix's first link was a removed video; the row comes from the owner's reel (2026-10-14).
+ * There is deliberately no generic ("*") row: the matrix's generic link was a direct file, which says nothing about
+ * the order for an unknown page.
  */
 object SeedOrder {
 	private val YOUTUBE = listOf("Y", "T", "X", "N", "C", "S", "P", "F", "W", "R", "L", "H", "G", "U", "O", "A", "D", "M")
+	private val FACEBOOK = listOf("N", "Y", "W", "H", "C", "S", "P", "F", "R", "L", "G", "U", "T", "X", "O", "A", "D", "M")
 	private val X = listOf("H", "U", "W", "G", "N", "Y", "C", "S", "P", "F", "R", "L", "T", "X", "O", "A", "D", "M")
 
 	val SEEDS: Map<String, List<String>> = mapOf(
@@ -24,6 +26,8 @@ object SeedOrder {
 		"reddit.com" to listOf("W", "C", "S", "Y", "P", "F", "N", "R", "L", "H", "G", "U", "T", "X", "O", "A", "D", "M"),      // W 7.7 s
 		"dailymotion.com" to listOf("T", "N", "W", "Y", "C", "S", "P", "F", "R", "L", "H", "G", "U", "X", "O", "A", "D", "M"), // T 19.4, N 47.3, W 48.2, Y 73.2 s
 		"soundcloud.com" to listOf("N", "Y", "C", "S", "P", "F", "W", "R", "L", "H", "G", "U", "T", "X", "O", "A", "D", "M"),  // N 15.7, Y 17.2 s
+		"facebook.com" to FACEBOOK,        // N 16.9 s, Y 18.1 s, W 25.6 s (the owner's reel; H fixed after this run)
+		"fb.watch" to FACEBOOK,
 		"pinterest.com" to listOf("G", "Y", "X", "N", "W", "C", "S", "P", "F", "R", "L", "H", "U", "T", "O", "A", "D", "M"),   // G 9.0, Y 11.8, X 19.3, N 27.2, W 39.3 s
 	)
 }

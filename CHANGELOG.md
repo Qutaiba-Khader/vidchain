@@ -4,6 +4,17 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## Unreleased
+Owner's report (2026-10-14): Web Video Caster downloaded a Facebook reel at once, while VidChain's test said every
+method failed on Facebook.
+- That test link was a removed Facebook video; on the owner's reel 1.2.0 already shows the picker in 1.3 s and saves
+  the video (1080p) about 14 s after Download. The test now uses the reel.
+- Method H (reads the video off the page, like a browser's video detector) now works on Facebook: it asks for the page
+  the way a browser does (Facebook refused the bare request with an error page), looks again as a phone's browser
+  when the page showed nothing, and reads the player's own HD file (Facebook's video addresses have no ".mp4").
+- yt-dlp no longer gets a phone browser's User-Agent for Facebook (its Facebook reader fails on the mobile page);
+  VidChain's own look-up after a failed share used exactly that one.
+
 ## 1.2.0 (T9 improvement round)
 - Checked by the full emulator test pass ([run 38600707739](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38600707739), 33 / 33: every test link and every link under an injected fault ends as expected).
 

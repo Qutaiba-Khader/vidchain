@@ -68,6 +68,19 @@ class YtDlpEngineTest {
 		assertTrue(!info.toString().contains("secret"))                         // http_headers are never kept
 	}
 
+	@Test fun facebookNeverGetsAPhoneUserAgent() = runBlocking {
+		// T9 (owner's Facebook reel): yt-dlp's Facebook extractor fails on the mobile page a phone User-Agent gets
+		val phone = "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0 Mobile Safari/537.36"
+		engine.info("https://www.facebook.com/share/r/1Pf8cYahHP/", YtDlpEngine.Options(userAgent = phone))
+		assertTrue("--user-agent" !in argsLog.readLines())
+		engine.info("https://www.facebook.com/reel/1/", YtDlpEngine.Options(userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"))
+		assertTrue("--user-agent" in argsLog.readLines())                       // a desktop one is kept
+		engine.info("https://x.com/u/status/1", YtDlpEngine.Options(userAgent = phone))
+		assertTrue(phone in argsLog.readLines())                                 // other sites keep theirs
+		engine.info("https://notfacebook.com.example/v", YtDlpEngine.Options(userAgent = phone))
+		assertTrue(phone in argsLog.readLines())
+	}
+
 	@Test fun downloadReturnsTheFileAndReportsProgress() = runBlocking {
 		val seen = ArrayList<Double>()
 		val dir = File(tmp.root, "out")
