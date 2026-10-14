@@ -79,6 +79,14 @@ class YtDlpEngineTest {
 		assertTrue(phone in argsLog.readLines())                                 // other sites keep theirs
 		engine.info("https://notfacebook.com.example/v", YtDlpEngine.Options(userAgent = phone))
 		assertTrue(phone in argsLog.readLines())
+		engine.info("https://facebook.com.evil.example/reel/1", YtDlpEngine.Options(userAgent = phone))
+		assertTrue(phone in argsLog.readLines())
+		for (u in listOf("https://fb.watch/abc/", "https://user@m.facebook.com./reel/1?x=1", "https://FACEBOOK.com#x")) {
+			engine.info(u, YtDlpEngine.Options(userAgent = phone))
+			assertTrue(u, "--user-agent" !in argsLog.readLines())
+		}
+		engine.download("https://m.facebook.com/reel/1/", "b", tmp.newFolder("fbdl"), "v", YtDlpEngine.Options(userAgent = phone))
+		assertTrue("--user-agent" !in argsLog.readLines())                       // the download too (method S passes a phone UA)
 	}
 
 	@Test fun downloadReturnsTheFileAndReportsProgress() = runBlocking {

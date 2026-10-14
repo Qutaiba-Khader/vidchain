@@ -60,6 +60,14 @@ class PageScrapeMethodTest {
 		assertTrue(method().attempt(ctx("/reel")) is MethodOutcome.Delivered)
 	}
 
+	@Test fun aCopyBelowThePickedQualityIsLeftToOtherMethods() = runBlocking {
+		s.route("/sd") { ex, _ -> ex.send(200, """<script>{playable_url:"${s.url("/o1/v/f_360p").replace("/", "\\/")}"}</script>""".toByteArray(), headers = mapOf("Content-Type" to "text/html")) }
+		s.route("/o1/v/f_360p") { ex, _ -> ex.send(200, mp4, headers = mapOf("Content-Type" to "video/mp4")) }
+		val r = method().attempt(ctx("/sd").copy(preferredHeight = 1080))
+		assertTrue(r.toString(), r is MethodOutcome.Failed && "360p" in r.reason)
+		assertTrue(method().attempt(ctx("/sd").copy(preferredHeight = 360)) is MethodOutcome.Delivered)
+	}
+
 	@Test fun nothingOnThePage() = runBlocking {
 		s.route("/empty") { ex, _ -> ex.send(200, "<html><p>text only</p></html>".toByteArray(), headers = mapOf("Content-Type" to "text/html")) }
 		assertEquals(MethodOutcome.Failed("no media on the page"), method().attempt(ctx("/empty")))

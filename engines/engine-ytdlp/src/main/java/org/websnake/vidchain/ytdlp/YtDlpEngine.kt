@@ -99,7 +99,12 @@ class YtDlpEngine(
 	 * yt-dlp's own User-Agent works: Facebook addresses get it.
 	 */
 	internal fun Options.forUrl(url: String): Options =
-		if (userAgent != null && MOBILE.containsMatchIn(userAgent) && FACEBOOK.containsMatchIn(url)) copy(userAgent = null) else this
+		if (userAgent != null && MOBILE.containsMatchIn(userAgent) && isFacebook(url)) copy(userAgent = null) else this
+
+	private fun isFacebook(url: String): Boolean {
+		val host = runCatching { java.net.URI(url.trim()).host }.getOrNull()?.lowercase()?.trimEnd('.') ?: return false
+		return FACEBOOK_DOMAINS.any { host == it || host.endsWith(".$it") }
+	}
 
 	internal fun argv(o: Options, args: List<String>): List<String> = buildList {
 		add(python.absolutePath); add(ytdlp.absolutePath)
@@ -114,7 +119,7 @@ class YtDlpEngine(
 	companion object {
 		private val JS_RUNTIME_SUPPORT = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 		private val MOBILE = Regex("""\b(Mobile|Android|iPhone|iPad)\b""")
-		private val FACEBOOK = Regex("""^https?://([a-z0-9-]+\.)*(facebook\.com|fb\.watch|fb\.com|fb\.gg)(/|:|$)""", RegexOption.IGNORE_CASE)
+		private val FACEBOOK_DOMAINS = listOf("facebook.com", "fb.watch", "fb.com", "fb.gg")
 		const val PATH_MARK = "__VIDCHAIN_FILE__"
 		/** no progress line and no byte for this long: the download is stuck (the 4 h cap stays behind it) */
 		const val STALL_MS = 180_000L

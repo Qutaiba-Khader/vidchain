@@ -28,6 +28,9 @@ object SeedOrder {
 		"soundcloud.com" to listOf("N", "Y", "C", "S", "P", "F", "W", "R", "L", "H", "G", "U", "T", "X", "O", "A", "D", "M"),  // N 15.7, Y 17.2 s
 		"facebook.com" to FACEBOOK,        // N 16.9 s, Y 18.1 s, W 25.6 s (the owner's reel; H fixed after this run)
 		"fb.watch" to FACEBOOK,
+		"web.facebook.com" to FACEBOOK,
+		"fb.com" to FACEBOOK,
+		"fb.gg" to FACEBOOK,
 		"pinterest.com" to listOf("G", "Y", "X", "N", "W", "C", "S", "P", "F", "R", "L", "H", "U", "T", "O", "A", "D", "M"),   // G 9.0, Y 11.8, X 19.3, N 27.2, W 39.3 s
 	)
 }

@@ -22,13 +22,19 @@ data class MediaCandidate(val url: String, val kind: Kind, val source: String, v
  */
 object PageScraper {
 	private val MEDIA_EXT = Regex("""\.(mp4|m4v|webm|mov|mkv|m4a|mp3|ogg|ogv|ts|flv|3gp)(?:$|[?#])""", RegexOption.IGNORE_CASE)
-	private val SCRIPT_URL = Regex("""https?:(?://|\\/\\/)[^"'\s<>\\]*(?:\\/[^"'\s<>\\]*)*?\.(?:m3u8|mpd|mp4|webm|m4v)(?:\?[^"'\s<>]*)?""", RegexOption.IGNORE_CASE)
+	// T9 review: one lazy character class (the old `(?:\\/[^…]*)*?` group recursed per escape and overflowed the JVM stack
+	// on a page of `https:\/\/` runs); bounded lengths keep a hostile page linear; escaped slashes are undone by unescape()
+	private val SCRIPT_URL = Regex("""https?:(?://|\\/\\/)[^"'\s<>]{0,2000}?\.(?:m3u8|mpd|mp4|webm|m4v)(?:\?[^"'\s<>]{0,4000})?""", RegexOption.IGNORE_CASE)
 	/**
 	 * T9 Facebook (owner, 2026-10-14): a page player's own file addresses, written into its scripts as
 	 * `playable_url:"…"` (also quoted keys, escaped slashes). CDN addresses like video.*.fbcdn.net have no file
-	 * extension, so they are only trusted under these keys (and under a typed og:video). HD keys first.
+	 * extension, so they are only trusted under these keys (and under a typed og:video).
 	 */
-	private val PLAYER_KEY = Regex("""\\?["']?\b(playable_url_quality_hd|browser_native_hd_url|hd_src_no_ratelimit|hd_src|playable_url|browser_native_sd_url|sd_src_no_ratelimit|sd_src)\\?["']?\s*:\s*\\?["'](https?:(?:[^"'\s<>\\]|\\/|\\u[0-9a-fA-F]{4})+)""")
+	// the value is one character class (no alternation: a repeated group recursed per step and overflowed the JVM stack
+	// on long or hostile values); a JSON-escaped value ends in the backslash of its \" (trimmed)
+	private val PLAYER_KEY = Regex("""\\?["']?\b(playable_url_quality_hd|browser_native_hd_url|hd_src_no_ratelimit|hd_src|playable_url|browser_native_sd_url|sd_src_no_ratelimit|sd_src)\\?["']?\s*:\s*\\?["'](https?:[^"'\s<>]{1,8000})(?=["'])""")
+	/** the keys of one video object sit together (Facebook: ~840 characters apart; the next object starts ~30 KB later) */
+	private const val PLAYER_OBJECT_SPAN = 8_000
 	private val HD_KEYS = setOf("playable_url_quality_hd", "browser_native_hd_url", "hd_src_no_ratelimit", "hd_src")
 	private val JUNK = Regex("""doubleclick|googlesyndication|/ads?/|[?&]ad=|preroll|sprite|thumb|preview\.mp4|\.vtt|\.srt|placeholder""", RegexOption.IGNORE_CASE)
 
@@ -45,13 +51,28 @@ object PageScraper {
 		for (v in doc.select("video[src], audio[src]")) add(v.attr("src"), v.tagName(), 90)
 		for (v in doc.select("video[data-src], video source[data-src]")) add(v.attr("data-src"), "data-src", 85)
 		for (s in doc.select("video source[src], audio source[src]")) add(s.attr("src"), "source", 90 + qualityBonus(s.attr("label") + s.attr("res") + s.attr("size")))
-		val ogType = doc.select("meta[property=og:video:type], meta[name=og:video:type]").attr("content")
-		val ogTyped = MediaCandidate.Kind.FILE.takeIf { ogType.startsWith("video/", true) && !ogType.contains("html", true) }
-		for (m in doc.select("meta[property~=^og:video(:secure_url|:url)?$], meta[name~=^og:video(:secure_url|:url)?$]")) add(m.attr("content"), "og:video", 80, ogTyped)
-		// T9: the player's own files, the first one on the page (the video shown) ahead of later ones (feeds preload more)
-		PLAYER_KEY.findAll(html).take(12).forEachIndexed { i, m ->
+		// og:video, each with the og:video:type of its own block (Open Graph: og:video starts a new one); a typed file is
+		// a file even without an extension, a player page (text/html or no type) is not
+		class OgBlock(val urls: ArrayList<String> = ArrayList(), var type: String = "")
+		val blocks = ArrayList<OgBlock>()
+		for (m in doc.select("meta[property^=og:video], meta[name^=og:video]")) {
+			val p = m.attr("property").ifEmpty { m.attr("name") }.lowercase(Locale.ROOT)
+			if (p == "og:video" || blocks.isEmpty()) blocks += OgBlock()
+			when (p) {
+				"og:video", "og:video:url", "og:video:secure_url" -> blocks.last().urls += m.attr("content")
+				"og:video:type" -> blocks.last().type = m.attr("content")
+			}
+		}
+		for (b in blocks) b.urls.forEach { add(it, "og:video", 80, MediaCandidate.Kind.FILE.takeIf { _ -> b.type.startsWith("video/", true) }) }
+		// T9: the player's own files, of the first video object only (the one shown; a feed preloads others after it, and
+		// a key seen again starts the next object), its HD file ahead of its SD file
+		val keysSeen = HashSet<String>()
+		var objectStart = -1
+		for (m in PLAYER_KEY.findAll(html).take(16)) {
+			if (objectStart < 0) objectStart = m.range.first
+			if (m.range.first - objectStart > PLAYER_OBJECT_SPAN || !keysSeen.add(m.groupValues[1].removeSuffix("_no_ratelimit"))) break
 			val hd = m.groupValues[1] in HD_KEYS
-			add(m.groupValues[2], if (hd) "player:hd" else "player", 88 - 2 * i.coerceAtMost(6) + (if (hd) 1 else 0), MediaCandidate.Kind.FILE)
+			add(m.groupValues[2].trimEnd('\\'), if (hd) "player:hd" else "player", if (hd) 88 else 86, MediaCandidate.Kind.FILE)
 		}
 		for (m in doc.select("meta[name=twitter:player:stream], meta[property=twitter:player:stream]")) add(m.attr("content"), "twitter:stream", 75)
 		for (l in doc.select("link[rel=video_src], link[itemprop=contentUrl]")) add(l.attr("href"), "link", 70)
@@ -96,6 +117,10 @@ object PageScraper {
 		}
 		return found.distinctBy { it.url }.sortedWith(compareByDescending<MediaCandidate> { it.score + kindBonus(it.kind) }.thenBy { it.url.length })
 	}
+
+	/** the height a CDN writes into a file's address (Facebook: `…_720p`), null when there is none */
+	fun heightOf(url: String): Int? = HEIGHT_IN_URL.find(url)?.groupValues?.get(1)?.toIntOrNull()
+	private val HEIGHT_IN_URL = Regex("""[_\-](\d{3,4})p(?![a-z0-9])""", RegexOption.IGNORE_CASE)
 
 	fun kindOf(url: String): MediaCandidate.Kind? {
 		val path = url.substringBefore('#').lowercase(Locale.ROOT)

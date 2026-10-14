@@ -34,16 +34,34 @@ class PageScraperTest {
 
 	@Test fun facebookStylePlayerFilesWithoutExtensionHdFirst() {
 		// T9 (owner's Facebook reel, 2026-10-14): CDN addresses without a file extension, under the player's own keys
-		// (an unquoted JS key, and a JSON-escaped one), and a typed og:video (the SD copy)
-		val html = """<html><head><meta property="og:video" content="https://video.cdn.example/o1/v/t2/f2/m367/SD1?efg=a&amp;oh=1">
+		// (an unquoted JS key, then JSON-escaped ones), the shown video's SD key before its HD key, then a preloaded reel
+		val html = """<html><head><meta property="og:video" content="https://video.cdn.example/o1/v/OG?efg=a&amp;oh=1">
 			<meta property="og:video:type" content="video/mp4"></head><body>
-			<script>{player_origin:"video_home",is_reels_video:true,playable_url:"https://video.cdn.example/o1/v/t2/f2/m367/HD1?efg=b\u0025253D&oh=2",x:1}</script>
-			<script>{"other":{\"playable_url_quality_hd\":\"https:\/\/video.cdn.example\/o1\/v\/NEXT?x=1\"}}</script></body></html>"""
+			<script>{player_origin:"video_home",is_reels_video:true,browser_native_sd_url:"https://video.cdn.example/o1/v/SD_A?efg=b\u0025253D&oh=2",
+			browser_native_hd_url:"https://video.cdn.example/o1/v/HD_A?x=1"}</script>
+			<script>{"next":{\"browser_native_sd_url\":\"https:\/\/video.cdn.example\/o1\/v\/SD_B?x=1\",\"browser_native_hd_url\":\"https:\/\/video.cdn.example\/o1\/v\/HD_B?x=1\"}}</script></body></html>"""
 		val c = PageScraper.scan(html, "https://social.example/reel/1/")
-		assertEquals("https://video.cdn.example/o1/v/t2/f2/m367/HD1?efg=b%253D&oh=2", c[0].url)   // the video shown first
-		assertEquals("https://video.cdn.example/o1/v/NEXT?x=1", c[1].url)          // a later one (a feed preloads more)
-		assertEquals("https://video.cdn.example/o1/v/t2/f2/m367/SD1?efg=a&oh=1", c[2].url)
+		assertEquals(listOf("https://video.cdn.example/o1/v/HD_A?x=1", "https://video.cdn.example/o1/v/SD_A?efg=b%253D&oh=2",
+			"https://video.cdn.example/o1/v/OG?efg=a&oh=1"), c.map { it.url })                 // never the preloaded reel B
 		assertTrue(c.all { it.kind == MediaCandidate.Kind.FILE })
+	}
+
+	@Test fun ogVideoTypeBelongsToItsOwnBlock() {
+		val html = """<meta property="og:video" content="https://cdn.example/stream/1?sig=a"><meta property="og:video:type" content="video/mp4">
+			<meta property="og:video" content="https://player.example/embed/1"><meta property="og:video:type" content="text/html">"""
+		assertEquals(listOf("https://cdn.example/stream/1?sig=a"), PageScraper.scan(html, base).map { it.url })
+	}
+
+	@Test fun longPlayerValuesAreReadWholeOrNotAtAll() {
+		val long = "https://video.cdn.example/o1/v/" + "a".repeat(6_000) + "?x=1"          // Facebook's are ~1,200 characters
+		assertEquals(long, PageScraper.scan("""<script>{playable_url:"$long"}</script>""", base).single().url)
+		val huge = "https://video.cdn.example/o1/v/" + "a".repeat(200_000)
+		assertTrue(PageScraper.scan("""<script>{playable_url:"$huge"}</script>""", base).isEmpty())   // never a cut address
+	}
+
+	@Test fun heightWrittenInTheAddress() {
+		assertEquals(720, PageScraper.heightOf("https://v.cdn.example/x?tag=progressive_h264-basic-gen2_720p&y=1"))
+		assertEquals(null, PageScraper.heightOf("https://v.cdn.example/x/2024party.mp4"))
 	}
 
 	@Test fun anUntypedOgVideoWithoutExtensionIsNotAFile() {

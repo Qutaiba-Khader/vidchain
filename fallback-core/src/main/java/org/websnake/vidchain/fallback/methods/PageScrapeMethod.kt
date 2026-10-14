@@ -34,8 +34,15 @@ class PageScrapeMethod(
 		// a desktop User-Agent gets a page with no video at all, a phone's gets og:video and often the player's HD file)
 		var found = PageScraper.discover(page, pages(ctx.userAgent), refuse = refuse)
 		if (found.isEmpty() && mobileUserAgent != null && mobileUserAgent != ctx.userAgent)
-			found = PageScraper.discover(page, pages(mobileUserAgent), refuse = refuse)
+			found = PageScraper.discover(page, pages(mobileUserAgent), maxDepth = 0, maxPages = 1, refuse = refuse)   // the page itself only
 		if (found.isEmpty()) return MethodOutcome.Failed("no media on the page")
+		// T9 review: a copy below the quality the user picked is left to the methods that can deliver it
+		val want = ctx.preferredHeight
+		if (want != null && want > 0) {
+			val enough = found.filter { c -> PageScraper.heightOf(c.url)?.let { it >= want } ?: true }
+			if (enough.isEmpty()) return MethodOutcome.Failed("the page has only a lower quality (${found.mapNotNull { PageScraper.heightOf(it.url) }.maxOrNull()}p) than the ${want}p picked")
+			found = enough
+		}
 		return MediaSaver.save(ctx, id, found, fetcher, verifier, stream, allowLocalTargets, maxCandidates)
 	}
 
