@@ -4,10 +4,40 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
-## Unreleased (T9 improvement round)
+## 1.2.0 (T9 improvement round)
+- Checked by the full emulator test pass ([run 38600707739](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38600707739), 33 / 33: every test link and every link under an injected fault ends as expected).
+
+Owner's crash report (2026-10-14, Samsung S25 Ultra, Android 17): the phone froze for about a minute and its system
+screen restarted.
+- The cause: when Android refused to let the app's download service run in the foreground (its daily time budget was
+  used up, or the app was in the background), the service stopped itself, asked to be restarted, and was refused
+  again: 4,105 starts in 80 seconds filled Android's own memory. The bug came from the original app.
+- Now the service never restarts itself, enters the foreground first and stops quietly when Android says no, and
+  every request for it passes a limit that survives a restart (one per 10 s, none for 10 minutes after a refusal
+  until you open the app). It runs only while a download or a VidChain rescue needs it.
+
+Faster:
+- Social links (X, Instagram, ...) are analysed once and the download reuses that analysis: on the Android 11 test
+  phone X opens its picker in 1.5 s (was 2.8 s) and downloads in 7.9 s (was 13.5 s); Instagram 1.5 s / 7.3 s
+  (was 2.5 s / 47 s). YouTube keeps its own way (measured slower the new way).
+- Large files download about twice as fast (94 MB file: 11-13 s, was 29 s and more): bigger buffer, fewer saves and
+  notification redraws.
+- When the app's own download gets no data, VidChain's methods start beside it (a few at a time, in the order that
+  worked best on each site) instead of only after it failed; a download with no data moves on after 75 s (was 5 min).
+- Nothing runs when nothing downloads: no timer, no service, no forced memory clean-up (idle CPU 0.5 s per 10 min,
+  was 10.5 s).
+
+Changed:
 - There is no "fallbacks" master switch any more (owner, 2026-10-14): each method has its own switch in Settings ›
-  VidChain fallbacks › Methods, and the last one that is on cannot be switched off. A link that no switched-on method
-  can handle says so on its download row. A saved "all off" is repaired to every method on at start.
+  VidChain fallbacks › Methods, including the app's own four ways ("Original: …"), and the last one that is on cannot
+  be switched off. A link that no switched-on method can handle says so on its download row. A saved "all off" is
+  repaired to every method on at start.
+- VidChain's own screens no longer draw under the title and navigation bars on Android 15 and newer.
+
+Fixed (found by the reviews):
+- A download that took longer than 30 s from a browser page, or after the new analysis, could lose its list entry.
+- Reloading a page left the video button on "no video found".
+- A torrent was stopped after 30 minutes; the screen timer could run twice; a removed download could be written back.
 
 ## 1.1.5
 - Checked by the full emulator test pass ([run 38442777392](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38442777392), 55 / 55).
