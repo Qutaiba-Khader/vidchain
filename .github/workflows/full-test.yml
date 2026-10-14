@@ -131,7 +131,7 @@ jobs:
           "$ANDROID_HOME/emulator/emulator" -accel-check || true
           ls -l /dev/kvm
 
-      - name: Drive every fixture, then every fault (T9: there is no fallbacks-off mode any more)
+      - name: Drive every fixture, then every fault (T9, no fallbacks-off mode any more)
         env:
           VIDCHAIN_ONLY: ${{ inputs.only }}
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
