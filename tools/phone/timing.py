@@ -2,7 +2,7 @@
 """Phone timings for the T9 improvement round (run on CT 200 with the USB test phone attached).
 
   timing.py coldstart [runs]                      launcher -> first frame (am start -W), app stopped before each run
-  timing.py share <url> [runs] [--warm] [--download]
+  timing.py share <url> [runs] [--warm] [--download] [--tap-after S]
         share a link the way other apps do; time share -> picker (and, with --download, Download pressed -> the
         app reports the download complete). Cold = the app is stopped first; --warm keeps the process from the
         previous run alive.
@@ -92,6 +92,9 @@ def completed_since(mark):
     return [l for l in out.splitlines() if l.strip().endswith(".json")]
 
 
+TAP_AFTER = 0.0          # --tap-after S: the user looks at the picker for S seconds before tapping Download
+
+
 def share_once(url, warm, download):
     if not warm:
         sh(f"input keyevent KEYCODE_HOME; am force-stop {PKG}")
@@ -120,7 +123,7 @@ def share_once(url, warm, download):
     rec["picker_s"] = round((pick[0] - t0) / 1000, 2)
     if not download:
         return rec
-    time.sleep(1.0)
+    time.sleep(max(1.0, TAP_AFTER))
     texts = [t for t, _, _ in nodes()]
     # a resolution picker: choose the best resolution offered like a user, then confirm
     qs = sorted((t for t in texts if re.fullmatch(r"\d{3,4}p.*", t)), key=lambda t: -int(re.match(r"\d+", t).group()))
@@ -196,6 +199,8 @@ def main():
         url = a[1]
         runs = next((int(x) for x in a[2:] if x.isdigit()), 3)
         warm, download = "--warm" in a, "--download" in a
+        global TAP_AFTER
+        TAP_AFTER = float(a[a.index("--tap-after") + 1]) if "--tap-after" in a else 0.0
         res = []
         try:
             for i in range(runs):
@@ -207,7 +212,7 @@ def main():
             sh("input keyevent KEYCODE_HOME")
         p = [r["picker_s"] for r in res if r.get("picker_s") is not None]
         d = [r["download_s"] for r in res if r.get("download_s") is not None]
-        print(json.dumps({"url": url, "picker_median_s": statistics.median(p) if p else None,
+        print(json.dumps({"url": url, "tap_after_s": TAP_AFTER, "picker_median_s": statistics.median(p) if p else None,
                           "download_median_s": statistics.median(d) if d else None, "runs": len(res)}))
     else:
         sys.exit(__doc__)

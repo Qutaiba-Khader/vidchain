@@ -1290,7 +1290,11 @@ class M3U8VideoDownloader(
 
 			// Add standard options
 			request.addOption("--continue")
-			request.addOption("-f", downloadDataModel.executionCommand)
+			// T9 decision 2: "best quality" from a kept analysis: a single file of the top height when there is one (no
+			// HLS pieces, no merge); otherwise the app's own selector
+			val vcFormat = rec?.takeIf { downloadDataModel.videoFormat?.isFromSocialMedia == true }
+				?.let { org.websnake.vidchain.ytdlp.YtDlpFormats.singleFileOfTopHeight(it.info) }
+			request.addOption("-f", vcFormat ?: downloadDataModel.executionCommand)
 			request.addOption("-o", downloadDataModel.tempYtdlpDestinationFilePath)
 			request.addOption("--playlist-items", "1")
 			request.addOption("--user-agent", downloadGlobalSettings.downloadHttpUserAgent)

@@ -37,4 +37,19 @@ class YtDlpReplayTest {
 		assertFalse(YtDlpInfo.replayable("""{"formats":[]}"""))
 		assertTrue(YtDlpInfo.replayable("""{"url":"https://cdn/x.mp4"}"""))
 	}
+
+	@Test fun aSingleFileOfTheTopHeightIsPreferredToAMerge() {
+		val x = YtDlpInfo.parse("""{"formats":[
+			{"format_id":"hls-audio","protocol":"m3u8_native","vcodec":"none"},
+			{"format_id":"http-800","protocol":"https","height":328,"tbr":800},
+			{"format_id":"http-12128","protocol":"https","height":560,"tbr":12128},
+			{"format_id":"hls-2139","protocol":"m3u8_native","vcodec":"avc1","acodec":"none","height":560}]}""")
+		assertEquals("http-12128", YtDlpFormats.singleFileOfTopHeight(x))
+		// a higher video-only stream exists: no single file of the top height, keep the merge
+		val ig = YtDlpInfo.parse("""{"formats":[
+			{"format_id":"v1080","protocol":"https","vcodec":"avc1","acodec":"none","height":1080},
+			{"format_id":"a","protocol":"https","vcodec":"none","acodec":"mp4a"},
+			{"format_id":"c720","protocol":"https","height":720}]}""")
+		assertEquals(null, YtDlpFormats.singleFileOfTopHeight(ig))
+	}
 }

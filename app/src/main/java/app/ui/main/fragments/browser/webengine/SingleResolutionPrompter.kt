@@ -129,14 +129,17 @@ class SingleResolutionPrompter(
 	 */
 	fun updateInfo(title: String?, thumbnailUrl: String?) {
 		executeOnMainThread {
-			val layout = dialogBuilder.view
-			if (!title.isNullOrBlank()) {
-				videoTitle = title
-				layout.findViewById<TextView>(R.id.txt_video_title)?.apply { text = title; isSelected = true }
-			}
-			if (!thumbnailUrl.isNullOrBlank() && videoThumbnailUrl.isEmpty()) {
-				videoThumbnailUrl = thumbnailUrl
-				layout.findViewById<ImageView>(R.id.image_video_thumbnail)?.let { loadThumbnailFromUrl(thumbnailUrl, it) }
+			// the user may have tapped Download (or closed the picker) before the title arrived: then its view is
+			// released and only the title for a later download is kept (A50, 2026-10-14: touching it crashed the app)
+			runCatching {
+				if (!title.isNullOrBlank()) videoTitle = title
+				if (!dialogBuilder.isShowing) return@runCatching
+				val layout = dialogBuilder.view
+				if (!title.isNullOrBlank()) layout.findViewById<TextView>(R.id.txt_video_title)?.apply { text = title; isSelected = true }
+				if (!thumbnailUrl.isNullOrBlank() && videoThumbnailUrl.isEmpty()) {
+					videoThumbnailUrl = thumbnailUrl
+					layout.findViewById<ImageView>(R.id.image_video_thumbnail)?.let { loadThumbnailFromUrl(thumbnailUrl, it) }
+				}
 			}
 		}
 	}

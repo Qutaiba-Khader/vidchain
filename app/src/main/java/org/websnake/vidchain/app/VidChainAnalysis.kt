@@ -62,6 +62,9 @@ object VidChainAnalysis {
 	 * the site gave nothing.
 	 */
 	suspend fun analyse(url: String, cookie: String? = null, why: String = "picker"): Record? {
+		// measured on the A50 (2026-10-14): for YouTube one -J run took 13.8 s (picker 15.3 s instead of 11.5 s) and
+		// its replayed streams downloaded slower (20.5 s instead of 12.2 s); YouTube keeps the app's own path
+		if (isYouTubeUrl(url)) return null
 		val engine = FallbackRuntime.ytdlp?.takeIf { it.ready } ?: return null
 		val page = normalise(url)
 		val cookies = cookie?.takeIf { it.isNotBlank() } ?: cookiesFor(page)
@@ -73,9 +76,8 @@ object VidChainAnalysis {
 			}
 			try {
 				val ua = runCatching { AIOApp.aioSettings.downloadHttpUserAgent }.getOrNull()?.ifBlank { null }
-				val extra = if (isYouTubeUrl(page)) engine.jsRuntimeArgs() else emptyList()
 				val r = withTimeoutOrNull(ANALYSIS_MS) {
-					engine.infoWithJson(page, YtDlpEngine.Options(userAgent = ua, cookiesFile = cookieFile, extraArgs = extra), timeoutMs = ANALYSIS_MS)
+					engine.infoWithJson(page, YtDlpEngine.Options(userAgent = ua, cookiesFile = cookieFile), timeoutMs = ANALYSIS_MS)
 				}
 				when (r) {
 					is YtDlpEngine.Result.Ok -> {

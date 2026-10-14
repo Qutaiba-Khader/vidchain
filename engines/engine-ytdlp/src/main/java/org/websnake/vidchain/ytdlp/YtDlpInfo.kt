@@ -109,6 +109,20 @@ data class YtDlpInfo(
 /** Format selection and the strings the upstream picker shows (it parses `yt-dlp -F` tables into these). */
 object YtDlpFormats {
 	/**
+	 * T9 decision 2: for "the best quality" (social links), a single plain file of the top height beats a separate
+	 * video and audio stream of that same height: no HLS pieces, no ffmpeg merge (X, A50 2026-10-14: the merge path
+	 * took most of the 10 s download). null = no such file; the caller keeps its own selector.
+	 */
+	fun singleFileOfTopHeight(info: YtDlpInfo, maxHeight: Int = 2400): String? {
+		val video = info.formats.filter { (it.height ?: 0) in 1..maxHeight }
+		val top = video.maxOfOrNull { it.height ?: 0 } ?: return null
+		val plain = info.formats.filter {
+			it.height == top && it.protocol?.lowercase() in setOf("https", "http") && it.acodec != "none" && it.vcodec != "none"
+		}
+		return plain.maxByOrNull { it.tbrKbps ?: (it.fileSize ?: 0L).toDouble() }?.id
+	}
+
+	/**
 	 * T8.7 e: the audio codec as the original app's picker needs it. The app downloads a format "video only"
 	 * (`-f <id>+ba`) when this is empty: yt-dlp's "none" (known silent video) must become empty, and an unknown codec
 	 * (a "Generic" page's single file) must not, or `+ba` asks for an audio stream that does not exist and the
