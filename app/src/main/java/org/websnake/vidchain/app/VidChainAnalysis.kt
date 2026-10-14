@@ -40,6 +40,9 @@ object VidChainAnalysis {
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private val store = AnalysisStore<Record>(onDrop = { runCatching { it.file.delete() } })
 
+	/** review run 25: an analysis runs now */
+	fun busy(): Boolean = store.busy()
+
 	private fun dir(): File = File(AIOApp.INSTANCE.cacheDir, "vidchain-analysis").also { it.mkdirs() }
 
 	private fun sha(s: String): String =
@@ -82,7 +85,11 @@ object VidChainAnalysis {
 				val stable = withTimeoutOrNull(ANALYSIS_MS) { engine.infoWithJson(page, options, timeoutMs = ANALYSIS_MS) }
 				// T9 (corpus test): the stable yt-dlp could not read the page (an extractor out of date): the nightly one
 				// tries with the time left (Dailymotion "No video formats found" with 2025.11.12)
-				val left = ANALYSIS_MS - (System.currentTimeMillis() - t0)
+				// review run 25: the share screen waits VidChainWaits.ANALYSIS_MS (40 s) for a picker; a nightly answer after
+				// that is wasted, so a picker's analysis budgets on it (a download's on the full 60 s)
+				val social = runCatching { app.core.engines.video_parser.parsers.SupportedURLs.isSocialMediaUrl(page) }.getOrDefault(true)
+				val budget = if (why == "download" || why == "social" || social) ANALYSIS_MS else VidChainWaits.ANALYSIS_MS - 2_000L
+				val left = budget - (System.currentTimeMillis() - t0)
 				val night = if (stable is YtDlpEngine.Result.Failed && stable.problem in NIGHTLY_HELPS && left > 15_000)
 					runCatching { FallbackRuntime.nightlyYtdlp() }.getOrNull()
 						?.let { e -> withTimeoutOrNull(left) { e.infoWithJson(page, options, timeoutMs = left) } }

@@ -19,6 +19,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 object VidChainYtDlpUpdate {
 	private const val KEY = "ytdlp-update-ok"
 	private const val EVERY_MS = 24 * 3_600_000L
+	private const val KEY_FAILED = "ytdlp-update-failed"
+	private const val RETRY_MS = 3_600_000L
+
+	private fun inUse(): Boolean = runCatching {
+		app.core.AIOApp.downloadSystem.hasActiveWork() || org.websnake.vidchain.fallback.core.FallbackRuntime.coordinator?.busy == true ||
+			VidChainAnalysis.busy()
+	}.getOrDefault(true)
 	private val running = AtomicBoolean(false)
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -29,14 +36,25 @@ object VidChainYtDlpUpdate {
 		val last = prefs.getLong(KEY, 0L)
 		val now = System.currentTimeMillis()
 		if (last in 1..now && now - last < EVERY_MS) return
+		// review run 25: after a failed try, wait an hour (a rate limit or a full disk must not cost a download per launch)
+		val failed = prefs.getLong(KEY_FAILED, 0L)
+		if (failed in 1..now && now - failed < RETRY_MS) return
 		if (!online() || !running.compareAndSet(false, true)) return
 		scope.launch {
-			val t0 = System.currentTimeMillis()
 			try {
+				// review run 25: the library deletes yt-dlp and copies the new one in place; wait until nothing runs it
+				// (a download, VidChain's chain, a share's analysis), at most 10 minutes, then try later
+				kotlinx.coroutines.delay(120_000)                        // a cold start from a share: its analysis goes first
+				val waitUntil = System.currentTimeMillis() + 10 * 60_000L
+				while (inUse()) {
+					if (System.currentTimeMillis() > waitUntil) return@launch
+					kotlinx.coroutines.delay(15_000)
+				}
+				val t0 = System.currentTimeMillis()
 				// a blocking call with its own network time-outs, on this IO coroutine only (nothing waits for it)
 				val status = runCatching { YoutubeDL.getInstance().updateYoutubeDL(app, YoutubeDL.UpdateChannel.STABLE) }
 				val ok = status.isSuccess && status.getOrNull() != null
-				if (ok) prefs.edit().putLong(KEY, System.currentTimeMillis()).apply()
+				prefs.edit().putLong(if (ok) KEY else KEY_FAILED, System.currentTimeMillis()).apply()
 				val version = runCatching { YoutubeDL.getInstance().version(app) }.getOrNull()
 				Trace.event {
 					TraceEvent("ytdlp.update", result = if (ok) status.getOrNull()?.name?.lowercase() else "failed",

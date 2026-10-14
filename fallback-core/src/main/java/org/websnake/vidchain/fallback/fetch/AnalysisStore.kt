@@ -87,4 +87,7 @@ class AnalysisStore<R : Any>(
 
 	@Synchronized
 	fun size(): Int = entries.size
+
+	/** review run 25: an analysis is running now (yt-dlp must not be replaced under it) */
+	@Synchronized fun busy(): Boolean = inFlight.isNotEmpty()
 }

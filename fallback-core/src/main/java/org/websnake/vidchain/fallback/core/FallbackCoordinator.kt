@@ -91,7 +91,7 @@ class FallbackCoordinator(
 	private var baselined = false
 	/** downloads the app created after this moment are new, also when the first look (the baseline) finds them failed */
 	private val startedAtMs = clock()
-	private val running = HashMap<String, Job>()
+	private val running = java.util.concurrent.ConcurrentHashMap<String, Job>()   // review run 25: read off the lock too
 	private val lock = Mutex()
 	/** T9 review: the hedged (LATE) chains running now, the ones whose win paused the own download, and the ones whose
 	 *  own download failed while they ran (that failure was not a chain of its own) */
@@ -153,7 +153,11 @@ class FallbackCoordinator(
 			st.reuseChecked = true
 			val rows = ledger.attempts(d.id)
 			if (rows.isNotEmpty() && ledger.parentOf(d.id) == null && running[d.id]?.isActive != true &&
-				rows.all { it.startedMs < d.startedAtMs - REUSE_SLACK_MS }) forgetLocked(d.id, "rows of an earlier download with this id")
+				rows.none { it.state == AttemptState.DELIVERED || it.state == AttemptState.CHILD } &&
+				rows.all { it.startedMs < d.startedAtMs - REUSE_SLACK_MS }) {
+				forgetLocked(d.id, "rows of an earlier download with this id")
+				seen[d.id] = st                                              // review run 25: this look's state stays
+			}
 		}
 		val snap = d.snapshot.copy(
 			userIntent = ledger.intentOf(d.id),
@@ -162,6 +166,12 @@ class FallbackCoordinator(
 		)
 		val v = TerminalClassifier.classify(snap)
 		if (v != Verdict.Success) st.done = false
+		// T9 full pass (trap-truncated) + review run 25: a stop with no reason at all can be the app passing through
+		// CLOSE while it starts the download; it counts (also for the hedge's score) only when a later look still sees it
+		if (v is Verdict.Failure && v.cls == FailureClass.CRASH_OR_UNKNOWN && !isExplicit(snap) && st.armed) {
+			if (st.unexplainedSinceMs == 0L) st.unexplainedSinceMs = now
+			if (now - st.unexplainedSinceMs < UNEXPLAINED_CONFIRM_MS) return
+		}
 		hedge(d, st, v, now)
 		if (v !is Verdict.Failure) st.unexplainedSinceMs = 0L
 		when (v) {
@@ -174,12 +184,6 @@ class FallbackCoordinator(
 			is Verdict.Failure -> {
 				// resumed but not started yet (queued behind other downloads, or between our ticks): give it time
 				if (st.armed && !st.startedSinceArm && !isExplicit(snap) && now - st.armedAtMs < RESUME_GRACE_MS) return
-				// T9 full pass (trap-truncated): a stop with no reason at all can be the app passing through CLOSE while it
-				// starts the download (RegularDownloader.initiateDownload); it counts only when a later look still sees it
-				if (v.cls == FailureClass.CRASH_OR_UNKNOWN && !isExplicit(snap) && st.armed) {
-					if (st.unexplainedSinceMs == 0L) st.unexplainedSinceMs = now
-					if (now - st.unexplainedSinceMs < UNEXPLAINED_CONFIRM_MS) return
-				}
 				// first look: a failure found at startup is old state (never a chain), unless the app created the download
 				// since VidChain started (it can start and fail while the app is still loading its lists, before the baseline)
 				val isNew = baselined || (d.startedAtMs != null && d.startedAtMs >= startedAtMs)
@@ -826,18 +830,30 @@ class FallbackCoordinator(
 	 * Runs [root]'s chain for something the app has no download for (a shared magnet link). The root is not in the
 	 * upstream lists; delivered files are listed in the app's finished downloads. false = already running.
 	 */
-	suspend fun startStandalone(root: HostDownload): Boolean = lock.withLock {
+	suspend fun startStandalone(root: HostDownload, fresh: Boolean = false, alreadyTried: Map<String, String> = emptyMap()): Boolean = lock.withLock {
 		if (running[root.id]?.isActive == true) return@withLock false
+		// review run 25: a shared page starts again each time it is shared (an earlier run that found nothing, or whose
+		// file the user deleted, must not answer for it); methods the share already tried are recorded as tried
+		if (fresh && ledger.attempts(root.id).isNotEmpty()) forgetLocked(root.id, "shared again")
+		var no = (ledger.attempts(root.id).maxOfOrNull { it.attemptNo } ?: 0) + 1
+		for ((m, why) in alreadyTried) if (ledger.claim(root.id, no, m, clock())) ledger.update(root.id, no++, AttemptState.FAILED, null, why, clock())
 		Trace.event { TraceEvent("decision", downloadId = root.id, chain = UrlClass.of(root.url).chain, result = "standalone") }
 		running[root.id] = scope.launch { runChain(root, "SHARED") }
 		true
 	}
 
-	/** T9: a standalone chain (a shared torrent or page): null while it runs, else whether it delivered a file */
-	fun standaloneDelivered(id: String): Boolean? = runCatching {
-		if (running[id]?.isActive == true) null
-		else ledger.attempts(id).any { it.state == AttemptState.DELIVERED || it.state == AttemptState.CHILD }
-	}.getOrNull()
+	enum class Standalone { RUNNING, DELIVERED, BEST_SO_FAR, NOTHING }
+
+	/** T9: how a standalone chain (a shared torrent or page) stands (review run 25: an unsure file is listed too) */
+	fun standalone(id: String): Standalone = runCatching {
+		val rows = ledger.attempts(id)
+		when {
+			running[id]?.isActive == true || rows.lastOrNull()?.state == AttemptState.CHILD -> Standalone.RUNNING
+			rows.any { it.state == AttemptState.DELIVERED } -> Standalone.DELIVERED
+			rows.any { it.state == AttemptState.UNSURE && it.childId != null } -> Standalone.BEST_SO_FAR
+			else -> Standalone.NOTHING
+		}
+	}.getOrDefault(Standalone.RUNNING)
 
 	enum class Manual { STARTED, BUSY, ALREADY_DELIVERED, NOTHING_LEFT, NOT_FOUND }
 

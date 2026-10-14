@@ -37,7 +37,7 @@ class DownloadManagerMethod(
 		val dmId = withContext(Dispatchers.IO) { dm.enqueue(url, headers, name) }
 		var lastBytes = -1L
 		var lastMove = System.currentTimeMillis()
-		val startedAt = lastMove
+		var waitingSince = lastMove          // the no-data clock: only while DownloadManager is trying the server
 		try {
 			while (true) {
 				val s = withContext(Dispatchers.IO) { dm.status(dmId) }
@@ -50,7 +50,11 @@ class DownloadManagerMethod(
 					SystemDownloads.State.FAILED -> return MethodOutcome.Failed("DownloadManager: ${reason(s.reason)}")
 					SystemDownloads.State.GONE -> return MethodOutcome.Failed("DownloadManager: the download was removed")
 					else -> {
-						if (s.bytes <= 0 && System.currentTimeMillis() - startedAt > noStartMs)
+						// review run 25: queued, or waiting for a network / Wi-Fi, is not the server failing to answer
+						// (the app's own downloads wait for the network too); PAUSED reason 1 = waiting to retry
+						val waitingForDevice = s.state == SystemDownloads.State.PENDING || s.state == SystemDownloads.State.PAUSED && s.reason != 1
+						if (waitingForDevice) waitingSince = System.currentTimeMillis()
+						if (s.bytes <= 0 && !waitingForDevice && System.currentTimeMillis() - waitingSince > noStartMs)
 							return MethodOutcome.Failed("DownloadManager: no data in ${noStartMs / 1000} s (${s.state.name.lowercase()})")
 						if (s.bytes != lastBytes) { lastBytes = s.bytes; lastMove = System.currentTimeMillis() }
 						else if (System.currentTimeMillis() - lastMove > stallMs) return MethodOutcome.Failed("DownloadManager: no progress for ${stallMs / 60_000} min (${s.state.name.lowercase()})")

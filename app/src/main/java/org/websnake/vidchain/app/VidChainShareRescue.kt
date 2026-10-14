@@ -132,9 +132,8 @@ object VidChainShareRescue {
 			if (url != null && UrlClass.of(url) == UrlClass.MAGNET_TORRENT) { torrent(activity, url); return }
 			if (activity == null || url.isNullOrBlank() || !url.startsWith("http", ignoreCase = true)) return
 			if (UrlClass.of(url) == UrlClass.YOUTUBE) return                       // YouTube has its own methods (C, P)
-			if (!FallbackSettings.methodOn(activity, "Y")) return
-			val engine = FallbackRuntime.ytdlp ?: return
-			if (!engine.ready) return
+			// review run 25: with yt-dlp off or not ready the page chain still runs (it needs no yt-dlp)
+			val engine = FallbackRuntime.ytdlp?.takeIf { it.ready && FallbackSettings.methodOn(activity, "Y") }
 			if (!busy.compareAndSet(false, true)) return
 			track(activity)
 			val ref = WeakReference(activity)
@@ -143,7 +142,8 @@ object VidChainShareRescue {
 			Trace.event { TraceEvent("share.rescue", chain = UrlClass.of(url).chain, method = "Y", result = "start") }
 			scope.launch {
 				try {
-					val found = withContext(Dispatchers.Default) { lookUp(engine, url, cookie) }
+					val tried = LinkedHashMap<String, String>()                   // what the page chain need not run again
+					val found = engine?.let { e -> withContext(Dispatchers.Default) { lookUp(e, url, cookie, tried) } }
 					// the app's own way (its browser offers the file) goes first: wait, and stay away if it started a download
 					kotlinx.coroutines.delay((sharedAt + OWN_PATH_GRACE_MS - System.currentTimeMillis()).coerceAtLeast(0))
 					if (ownDownloadStarted(url, known)) {
@@ -157,7 +157,7 @@ object VidChainShareRescue {
 						// T9 (owner, 2026-10-15: "if there's a stream link, there's a download"): yt-dlp found nothing, so
 						// VidChain's other methods look for the video on the page (its hidden browser W, as Web Video
 						// Caster's in-page detection does, the page scan H, the other downloaders)
-						if (!pageChain(a.applicationContext, url))
+						if (!pageChain(a.applicationContext, url, known, tried))
 							Toast.makeText(a.applicationContext, "VidChain: no downloadable video found on this page", Toast.LENGTH_SHORT).show()
 						return@launch
 					}
@@ -177,7 +177,7 @@ object VidChainShareRescue {
 	 * T9: VidChain's method chain on a shared page nothing else could read; the file appears in Finished downloads.
 	 * The same link shared again while it runs is one chain (its id is the link's hash). false = could not start.
 	 */
-	private fun pageChain(context: android.content.Context, url: String): Boolean {
+	private fun pageChain(context: android.content.Context, url: String, known: Set<Int>, tried: Map<String, String>): Boolean {
 		val c = FallbackRuntime.coordinator ?: return false
 		val dir = app.core.engines.downloader.DownloadDataModel().fileDirectory.takeIf { it.isNotEmpty() } ?: return false
 		val hash = java.security.MessageDigest.getInstance("SHA-1").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
@@ -190,18 +190,29 @@ object VidChainShareRescue {
 		)
 		Trace.event { TraceEvent("share.rescue", downloadId = id, chain = UrlClass.of(url).chain, result = "page-chain") }
 		scope.launch {
-			val started = withContext(Dispatchers.Default) { c.startStandalone(root) }
+			val started = withContext(Dispatchers.Default) { c.startStandalone(root, fresh = true, alreadyTried = tried) }
 			Toast.makeText(context, if (started) "VidChain: looking for the video with its other methods - it will appear in Finished downloads"
 				else "VidChain: already looking for this video", Toast.LENGTH_LONG).show()
 			if (!started) return@launch
-			var delivered: Boolean? = null
+			var state = org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.RUNNING
 			val until = System.currentTimeMillis() + 30 * 60_000L
-			while (delivered == null && System.currentTimeMillis() < until) {
+			while (state == org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.RUNNING && System.currentTimeMillis() < until) {
 				kotlinx.coroutines.delay(3_000)
-				delivered = c.standaloneDelivered(id)
+				// review run 25: the user downloaded it from the app's browser meanwhile: one copy, not two
+				if (ownDownloadStarted(url, known)) {
+					withContext(Dispatchers.Default) { c.cancelChain(id) }
+					Trace.event { TraceEvent("share.rescue", downloadId = id, result = "page-chain-stopped", reason = "the app started its own download") }
+					return@launch
+				}
+				state = c.standalone(id)
 			}
-			if (delivered != null) Toast.makeText(context, if (delivered) "VidChain: the video is in Finished downloads"
-				else "VidChain: no method found a video on this page", Toast.LENGTH_LONG).show()
+			val text = when (state) {
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.DELIVERED -> "VidChain: the video is in Finished downloads"
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.BEST_SO_FAR -> "VidChain: a possible copy of the video is in Finished downloads"
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.NOTHING -> "VidChain: no method found a video on this page"
+				else -> null
+			}
+			text?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
 		}
 		return true
 	}
@@ -221,7 +232,7 @@ object VidChainShareRescue {
 		models().any { m -> m.downloadId !in before || m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url }
 	}.getOrDefault(false)
 
-	private suspend fun lookUp(engine: YtDlpEngine, url: String, cookie: String?): VideoInfo? {
+	private suspend fun lookUp(engine: YtDlpEngine, url: String, cookie: String?, tried: MutableMap<String, String>): VideoInfo? {
 		val host = runCatching { URI(url).host }.getOrNull()
 		val cookieFile = if (!cookie.isNullOrBlank() && host != null) {
 			SessionContext(SessionContext.parseHeader(cookie, host, secure = url.startsWith("https:", ignoreCase = true)), null, null)
@@ -231,10 +242,12 @@ object VidChainShareRescue {
 			// (the browser's User-Agent: the cookies may be tied to it; YtDlpEngine gives Facebook yt-dlp's own - T9)
 			val options = YtDlpEngine.Options(userAgent = AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null }, cookiesFile = cookieFile)
 			val stable = engine.info(url, options)
+			if (stable is YtDlpEngine.Result.Failed) tried["Y"] = "the share's look-up: ${stable.problem}"
 			// T9 (corpus test): an out-of-date extractor -> the nightly yt-dlp (method N's) tries once
-			val r = if (stable is YtDlpEngine.Result.Failed && (stable.problem == YtDlpEngine.Problem.FORMAT || stable.problem == YtDlpEngine.Problem.OTHER))
-				runCatching { FallbackRuntime.nightlyYtdlp() }.getOrNull()?.info(url, options)?.takeIf { it is YtDlpEngine.Result.Ok } ?: stable
-			else stable
+			val nightly = if (stable is YtDlpEngine.Result.Failed && (stable.problem == YtDlpEngine.Problem.FORMAT || stable.problem == YtDlpEngine.Problem.OTHER))
+				runCatching { FallbackRuntime.nightlyYtdlp() }.getOrNull()?.info(url, options) else null
+			if (nightly is YtDlpEngine.Result.Failed) tried["N"] = "the share's look-up: ${nightly.problem}"
+			val r = nightly?.takeIf { it is YtDlpEngine.Result.Ok } ?: stable
 			return when (r) {
 				is YtDlpEngine.Result.Ok -> {
 					val info = r.value

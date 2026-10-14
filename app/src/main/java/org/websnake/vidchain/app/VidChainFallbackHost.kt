@@ -246,6 +246,16 @@ object VidChainFallbackHost : FallbackHost {
 			R.string.title_invalid_file_url to StatusKey.INVALID_URL,
 			R.string.title_completed to StatusKey.COMPLETED,
 			R.string.title_waiting_to_join to StatusKey.QUEUED,
+			// T9 review run 25: the regular downloader's start-up steps keep the status CLOSE while they talk to the
+			// server (a slow server: seconds); they are a download starting, not a stop with no reason
+			R.string.title_filtering_url to StatusKey.QUEUED,
+			R.string.title_validating_download_task to StatusKey.QUEUED,
+			R.string.title_previous_download_data_found to StatusKey.QUEUED,
+			R.string.title_configuring_auto_resume to StatusKey.QUEUED,
+			R.string.title_configuring_auto_remove to StatusKey.QUEUED,
+			R.string.title_recalculating_file_size to StatusKey.QUEUED,
+			R.string.title_creating_empty_destination_file to StatusKey.QUEUED,
+			R.string.title_generating_download_parts to StatusKey.QUEUED,
 		).entries.associate { (res, key) -> ctx.getString(res).trim() to key }
 		val marker = "\u0000"
 		val serverIssue = ctx.getString(R.string.title_server_issue, marker)

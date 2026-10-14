@@ -63,6 +63,17 @@ class DownloadManagerMethodTest {
 		assertEquals(listOf(77L), fake.removed)
 	}
 
+	@Test fun waitingForTheNetworkIsNotAServerThatNeverAnswers() = runBlocking {
+		// review run 25: queued or waiting for a network / Wi-Fi (PAUSED reason 2/3) does not count; reason 1 (retry) does
+		val waits = List(30) { SystemDownloads.Status(SystemDownloads.State.PAUSED, reason = 2, bytes = 0) } +
+			SystemDownloads.Status(SystemDownloads.State.FAILED, reason = 404)
+		val r = DownloadManagerMethod({ Fake(waits) }, pollMs = 5, noStartMs = 40).attempt(ctx())
+		assertEquals(MethodOutcome.Failed("DownloadManager: HTTP 404"), r)               // not "no data"
+		val retry = Fake(listOf(SystemDownloads.Status(SystemDownloads.State.PAUSED, reason = 1, bytes = 0)))
+		val r2 = DownloadManagerMethod({ retry }, pollMs = 5, noStartMs = 40).attempt(ctx())
+		assertTrue(r2.toString(), r2 is MethodOutcome.Failed && r2.reason.contains("no data"))
+	}
+
 	@Test fun cancelRemovesTheSystemDownload() = runBlocking {
 		val fake = Fake(listOf(SystemDownloads.Status(SystemDownloads.State.RUNNING, bytes = 1)))
 		val job = launch(Dispatchers.Default) { DownloadManagerMethod({ fake }, pollMs = 10).attempt(ctx()) }

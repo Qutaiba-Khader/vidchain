@@ -128,6 +128,30 @@ class FallbackCoordinatorTest {
 		assertEquals(1, w.ledger.attempts("19").size)
 	}
 
+	@Test fun aSharedPageStartsAgainEachTimeAndSkipsWhatTheShareTried() = runBlocking {
+		// review run 25: an earlier run that found nothing must not answer for a new share; Y/N the share ran are skipped
+		val y = Counting("Y") { MethodOutcome.Failed("nothing") }
+		val o = Counting("H") { MethodOutcome.Failed("nothing") }
+		val w = World(this, listOf(y, o))
+		val page = "https://site.example/watch/1"                                    // B3: ... Y ... H ...
+		val root = HostDownload("share-1", page, page, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		assertTrue(w.c.startStandalone(root, fresh = true, alreadyTried = mapOf("Y" to "the share's look-up: FORMAT"))); w.c.drain()
+		assertEquals(0, y.calls.get()); assertEquals(1, o.calls.get())
+		assertEquals(FallbackCoordinator.Standalone.NOTHING, w.c.standalone("share-1"))
+		assertTrue(w.c.startStandalone(root, fresh = true)); w.c.drain()                 // shared again: runs again
+		assertEquals(1, y.calls.get()); assertEquals(2, o.calls.get())
+		assertEquals(FallbackCoordinator.Standalone.NOTHING, w.c.standalone("share-1"))
+	}
+
+	@Test fun aReusedIdKeepsAHistoryThatDelivered() = runBlocking {
+		val w = World(this, listOf(stub))
+		w.ledger.claim("7", 1, "R", w.now - 60_000)
+		w.ledger.update("7", 1, AttemptState.DELIVERED, null, "its own file", w.now - 59_000)
+		w.host.list["7"] = HostDownload("7", fileUrl, fileUrl, done, startedAtMs = w.now - 1_000)
+		w.tick()
+		assertEquals(1, w.ledger.attempts("7").size)
+	}
+
 	@Test fun userPauseNeverStartsAChain() = runBlocking {
 		val w = World(this, listOf(stub))
 		w.host.set("1", running(), url = fileUrl); w.tick()
