@@ -445,6 +445,14 @@ class VideoResolutionPicker(
 					updateFileTypeIndicator(layout)
 				}
 			formatsGridView.adapter = videoFormatAdapter
+			// T9 (corpus test, 2026-10-15): with one format there is nothing to choose; "Download Now" stayed dead until
+			// the user tapped the only row (SoundCloud "Audio Only", Imgur, BitChute, a page's single <video>)
+			if (videoInfo.videoFormats.size == 1) {
+				videoFormatAdapter.selectedPosition = 0
+				videoFormatAdapter.notifyDataSetChanged()
+				updateTitleByFormatId(layout.findViewById(R.id.txt_video_title))
+				updateFileTypeIndicator(layout)
+			}
 		}
 	}
 

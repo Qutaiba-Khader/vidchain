@@ -26,6 +26,7 @@ Found by testing 31 real links on the Android 11 phone (2026-10-15):
 - When nothing could read a shared link, the app only opened its browser. Now VidChain's own methods look for the
   video on the page (its hidden browser listens to the page's requests, as Web Video Caster's detection does, and
   reads the page's players) and save it to Finished downloads, with a message when they start and when they end.
+- A picker with only one format selects it at once ("Download Now" did nothing until the only row was tapped).
 - A download that only passes through "stopped" while it starts is no longer taken for a failure, and a reused
   download number no longer inherits the earlier download's history.
 

@@ -150,6 +150,16 @@ def share_once(url, warm, download):
         tap(lambda t: t == qs[0])
         rec["quality"] = qs[0]
         time.sleep(1.0)
+    else:
+        # no "720p"-style row (e.g. "Audio Only", "640x360", "unknown"): the first row of the format grid, as a user would
+        xml = sh("cat /sdcard/vc-ui.xml")
+        i = xml.find('id/video_format_container"')
+        m = re.search(r'<node [^>]*?text="([^"]+)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml[i:]) if i >= 0 else None
+        if m:
+            x1, y1, x2, y2 = map(int, m.groups()[1:])
+            sh(f"input tap {(x1 + x2) // 2} {(y1 + y2) // 2}")
+            rec["quality"] = m.group(1)
+            time.sleep(1.0)
     t1, _ = tap(lambda t: t == "Download Now")
     if t1 is None:
         rec["result"] = "no Download Now button"
