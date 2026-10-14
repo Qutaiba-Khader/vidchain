@@ -142,60 +142,8 @@ class BrowserFragmentBody(val browserFragment: BrowserFragment) {
             alreadyLoadedIntentURL = intentURL
             safeMotherActivityRef.openDownloadsFragment()
 
-            val waitingDialog = WaitingDialog(
-                isCancelable = false,
-                baseActivityInf = safeMotherActivityRef,
-                loadingMessage = getText(R.string.title_analyzing_url_please_wait),
-                dialogCancelListener = { dialog ->
-                    isParsingTitleFromUrlAborted = true
-                    dialog.dismiss()
-                }
-            ); waitingDialog.show()
-            // T8.13 (inherited bug fix): the blocking fetches outlived the 30 s job limit; end the wait at a deadline
-            val deadline = org.websnake.vidchain.app.VidChainWaits.Deadline(org.websnake.vidchain.app.VidChainWaits.SOCIAL_MS) {
-                waitingDialog.close()
-                safeMotherActivityRef.doSomeVibration(50)
-                showToast(activityInf = safeMotherActivityRef, msgId = R.string.title_server_busy_opening_browser)
-            }.start()
-            org.websnake.vidchain.app.VidChainWaits.onCancel(waitingDialog) { deadline.settle() } // a late result is then ignored
-
-            ThreadsUtility.executeInBackground(codeBlock = {
-                val htmlBody = fetchWebPageContent(intentURL, true)
-                if (deadline.isSettled) return@executeInBackground // T8.13
-                val thumbnailUrl = startParsingVideoThumbUrl(intentURL, htmlBody)
-                if (deadline.isSettled) return@executeInBackground // T8.13
-                getWebpageTitleOrDescription(
-                    intentURL,
-                    userGivenHtmlBody = htmlBody
-                ) { resultedTitle ->
-                    if (!deadline.settle()) return@getWebpageTitleOrDescription // T8.13
-                    executeOnMainThread { waitingDialog.close() } // T8.13: was closed off the main thread
-                    if (!resultedTitle.isNullOrEmpty() && !isParsingTitleFromUrlAborted) {
-                        executeOnMainThread {
-                            SingleResolutionPrompter(
-                                baseActivity = safeMotherActivityRef,
-                                singleResolutionName = getText(R.string.title_high_quality),
-                                extractedVideoLink = intentURL,
-                                currentWebUrl = intentURL,
-                                videoTitle = resultedTitle,
-                                videoUrlReferer = intentURL,
-                                dontParseFBTitle = true,
-                                thumbnailUrlProvided = thumbnailUrl,
-                                isSocialMediaUrl = true,
-                                isDownloadFromBrowser = false
-                            ).show()
-                        }
-                    } else {
-                        executeOnMainThread {
-                            safeMotherActivityRef.doSomeVibration(50)
-                            showToast(
-                                activityInf = safeMotherActivityRef,
-                                msgId = R.string.title_server_busy_opening_browser
-                            )
-                        }
-                    }
-                }
-            }, errorHandler = { deadline.expireNow() }) // T8.13
+            // T9 decision 2: the picker opens at once; the link's yt-dlp analysis fills in the title and picture
+            org.websnake.vidchain.app.VidChainSocial.openPicker(safeMotherActivityRef, intentURL, closeActivityOnSuccessfulDownload = false, cancelable = true)
         } else {
             // Handle YouTube or generic URLs
             if (IS_ULTIMATE_VERSION_UNLOCKED && isYouTubeUrl(intentURL)) {

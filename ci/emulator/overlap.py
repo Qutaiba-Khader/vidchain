@@ -63,6 +63,7 @@ def check(xml_text, window_text, package=PKG):
             walk(c, here)
 
     walk(root, False)
+    titles = sorted(set(titles))
     problems = []
     for r, label in content:
         for kind, rects in system.items():

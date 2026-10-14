@@ -29,7 +29,10 @@ SHARE_URL = A[A.index("--share-url") + 1] if "--share-url" in A else "https://rc
 
 
 def adb(*a, timeout=60):
-    return subprocess.run(["adb", *a], capture_output=True, text=True, timeout=timeout).stdout.replace("\r", "")
+    try:
+        return subprocess.run(["adb", *a], capture_output=True, text=True, timeout=timeout).stdout.replace("\r", "")
+    except subprocess.TimeoutExpired:          # e.g. `uiautomator dump` never sees an idle screen behind a spinner
+        return ""
 
 
 def sh(cmd, timeout=60):
@@ -37,8 +40,8 @@ def sh(cmd, timeout=60):
 
 
 def dump():
-    sh("uiautomator dump /sdcard/ui.xml >/dev/null 2>&1")
-    return sh("cat /sdcard/ui.xml")
+    sh("rm -f /sdcard/ui.xml; uiautomator dump /sdcard/ui.xml >/dev/null 2>&1", timeout=30)
+    return sh("cat /sdcard/ui.xml 2>/dev/null")
 
 
 def nodes(xml):
@@ -79,17 +82,35 @@ def look(name):
     xml = dump()
     win = sh("dumpsys window")
     (OUT / f"{name}.xml").write_text(xml)
+    (OUT / f"{name}.insets.txt").write_text("\n".join(l for l in win.splitlines() if "InsetsSource" in l or "mCurrentFocus" in l))
     subprocess.run(f"adb exec-out screencap -p > '{OUT / (name + '.png')}'", shell=True, timeout=60)
-    try:
-        probs, system, titles = overlap.check(xml, win, PKG)
-    except Exception as e:                        # an unreadable dump is reported, not fatal
-        probs, system, titles = [f"check failed: {e}"], {}, []
+    if "<hierarchy" not in xml:                   # no dump (the screen never went idle): screenshot only, not judged
+        probs, system, titles = [], {}, []
+        print(f"{name}: no UI dump (screen never idle), screenshot only", flush=True)
+    else:
+        try:
+            probs, system, titles = overlap.check(xml, win, PKG)
+        except Exception as e:                    # an unreadable dump is reported, not fatal
+            probs, system, titles = [f"check failed: {e}"], {}, []
     front = (re.search(r"mCurrentFocus=Window\{\S+ \S+ ([^}\s]+)", win) or [None, "?"])[1]
     report.append({"screen": name, "front": front, "problems": probs, "bars": system, "titles": titles})
     problems_total += len(probs)
     print(f"{name}: {front.split('/')[-1]} {len(probs)} overlap(s)", flush=True)
     for p in probs:
         print("   ", p, flush=True)
+    write_report()
+
+
+def write_report():
+    """written after every screen, so a run that stops half way still leaves its findings"""
+    api_ = sh("getprop ro.build.version.sdk").strip()
+    lines = [f"# Bar overlap check (API {api_})", "", f"**{problems_total} overlap(s) on {len(report)} screens**", "",
+             "| screen | activity | overlaps |", "|---|---|---|"]
+    for r in report:
+        lines.append(f"| {r['screen']} | {r['front'].split('/')[-1]} | {'; '.join(r['problems'])[:600] or 'none'} |")
+    (OUT / "overlap-report.md").write_text("\n".join(lines) + "\n")
+    (OUT / "overlap-report.json").write_text(json.dumps(report, indent=1))
+    return lines
 
 
 def swipe_up():
@@ -156,12 +177,7 @@ for nav in NAVS:
         visit(f"api{api}-{nav or 'nav'}-rot{ROT}-")
 sh("settings put system user_rotation 0")
 
-lines = [f"# Bar overlap check (API {api})", "", f"**{problems_total} overlap(s) on {len(report)} screens**", "",
-         "| screen | activity | overlaps |", "|---|---|---|"]
-for r in report:
-    lines.append(f"| {r['screen']} | {r['front'].split('/')[-1]} | {'; '.join(r['problems'])[:600] or 'none'} |")
-(OUT / "overlap-report.md").write_text("\n".join(lines) + "\n")
-(OUT / "overlap-report.json").write_text(json.dumps(report, indent=1))
+lines = write_report()
 print("\n".join(lines[:3]))
 if CHECK and problems_total:
     sys.exit(1)

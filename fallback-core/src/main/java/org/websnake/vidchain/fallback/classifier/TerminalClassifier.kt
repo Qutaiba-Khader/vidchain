@@ -38,10 +38,11 @@ object TerminalClassifier {
 
 	/**
 	 * A running yt-dlp (M3U8) download that has not received one byte after this long never got past connecting (T8.11).
-	 * T9 decision 3: 90 s instead of 5 minutes (yt-dlp's own socket timeout is 30 s since T9, so a dead server has
-	 * failed long before; a slow but working start - YouTube extraction with PO tokens - has its first byte well before).
+	 * T9 decision 3: 75 s instead of 5 minutes, so the next method starts within 90 s of Download (A50, 2026-10-14:
+	 * with 90 s it started after 91 s, one observer tick later). yt-dlp's own socket timeout is 30 s since T9; a slow
+	 * but working start - a YouTube download - had its first byte after about 10 s on the same phone.
 	 */
-	const val NO_START_AFTER_MS = 90_000L
+	const val NO_START_AFTER_MS = 75_000L
 
 	fun classify(s: DownloadSnapshot): Verdict {
 		// 1. user removed it: never fall back

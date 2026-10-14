@@ -72,7 +72,9 @@ class SingleResolutionPrompter(
 	private val thumbnailUrlProvided: String? = null,
 	private val isDownloadFromBrowser: Boolean = false,
 	private val closeActivityOnSuccessfulDownload: Boolean = false,
-	private val videoFileDuration: Long = 0L
+	private val videoFileDuration: Long = 0L,
+	/** T9 decision 2: the title and picture arrive later through [updateInfo]; the prompter fetches nothing itself */
+	private val deferInfo: Boolean = false
 ) {
 	private val logger = LogHelperUtils.from(javaClass)
 
@@ -118,6 +120,24 @@ class SingleResolutionPrompter(
 	fun close() {
 		if (dialogBuilder.isShowing) {
 			dialogBuilder.close()
+		}
+	}
+
+	/**
+	 * T9 decision 2: the picker opened at once with a temporary title; the title and picture of the caller's one page
+	 * fetch fill it in (main thread). A download started before they arrive keeps the temporary title.
+	 */
+	fun updateInfo(title: String?, thumbnailUrl: String?) {
+		executeOnMainThread {
+			val layout = dialogBuilder.view
+			if (!title.isNullOrBlank()) {
+				videoTitle = title
+				layout.findViewById<TextView>(R.id.txt_video_title)?.apply { text = title; isSelected = true }
+			}
+			if (!thumbnailUrl.isNullOrBlank() && videoThumbnailUrl.isEmpty()) {
+				videoThumbnailUrl = thumbnailUrl
+				layout.findViewById<ImageView>(R.id.image_video_thumbnail)?.let { loadThumbnailFromUrl(thumbnailUrl, it) }
+			}
 		}
 	}
 
@@ -203,6 +223,8 @@ class SingleResolutionPrompter(
 			loadThumbnailFromUrl(videoThumbnailUrl, videoThumbnail)
 			return
 		}
+
+		if (deferInfo) return // T9: the caller's one page fetch brings it (updateInfo)
 
 		// Fetch thumbnail asynchronously
 		executeInBackground(codeBlock = {

@@ -32,6 +32,7 @@ class VidChainSettingsActivity : AppCompatActivity() {
 		VidChainTheme.apply(this)
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.vidchain_settings)
+		VidChainInsets.fit(this) // T9 decision 11: nothing under the title bar or the navigation bar on Android 15+
 		title = getString(R.string.vidchain_settings_title)
 
 		findViewById<SwitchCompat>(R.id.vidchain_trace_enabled).apply {

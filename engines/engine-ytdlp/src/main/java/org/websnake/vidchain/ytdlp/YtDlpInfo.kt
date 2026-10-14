@@ -50,6 +50,47 @@ data class YtDlpInfo(
 			)
 		}
 
+		/**
+		 * T9 decision 2: yt-dlp's JSON made safe to keep for `--load-info-json`: a playlist answer becomes its first
+		 * entry, and every cookie (the "cookies" fields, Cookie / Authorization request headers) is removed. Cookies are
+		 * read fresh at download time instead and sent only to the host they belong to.
+		 */
+		fun stripSecrets(json: String): String {
+			val o = JSONObject(json)
+			val root = if (o.optString("_type") == "playlist") o.optJSONArray("entries")?.optJSONObject(0) ?: o else o
+			scrub(root)
+			return root.toString()
+		}
+
+		private val SECRET_HEADERS = setOf("cookie", "authorization", "proxy-authorization")
+
+		private fun scrub(v: Any?) {
+			when (v) {
+				is JSONObject -> {
+					v.remove("cookies")
+					v.optJSONObject("http_headers")?.let { h ->
+						h.keys().asSequence().toList().filter { it.lowercase(Locale.ROOT) in SECRET_HEADERS }.forEach(h::remove)
+					}
+					v.keys().asSequence().toList().forEach { scrub(v.opt(it)) }
+				}
+				is JSONArray -> for (i in 0 until v.length()) scrub(v.opt(i))
+			}
+		}
+
+		/**
+		 * T9 decision 2: can the download replay this JSON instead of asking the site again? Not when a format address
+		 * carries a YouTube proof-of-origin token ("pot="): such sites are always asked again.
+		 */
+		fun replayable(json: String): Boolean {
+			val o = JSONObject(json)
+			val fs = o.optJSONArray("formats")
+			val urls = if (fs != null) (0 until fs.length()).mapNotNull { fs.optJSONObject(it)?.optString("url") } else listOfNotNull(o.optString("url"))
+			if (urls.none { it.startsWith("http", ignoreCase = true) }) return false
+			return urls.none { POT.containsMatchIn(it) }
+		}
+
+		private val POT = Regex("""[?&/]pot[=/]""")
+
 		private fun formats(a: JSONArray) = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map(::format).filter { it.id.isNotEmpty() }
 
 		private fun format(f: JSONObject) = YtDlpFormat(

@@ -166,6 +166,10 @@ class IntentInterceptActivity : BaseActivity() {
 				return
 			}
 
+			// T9 decision 2: the link's analysis starts now, not after the download history has loaded (the picker joins it)
+			if (app.core.engines.video_parser.parsers.SupportedURLs.isYtdlpSupportedUrl(intentUrl) || isSocialMediaUrl(intentUrl))
+				org.websnake.vidchain.app.VidChainAnalysis.prefetch(intentUrl)
+
 			// Wait for full app initialization before processing URLs
 			lifecycleScope.launch {
 				val checkingDialog = WaitingDialog(
@@ -214,98 +218,10 @@ class IntentInterceptActivity : BaseActivity() {
 			return
 		}
 
-		logger.d("startParsingTheIntentURL: Social media URL detected. Starting advanced parsing.")
-
-		// Show "analyzing URL" waiting dialog for social media processing
-		val waitingDialog = WaitingDialog(
-			isCancelable = false,
-			baseActivityInf = activityRef,
-			loadingMessage = getString(R.string.title_analyzing_url_please_wait),
-		)
-
-		// T8.13 (inherited bug fix): the fetches below block, so the 30 s job limit never ended this wait (about 6 min
-		// when the site does not answer); the deadline ends it like the app's own "server busy" path
-		val deadline = org.websnake.vidchain.app.VidChainWaits.Deadline(org.websnake.vidchain.app.VidChainWaits.SOCIAL_MS) {
-			waitingDialog.close()
-			activityRef.doSomeVibration(50)
-			showToast(activityInf = activityRef, msgId = R.string.title_server_busy_opening_browser)
-			forwardIntentToMotherActivity(dontParseURLAnymore = true)
-			org.websnake.vidchain.app.VidChainShareRescue.rescue(activityRef, intentUrl, null) // FALLBACK-SEAM:share-social-timeout
-		}
-
-		// Setup waiting dialog "Okay" button click handler
-		waitingDialog.dialogBuilder?.setOnClickForPositiveButton {
-			logger.d("WaitingDialog: User cancelled analyzing process.")
-			deadline.settle() // T8.13
-			waitingDialog.close()
-			isParsingTitleFromUrlAborted = true
-			closeActivityWithFadeAnimation(shouldAnimate = true)
-		}
-
-		waitingDialog.show()
-		deadline.start() // T8.13
-		logger.d("WaitingDialog: Displayed analyzing message.")
-
-		// Perform background parsing for social media URLs
-		ThreadsUtility.executeInBackground(codeBlock = {
-			logger.d("Background Task: Fetching HTML content for URL.")
-			val htmlBody = fetchWebPageContent(url = intentUrl, retry = true, numOfRetry = 3)
-			if (deadline.isSettled) return@executeInBackground // T8.13: the wait has ended, fetch nothing more
-
-			logger.d("Background Task: Parsing thumbnail URL.")
-			val thumbnailUrl = startParsingVideoThumbUrl(videoUrl = intentUrl, userGivenHtmlBody = htmlBody)
-			if (deadline.isSettled) return@executeInBackground // T8.13
-
-			logger.d("Background Task: Extracting webpage title or description.")
-			getWebpageTitleOrDescription(
-				websiteUrl = intentUrl, userGivenHtmlBody = htmlBody
-			) { resultedTitle ->
-				if (!deadline.settle()) return@getWebpageTitleOrDescription // T8.13: ended already (deadline or Cancel)
-
-				// Close the waiting dialog in UI thread
-				logger.d("Background Task: Parsing completed. Closing waiting dialog.")
-				executeOnMainThread { waitingDialog.close() }
-
-				val validIntentUrl = !resultedTitle.isNullOrEmpty()
-				logger.d(
-					"Background Task: Parsing result: " +
-							"validTitle=$validIntentUrl, cancelled=$isParsingTitleFromUrlAborted"
-				)
-
-				// Show download prompt if parsing was successful and not cancelled
-				if (validIntentUrl && isParsingTitleFromUrlAborted == false) {
-					logger.d("Background Task: Showing SingleResolutionPrompter dialog.")
-					executeOnMainThread {
-						val resolutionName = getText(R.string.title_high_quality).toString()
-						SingleResolutionPrompter(
-							baseActivity = activityRef,
-							isDialogCancelable = true,
-							singleResolutionName = resolutionName,
-							extractedVideoLink = intentUrl,
-							currentWebUrl = intentUrl,
-							videoTitle = resultedTitle,
-							videoUrlReferer = intentUrl,
-							dontParseFBTitle = true,
-							thumbnailUrlProvided = thumbnailUrl,
-							isSocialMediaUrl = true,
-							isDownloadFromBrowser = false,
-							closeActivityOnSuccessfulDownload = true
-						).show()
-					}
-				} else {
-					// Fallback for busy server or cancelled execution
-					logger.d("Background Task: Invalid result or cancelled. Forwarding to browser.")
-					executeOnMainThread {
-						activityRef.doSomeVibration(50)
-
-						val stringResId = R.string.title_server_busy_opening_browser
-						showToast(activityInf = activityRef, msgId = stringResId)
-						forwardIntentToMotherActivity(dontParseURLAnymore = true)
-						if (validIntentUrl == false) org.websnake.vidchain.app.VidChainShareRescue.rescue(activityRef, intentUrl, null) // FALLBACK-SEAM:share-social-empty
-					}
-				}
-			}
-		}, errorHandler = { deadline.expireNow() }) // T8.13: an error ends the wait at once
+		logger.d("startParsingTheIntentURL: Social media URL detected. Opening the picker at once.")
+		// T9 decision 2: the picker opens at once with a temporary title; the link's yt-dlp analysis fills it in and
+		// the download replays it (the original fetched the page up to 3 times first, behind "Analyzing URL")
+		org.websnake.vidchain.app.VidChainSocial.openPicker(activityRef, intentUrl, closeActivityOnSuccessfulDownload = true, cancelable = true)
 	}
 
 	/**

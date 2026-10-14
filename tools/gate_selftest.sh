@@ -21,7 +21,7 @@ expect_fail() {  # $1 = label, rest = command that must exit non-zero
   fi
 }
 
-d=$(fresh drift);   echo "// seeded" >> "$d/app/src/main/java/app/core/engines/downloader/DownloadSystem.kt"
+d=$(fresh drift);   echo "// seeded" >> "$d/app/src/main/java/lib/texts/CommonTextUtils.kt"
 expect_fail "drift check: undeclared edit of an upstream file" python3 "$d/tools/drift_check.py"
 
 d=$(fresh stray);   echo seeded > "$d/app/src/main/stray.txt"
@@ -30,7 +30,7 @@ expect_fail "drift check: undeclared new file in the app tree" python3 "$d/tools
 d=$(fresh seamedit); sed -i '0,/^import /s/^import /import  /' "$d/app/src/main/java/app/ui/main/fragments/downloads/fragments/active/ActiveTasksOptions.kt"
 expect_fail "seam gate: upstream line changed in a seamed file" python3 "$d/tools/seam_check.py"
 
-d=$(fresh seamstray); echo "// FALLBACK-SEAM:stray" >> "$d/app/src/main/java/app/core/engines/downloader/DownloadSystem.kt"
+d=$(fresh seamstray); echo "// FALLBACK-SEAM:stray" >> "$d/app/src/main/java/lib/texts/CommonTextUtils.kt"
 expect_fail "seam gate: seam in an undeclared upstream file" python3 "$d/tools/seam_check.py"
 
 d=$(fresh seammixed); sed -i '/FALLBACK-SEAM:settings/d' "$d/app/src/main/java/app/ui/main/fragments/settings/SettingsFragment.kt"

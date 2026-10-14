@@ -103,6 +103,14 @@ class M3U8VideoDownloader(
 	@Volatile
 	private var lastUpdateTime = 0L
 
+	/** T9 decision 2: the kept yt-dlp -J analysis this download replays with --load-info-json (null = the original way) */
+	private var vcRecord: org.websnake.vidchain.app.VidChainAnalysis.Record? = null
+
+	/** T9 decision 2: the kept analysis was refused twice: this download goes on the original way */
+	private var vcNoRecord = false
+
+	private fun vcCookie(): String? = downloadDataModel.siteCookieString.ifEmpty { null }
+
 	/**
 	 * Prepares the download task by initializing and persisting
 	 * the [DownloadDataModel] state.
@@ -1114,6 +1122,27 @@ class M3U8VideoDownloader(
 	private suspend fun startRegularDownload(retryCount: Int = 0) {
 		logger.d("Starting regular download. Retry count: $retryCount")
 
+		// T9 decision 2: with the link's yt-dlp -J analysis (kept from the picker, or run now) the download replays it:
+		// no hidden page load just to read cookies, no second extraction. The cookies the page already set are read
+		// from the WebView cookie store directly.
+		if (retryCount == 0 && !vcNoRecord) {
+			updateDownloadStatus(getText(R.string.title_started_downloading), DOWNLOADING)
+			val rec = org.websnake.vidchain.app.VidChainAnalysis.analyse(downloadDataModel.fileURL, vcCookie(), "download")?.takeIf { it.replayable }
+			if (rec != null) {
+				vcRecord = rec
+				runCatching { CookieManager.getInstance().getCookie(downloadDataModel.fileURL) }.getOrNull()?.takeIf { it.isNotBlank() }?.let { cookies ->
+					downloadDataModel.apply {
+						videoInfo?.videoCookie = cookies
+						siteCookieString = cookies
+						updateInStorage()
+						saveCookiesIfAvailable(shouldOverride = true)
+					}
+				}
+				executeDownloadProcess()
+				return
+			}
+		}
+
 		// If max retries reached → fallback to direct execution
 		if (retryCount >= 2) {
 			logger.d("Max retries reached. Falling back to direct download execution.")
@@ -1207,7 +1236,7 @@ class M3U8VideoDownloader(
 		// Try to capture cookies from the loaded URL
 		val cookies = CookieManager.getInstance().getCookie(url)
 		cookies?.let {
-			logger.d("Cookies found: $cookies")
+			logger.d("Cookies found") // T9: cookies are never logged
 			downloadDataModel.apply {
 				videoInfo?.videoCookie = cookies
 				siteCookieString = cookies
@@ -1252,7 +1281,11 @@ class M3U8VideoDownloader(
 		try {
 			lastUpdateTime = currentTimeMillis()
 			val urlWithoutPlaylist = filterYoutubeUrlWithoutPlaylist(downloadDataModel.fileURL)
-			val request = YoutubeDLRequest(urlWithoutPlaylist)
+			// T9 decision 2: replay the kept analysis (its JSON holds no cookie) instead of extracting the page again
+			val rec = if (vcNoRecord) null else vcRecord ?: org.websnake.vidchain.app.VidChainAnalysis.recordFor(downloadDataModel.fileURL, vcCookie())
+			vcRecord = rec
+			val request = if (rec != null) YoutubeDLRequest(emptyList<String>()).apply { addOption("--load-info-json", rec.file.absolutePath) }
+			else YoutubeDLRequest(urlWithoutPlaylist)
 			logger.d("YT-DLP request initialized for URL: $urlWithoutPlaylist")
 
 			// Add standard options
@@ -1317,6 +1350,7 @@ class M3U8VideoDownloader(
 			// Handle response after yt-dlp finishes
 			if (response.exitCode != 0) {
 				logger.d("Download failed with exit code ${response.exitCode}")
+				if (vcReplayRefused(response.out + "\n" + response.err)) return
 				onYtdlpDownloadFailed(response.out)
 			} else {
 				logger.d("Download completed successfully.")
@@ -1336,6 +1370,7 @@ class M3U8VideoDownloader(
 			}
 		} catch (error: Exception) {
 			logger.e("Exception during download process: ${error.message}", error)
+			if (vcReplayRefused(error.message)) return
 
 			if (isRetryingAllowed()) {
 				logger.d("Retrying download due to error.")
@@ -1366,6 +1401,22 @@ class M3U8VideoDownloader(
 	 *
 	 * @param response The error message or output from yt-dlp, if available.
 	 */
+	/**
+	 * T9 decision 2: the replayed analysis was refused (an expired or refused address): analyse the link once more and
+	 * start again; a second refusal goes on the original way and, if that fails too, VidChain's methods take over.
+	 * true = handled here.
+	 */
+	private suspend fun vcReplayRefused(output: String?): Boolean {
+		if (vcRecord == null || !org.websnake.vidchain.app.VidChainAnalysis.isRefusal(output)) return false
+		vcRecord = null
+		if (!org.websnake.vidchain.app.VidChainAnalysis.refused(downloadDataModel.fileURL, vcCookie())) {
+			vcNoRecord = true
+			return false
+		}
+		startRegularDownload(0)
+		return true
+	}
+
 	private suspend fun onYtdlpDownloadFailed(response: String? = null) {
 		logger.d("yt-dlp download failed. Response: $response")
 		if (response != null && isCriticalErrorFound(response)) {

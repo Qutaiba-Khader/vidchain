@@ -32,12 +32,23 @@ class YtDlpEngine(
 
 	val ready: Boolean get() = python.isFile && ytdlp.isFile && layout.pythonReady
 
-	suspend fun info(url: String, o: Options = Options(), timeoutMs: Long = 180_000): Result<YtDlpInfo> {
+	suspend fun info(url: String, o: Options = Options(), timeoutMs: Long = 180_000): Result<YtDlpInfo> =
+		when (val r = infoWithJson(url, o, timeoutMs)) {
+			is Result.Ok -> Result.Ok(r.value.first)
+			is Result.Failed -> r
+		}
+
+	/**
+	 * T9 decision 2: the parsed info and yt-dlp's whole JSON (for `--load-info-json` at download time). The JSON can
+	 * carry cookies and request headers: the caller strips them before keeping it ([YtDlpInfo.stripSecrets]) and
+	 * never logs it.
+	 */
+	suspend fun infoWithJson(url: String, o: Options = Options(), timeoutMs: Long = 180_000): Result<Pair<YtDlpInfo, String>> {
 		if (!ready) return Result.Failed(Problem.NOT_READY, "yt-dlp runtime not extracted yet")
 		val r = runner.run(EngineSpec(argv(o, listOf("--dump-single-json", "--no-playlist", "--no-progress")) + listOf("--", url), layout.env(), timeoutMs = timeoutMs))
 		if (r.outcome != EngineOutcome.Success) return failure(r.outcome, r.stderrTail)
 		val json = r.stdoutTail.lastOrNull { it.trimStart().startsWith("{") } ?: return Result.Failed(Problem.OTHER, "no JSON from yt-dlp")
-		return runCatching { Result.Ok(YtDlpInfo.parse(json)) }.getOrElse { Result.Failed(Problem.OTHER, "unreadable JSON: ${it.javaClass.simpleName}") }
+		return runCatching { Result.Ok(YtDlpInfo.parse(json) to json) }.getOrElse { Result.Failed(Problem.OTHER, "unreadable JSON: ${it.javaClass.simpleName}") }
 	}
 
 	/** downloads [url] with format [selector] to [dir]/[base].<ext>; returns the finished file */

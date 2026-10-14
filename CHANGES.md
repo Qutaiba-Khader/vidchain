@@ -17,6 +17,8 @@ method has its own switch and at least one always stays on). `seams.lock` still 
 
 | Change | Files |
 |---|---|
+| T9 decision 2: one `yt-dlp -J` analysis per link feeds the picker (formats with sizes, title, picture, duration; YouTube no longer runs NewPipe plus a second yt-dlp for the sizes) and the download (`--load-info-json`: no hidden page load for cookies, no second extraction); the kept JSON holds no cookie, cookies are read fresh and sent host-only; an expired / refused replay is analysed once more, then the original way, then the fallback methods. The analysis of a shared link starts before the download history has loaded. X / Instagram / Facebook / TikTok links open their picker at once with a temporary title that the analysis fills in (the page is fetched once only when the analysis gives nothing) | ours: `VidChainAnalysis.kt`, `VidChainSocial.kt`, `AnalysisStore.kt`; `SharedVideoURLIntercept.kt`, `M3U8VideoDownloader.kt` (declared in BRANDING.md), `IntentInterceptActivity.kt`, `BrowserFragmentBody.kt`, `MotherActivity.kt`, `VideoLinkPasteEditor.kt` (declared in BUILD-FIXES.md), `SingleResolutionPrompter.kt` |
+| T9 decision 11: VidChain's own screens (settings, licences) gave no room for the bars and drew under the status bar, the title bar and the navigation bar on Android 15+ (edge to edge is enforced for apps targeting SDK 36); the app's own screens already fit the bars | ours: `VidChainInsets.kt`, `VidChainSettingsActivity.kt`, `VidChainLicencesActivity.kt`; the CI check `ci/emulator/overlap.py` on API 33, 35, 36 |
 | Fresh installs start with "Enable Dark UI Mode" on (T8.1) | ours only: `VidChainDefaults.kt` |
 | The user / account / profile block is gone from Settings, with the "Login / Register" flow (sign-in was already pointed at a closed port, REMOVED.md), the account details screen and every entry that only led to "This feature is currently not available..." (the username editor, "Other Advanced Settings" under Downloads) (T8.2) | `SettingsFragment.kt`, `SettingsOnClickLogic.kt`, `BaseActivity.kt` (`showUpcomingFeatures`), `UserAccountDetailsActivity.kt` + its layout, settings layout (REMOVED.md), manifest (BRANDING.md) |
 | "Enable Daily Suggestions" is gone and stays off for everyone (the original app reads the value nowhere else: no notification, job or fetch) (T8.3) | `SettingsFragment.kt`, `SettingsOnClickLogic.kt`, `VidChainDefaults.kt` |
@@ -46,4 +48,7 @@ added app/src/main/res/drawable/vc_settings_outline_button.xml
 added app/src/main/res/drawable/vc_settings_chevron.xml
 deleted app/src/main/java/app/ui/others/startup/OpeningActivity.kt
 deleted app/src/main/res/layout/activity_opening_1.xml
+modified app/src/main/java/app/ui/main/fragments/browser/webengine/SingleResolutionPrompter.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainAnalysis.kt
+added app/src/main/java/org/websnake/vidchain/app/VidChainSocial.kt
 ```

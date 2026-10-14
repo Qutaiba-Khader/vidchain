@@ -296,6 +296,26 @@ class SharedVideoURLIntercept(
 		logger.d("Analyzing video URL: $videoUrl")
 		
 		safeBaseActivityRef?.let { safeBaseActivityRef ->
+			// T9 decision 2: one yt-dlp -J run gives the formats (with sizes), the title, the picture and the duration,
+			// and the download replays it; the app's own lookups below run only when it gives nothing
+			val analysis = org.websnake.vidchain.app.VidChainAnalysis.analyse(videoUrl, userGivenVideoInfo?.videoCookie)
+			val analysedFormats = analysis?.let { org.websnake.vidchain.app.VidChainAnalysis.pickerFormats(it, videoUrl) }?.takeIf { it.isNotEmpty() }
+			if (analysis != null && analysedFormats != null) {
+				val info = analysis.info
+				val videoInfo = VideoInfo(
+					videoUrl = videoUrl,
+					videoTitle = userGivenVideoInfo?.videoTitle?.takeIf { it.isNotBlank() } ?: info.title,
+					videoDescription = userGivenVideoInfo?.videoDescription,
+					videoThumbnailUrl = userGivenVideoInfo?.videoThumbnailUrl ?: info.thumbnail,
+					videoUrlReferer = userGivenVideoInfo?.videoUrlReferer,
+					videoThumbnailByReferer = userGivenVideoInfo?.videoThumbnailByReferer ?: false,
+					videoCookie = userGivenVideoInfo?.videoCookie,
+					videoFormats = analysedFormats,
+					videoDuration = info.durationSec?.let { (it * 1000).toLong() } ?: userGivenVideoInfo?.videoDuration ?: 0L
+				)
+				showAnalysisResult(videoUrl, videoInfo, userGivenVideoInfo?.videoCookie)
+				return
+			}
 			// Step 1: Handle YouTube URLs separately
 			val ytStreamInfo = if (isYouTubeUrl(videoUrl)) {
 				logger.d("YouTube URL detected — fetching stream info")
@@ -337,49 +357,54 @@ class SharedVideoURLIntercept(
 				videoDuration = videoDurationFromYtStream ?: userGivenVideoInfo?.videoDuration ?: 0L
 			)
 			
-			// Step 5: Switch to main thread to update UI
-			ThreadsUtility.executeOnMain(codeBlock = {
-				logger.d("Video analysis complete — preparing UI update")
-				if (analysisDeadline?.settle() == false) return@executeOnMain // T8.13: the wait already ended (deadline or Cancel)
-				interceptWaitingDialog?.let { waitingDialog ->
-					waitingDialog.close()
-					isInterceptingInProcess = false
-					if (isInterceptingTerminated) {
-						logger.d("Interception terminated before completion — aborting UI display")
-						return@let
-					}
-					
-					// Handle empty formats (no downloadable content)
-					if (videoInfo.videoFormats.isEmpty()) {
-						logger.d("No downloadable video formats found for: $videoUrl")
-						org.websnake.vidchain.app.VidChainShareRescue.rescue(safeBaseActivityRef, videoUrl, videoCookie) // FALLBACK-SEAM:share-empty
-						if (shouldOpenBrowserAsFallback) {
-							openInBuiltInBrowser(targetUrl = videoUrl)
-						} else {
-							val msgId = R.string.title_no_video_found_try_later
-							showToast(safeBaseActivityRef, msgId = msgId)
-						}
-						return@let
-					}
-					
-					// Step 6: Show available resolutions in picker dialog
-					logger.d("Displaying resolution picker — total formats: ${videoInfo.videoFormats.size}")
-					VideoResolutionPicker(
-						baseActivity = safeBaseActivityRef,
-						videoInfo = videoInfo,
-						onDialogClose = { safelyCloseBaseActivity() },
-						closeActivityOnSuccessfulDownload = closeActivityOnSuccessfulDownload,
-						errorCallBack = {
-							logger.d("Error while handling video picker — triggering fallback")
-							if (shouldOpenBrowserAsFallback) showOpeningInBrowserPrompt(videoUrl)
-							else onOpeningBuiltInBrowser?.invoke()
-						}
-					).show()
-				} ?: logger.d("Waiting dialog not found — skipping UI update")
-			})
+			showAnalysisResult(videoUrl, videoInfo, videoCookie)
 		} ?: logger.d("Base activity reference lost — aborting video analysis")
 	}
 	
+	/** Steps 5-6 (T9: also for the yt-dlp -J analysis): close the wait and show the picker, or go on without formats */
+	private suspend fun showAnalysisResult(videoUrl: String, videoInfo: VideoInfo, videoCookie: String?) {
+		val safeBaseActivityRef = safeBaseActivityRef ?: return
+		ThreadsUtility.executeOnMain(codeBlock = {
+			logger.d("Video analysis complete — preparing UI update")
+			if (analysisDeadline?.settle() == false) return@executeOnMain // T8.13: the wait already ended (deadline or Cancel)
+			interceptWaitingDialog?.let { waitingDialog ->
+				waitingDialog.close()
+				isInterceptingInProcess = false
+				if (isInterceptingTerminated) {
+					logger.d("Interception terminated before completion — aborting UI display")
+					return@let
+				}
+				
+				// Handle empty formats (no downloadable content)
+				if (videoInfo.videoFormats.isEmpty()) {
+					logger.d("No downloadable video formats found for: $videoUrl")
+					org.websnake.vidchain.app.VidChainShareRescue.rescue(safeBaseActivityRef, videoUrl, videoCookie) // FALLBACK-SEAM:share-empty
+					if (shouldOpenBrowserAsFallback) {
+						openInBuiltInBrowser(targetUrl = videoUrl)
+					} else {
+						val msgId = R.string.title_no_video_found_try_later
+						showToast(safeBaseActivityRef, msgId = msgId)
+					}
+					return@let
+				}
+				
+				// Step 6: Show available resolutions in picker dialog
+				logger.d("Displaying resolution picker — total formats: ${videoInfo.videoFormats.size}")
+				VideoResolutionPicker(
+					baseActivity = safeBaseActivityRef,
+					videoInfo = videoInfo,
+					onDialogClose = { safelyCloseBaseActivity() },
+					closeActivityOnSuccessfulDownload = closeActivityOnSuccessfulDownload,
+					errorCallBack = {
+						logger.d("Error while handling video picker — triggering fallback")
+						if (shouldOpenBrowserAsFallback) showOpeningInBrowserPrompt(videoUrl)
+						else onOpeningBuiltInBrowser?.invoke()
+					}
+				).show()
+			} ?: logger.d("Waiting dialog not found — skipping UI update")
+		})
+	}
+
 	/**
 	 * Retrieves a list of available YouTube video resolutions (and audio-only option) from a [StreamInfo] object.
 	 * If no stream data is provided (null), returns a default list of resolutions.

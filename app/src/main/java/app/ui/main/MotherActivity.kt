@@ -511,63 +511,8 @@ class MotherActivity : BaseActivity() {
 		logger.d("Showing video resolution picker for URL: $clipboardText")
 		if (URLUtility.isValidURL(clipboardText)) {
 			if (isSocialMediaUrl(clipboardText)) {
-				logger.d("URL is social media, parsing title and thumbnail")
-				val waitingMsg = getText(R.string.title_analyzing_url_please_wait)
-				val waitingDialog = WaitingDialog(
-					isCancelable = false,
-					baseActivityInf = safeMotherActivityRef,
-					loadingMessage = waitingMsg.toString(),
-					dialogCancelListener = { dialog ->
-						logger.d("URL parsing aborted by user")
-						isParsingTitleFromUrlAborted = true
-						dialog.dismiss()
-					}
-				); waitingDialog.show()
-				// T8.13 (inherited bug fix): the blocking fetches outlived the 30 s job limit; end the wait at a deadline
-				val deadline = org.websnake.vidchain.app.VidChainWaits.Deadline(org.websnake.vidchain.app.VidChainWaits.SOCIAL_MS) {
-					waitingDialog.close()
-					safeMotherActivityRef.doSomeVibration(50)
-					ToastView.showToast(activityInf = safeMotherActivityRef, msgId = R.string.title_server_busy_opening_browser)
-					safeMotherActivityRef.browserFragment?.getBrowserWebEngine()?.let {
-						safeMotherActivityRef.sideNavigation?.addNewBrowsingTab(clipboardText, it)
-						safeMotherActivityRef.openBrowserFragment()
-					}
-				}.start()
-				org.websnake.vidchain.app.VidChainWaits.onCancel(waitingDialog) { deadline.settle() } // a late result is then ignored
-
-				ThreadsUtility.executeInBackground(codeBlock = {
-					logger.d("Fetching webpage content in background")
-					val htmlBody = fetchWebPageContent(clipboardText, true)
-					if (deadline.isSettled) return@executeInBackground // T8.13
-					val thumbnailUrl = startParsingVideoThumbUrl(clipboardText, htmlBody)
-					if (deadline.isSettled) return@executeInBackground // T8.13
-					getWebpageTitleOrDescription(
-						clipboardText,
-						userGivenHtmlBody = htmlBody
-					) { resultedTitle ->
-						if (!deadline.settle()) return@getWebpageTitleOrDescription // T8.13
-						executeOnMainThread { waitingDialog.close() } // T8.13: was closed off the main thread
-						if (!resultedTitle.isNullOrEmpty() && !isParsingTitleFromUrlAborted) {
-							logger.d("Successfully parsed title: $resultedTitle")
-							executeOnMainThread {
-								SingleResolutionPrompter(
-									baseActivity = safeMotherActivityRef,
-									singleResolutionName = getString(R.string.title_high_quality),
-									extractedVideoLink = clipboardText,
-									currentWebUrl = clipboardText,
-									videoTitle = resultedTitle,
-									videoUrlReferer = clipboardText,
-									isSocialMediaUrl = true,
-									isDownloadFromBrowser = false,
-									dontParseFBTitle = true,
-									thumbnailUrlProvided = thumbnailUrl
-								).show()
-							}
-						} else {
-							logger.d("Failed to parse title or parsing was aborted")
-						}
-					}
-				}, errorHandler = { deadline.expireNow() }) // T8.13
+				// T9 decision 2: the picker opens at once; the link's yt-dlp analysis fills in the title and picture
+				org.websnake.vidchain.app.VidChainSocial.openPicker(safeMotherActivityRef, clipboardText, closeActivityOnSuccessfulDownload = false, cancelable = true)
 			} else {
 				logger.d("URL is not social media, direct parsing")
 				startParingVideoURL(safeMotherActivityRef, clipboardText)

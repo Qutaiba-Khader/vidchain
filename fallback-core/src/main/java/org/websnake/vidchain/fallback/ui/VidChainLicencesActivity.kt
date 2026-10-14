@@ -25,6 +25,7 @@ class VidChainLicencesActivity : AppCompatActivity() {
 				setPadding(pad, pad, pad, pad)
 			})
 		})
+		VidChainInsets.fit(this) // T9 decision 11
 	}
 }
 
