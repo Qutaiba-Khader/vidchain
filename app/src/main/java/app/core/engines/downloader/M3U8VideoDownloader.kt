@@ -1125,24 +1125,35 @@ class M3U8VideoDownloader(
 		// T9 decision 2: with the link's yt-dlp -J analysis (kept from the picker, or run now) the download replays it:
 		// no hidden page load just to read cookies, no second extraction. The cookies the page already set are read
 		// from the WebView cookie store directly.
+		// T9 review H1/H2: the analysis and the download run in the download's own scope, never inside the caller's
+		// 30 s start job (the original returned at once too); a pause or cancel during the analysis ends it here.
 		if (retryCount == 0 && !vcNoRecord) {
 			updateDownloadStatus(getText(R.string.title_started_downloading), DOWNLOADING)
-			val rec = org.websnake.vidchain.app.VidChainAnalysis.analyse(downloadDataModel.fileURL, vcCookie(), "download")?.takeIf { it.replayable }
-			if (rec != null) {
-				vcRecord = rec
-				runCatching { CookieManager.getInstance().getCookie(downloadDataModel.fileURL) }.getOrNull()?.takeIf { it.isNotBlank() }?.let { cookies ->
-					downloadDataModel.apply {
-						videoInfo?.videoCookie = cookies
-						siteCookieString = cookies
-						updateInStorage()
-						saveCookiesIfAvailable(shouldOverride = true)
-					}
-				}
-				executeDownloadProcess()
-				return
+			coroutineScope.launch { vcReplayOrPage() }
+			return
+		}
+		startRegularDownloadByPage(retryCount)
+	}
+
+	private suspend fun vcReplayOrPage() {
+		val rec = org.websnake.vidchain.app.VidChainAnalysis.analyse(downloadDataModel.fileURL, vcCookie(), "download")?.takeIf { it.replayable }
+		if (!downloadDataModel.isRunning || downloadDataModel.isComplete) return   // paused or stopped meanwhile
+		if (rec == null) return startRegularDownloadByPage(0)
+		vcRecord = rec
+		runCatching { CookieManager.getInstance().getCookie(downloadDataModel.fileURL) }.getOrNull()?.takeIf { it.isNotBlank() }?.let { cookies ->
+			downloadDataModel.apply {
+				videoInfo?.videoCookie = cookies
+				siteCookieString = cookies
+				updateInStorage()
+				saveCookiesIfAvailable(shouldOverride = true)
 			}
 		}
+		executeDownloadProcess()
+	}
 
+	/** the original way: a hidden page load for the cookies, then the download (T9: split out of startRegularDownload) */
+	@SuppressLint("SetJavaScriptEnabled")
+	private suspend fun startRegularDownloadByPage(retryCount: Int) {
 		// If max retries reached → fallback to direct execution
 		if (retryCount >= 2) {
 			logger.d("Max retries reached. Falling back to direct download execution.")
