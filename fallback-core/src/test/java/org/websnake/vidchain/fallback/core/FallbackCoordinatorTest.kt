@@ -98,6 +98,36 @@ class FallbackCoordinatorTest {
 		assertEquals(AttemptState.FAILED, rows[0].state)
 	}
 
+	@Test fun aStopWithNoReasonCountsOnlyWhenALaterLookStillSeesIt() = runBlocking {
+		// T9 full pass (trap-truncated): RegularDownloader.initiateDownload passes through CLOSE before DOWNLOADING
+		val w = World(this, listOf(stub))
+		val unexplained = DownloadSnapshot(Engine.REGULAR, CLOSE)
+		w.host.set("1", running(), url = fileUrl); w.tick()
+		w.host.set("1", unexplained); w.tick()
+		w.host.set("1", running()); w.now += 500; w.tick()
+		w.host.set("1", done); w.now += 500; w.tick()
+		assertTrue(w.ledger.attempts("1").isEmpty())                            // a passing state: no chain
+		w.host.set("2", running(), url = fileUrl); w.tick()
+		w.host.set("2", unexplained); w.tick()
+		assertTrue(w.ledger.attempts("2").isEmpty())
+		w.now += 2_000; w.tick()
+		assertEquals(1, w.ledger.attempts("2").size)                            // still stopped: the chain runs
+	}
+
+	@Test fun rowsOfAnEarlierDownloadWithTheSameIdAreForgotten() = runBlocking {
+		// T9 full pass: the app reused id 18; the earlier download's 6 rows made the new one's chain "exhausted" at once
+		val w = World(this, listOf(stub))
+		w.ledger.claim("18", 1, "R", w.now - 60_000)
+		w.ledger.update("18", 1, AttemptState.FAILED, null, "the earlier download", w.now - 59_000)
+		w.host.list["18"] = HostDownload("18", fileUrl, fileUrl, running(), startedAtMs = w.now - 1_000)
+		w.tick()
+		assertTrue(w.ledger.attempts("18").isEmpty())
+		w.host.list["19"] = HostDownload("19", fileUrl, fileUrl, running(), startedAtMs = w.now - 60_000)
+		w.ledger.claim("19", 1, "R", w.now - 30_000)                             // its own row (after it started) stays
+		w.tick()
+		assertEquals(1, w.ledger.attempts("19").size)
+	}
+
 	@Test fun userPauseNeverStartsAChain() = runBlocking {
 		val w = World(this, listOf(stub))
 		w.host.set("1", running(), url = fileUrl); w.tick()

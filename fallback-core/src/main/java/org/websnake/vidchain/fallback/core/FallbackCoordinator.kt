@@ -83,7 +83,10 @@ class FallbackCoordinator(
 		var armedAtMs: Long = 0, var startedSinceArm: Boolean = true,
 		// T9 hedged start: when this look first saw the app's own path running, whether it proved its first bytes,
 		// whether the other methods were started beside it, and whether its result went into the scorecard
-		var runningSinceMs: Long = 0, var ownProven: Boolean = false, var hedged: Boolean = false, var ownScored: Boolean = false)
+		var runningSinceMs: Long = 0, var ownProven: Boolean = false, var hedged: Boolean = false, var ownScored: Boolean = false,
+		// T9 full pass (trap-truncated): when an unexplained stop was first seen, and whether this download's id was
+		// checked for rows of an earlier download that had the same id
+		var unexplainedSinceMs: Long = 0, var reuseChecked: Boolean = false)
 	private val seen = HashMap<String, Seen>()
 	private var baselined = false
 	/** downloads the app created after this moment are new, also when the first look (the baseline) finds them failed */
@@ -144,6 +147,14 @@ class FallbackCoordinator(
 			if (ledger.intentOf(d.id) in RESTART) { st.armed = true; st.armedAtMs = now; st.startedSinceArm = false }
 		}
 		if (d.snapshot.status == DownloadSnapshot.DOWNLOADING) st.startedSinceArm = true
+		// T9 full pass: the app reuses download ids; rows written before this download existed belong to the earlier one
+		// (they made a new download's chain "exhausted" at once). Checked once, as soon as the start time is known.
+		if (!st.reuseChecked && d.startedAtMs != null) {
+			st.reuseChecked = true
+			val rows = ledger.attempts(d.id)
+			if (rows.isNotEmpty() && ledger.parentOf(d.id) == null && running[d.id]?.isActive != true &&
+				rows.all { it.startedMs < d.startedAtMs - REUSE_SLACK_MS }) forgetLocked(d.id, "rows of an earlier download with this id")
+		}
 		val snap = d.snapshot.copy(
 			userIntent = ledger.intentOf(d.id),
 			msSinceLastProgress = if (prev == null) null else now - st.lastChangeMs,
@@ -152,6 +163,7 @@ class FallbackCoordinator(
 		val v = TerminalClassifier.classify(snap)
 		if (v != Verdict.Success) st.done = false
 		hedge(d, st, v, now)
+		if (v !is Verdict.Failure) st.unexplainedSinceMs = 0L
 		when (v) {
 			Verdict.InProgress, is Verdict.Waiting -> st.armed = true
 			is Verdict.UserStopped -> st.armed = false
@@ -162,6 +174,12 @@ class FallbackCoordinator(
 			is Verdict.Failure -> {
 				// resumed but not started yet (queued behind other downloads, or between our ticks): give it time
 				if (st.armed && !st.startedSinceArm && !isExplicit(snap) && now - st.armedAtMs < RESUME_GRACE_MS) return
+				// T9 full pass (trap-truncated): a stop with no reason at all can be the app passing through CLOSE while it
+				// starts the download (RegularDownloader.initiateDownload); it counts only when a later look still sees it
+				if (v.cls == FailureClass.CRASH_OR_UNKNOWN && !isExplicit(snap) && st.armed) {
+					if (st.unexplainedSinceMs == 0L) st.unexplainedSinceMs = now
+					if (now - st.unexplainedSinceMs < UNEXPLAINED_CONFIRM_MS) return
+				}
 				// first look: a failure found at startup is old state (never a chain), unless the app created the download
 				// since VidChain started (it can start and fail while the app is still loading its lists, before the baseline)
 				val isNew = baselined || (d.startedAtMs != null && d.startedAtMs >= startedAtMs)
@@ -878,5 +896,9 @@ class FallbackCoordinator(
 		val PAUSES_AND_REMOVAL = setOf(UserIntent.PAUSE, UserIntent.RENAME_PAUSE, UserIntent.APP_SHUTDOWN, UserIntent.CANCEL, UserIntent.CLEAR, UserIntent.DELETE)
 		/** a resumed download has this long to start before a CLOSE / paused state counts as its failure */
 		const val RESUME_GRACE_MS = 90_000L
+		/** an unexplained stop must still be there this long after it was first seen (the observer looks every 2 s) */
+		const val UNEXPLAINED_CONFIRM_MS = 1_500L
+		/** clock slack between the app's start time and a ledger row's start time */
+		const val REUSE_SLACK_MS = 2_000L
 	}
 }
