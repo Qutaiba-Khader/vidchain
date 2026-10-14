@@ -19,6 +19,9 @@ class DownloadManagerMethod(
 	private val system: () -> SystemDownloads?,
 	private val pollMs: Long = 1_000,
 	private val stallMs: Long = 10 * 60_000,
+	/** T9 (full pass 38623072834, hanging server): no first byte this long = the server does not answer; the same rule
+	 *  as the app's own download (TerminalClassifier), so a chain never waits 10 minutes on a dead server */
+	private val noStartMs: Long = org.websnake.vidchain.fallback.classifier.TerminalClassifier.NO_START_AFTER_MS,
 ) : FallbackMethod {
 	override val id = "D"
 	override val kind = FallbackMethod.Kind.EXECUTOR
@@ -34,6 +37,7 @@ class DownloadManagerMethod(
 		val dmId = withContext(Dispatchers.IO) { dm.enqueue(url, headers, name) }
 		var lastBytes = -1L
 		var lastMove = System.currentTimeMillis()
+		val startedAt = lastMove
 		try {
 			while (true) {
 				val s = withContext(Dispatchers.IO) { dm.status(dmId) }
@@ -46,6 +50,8 @@ class DownloadManagerMethod(
 					SystemDownloads.State.FAILED -> return MethodOutcome.Failed("DownloadManager: ${reason(s.reason)}")
 					SystemDownloads.State.GONE -> return MethodOutcome.Failed("DownloadManager: the download was removed")
 					else -> {
+						if (s.bytes <= 0 && System.currentTimeMillis() - startedAt > noStartMs)
+							return MethodOutcome.Failed("DownloadManager: no data in ${noStartMs / 1000} s (${s.state.name.lowercase()})")
 						if (s.bytes != lastBytes) { lastBytes = s.bytes; lastMove = System.currentTimeMillis() }
 						else if (System.currentTimeMillis() - lastMove > stallMs) return MethodOutcome.Failed("DownloadManager: no progress for ${stallMs / 60_000} min (${s.state.name.lowercase()})")
 					}

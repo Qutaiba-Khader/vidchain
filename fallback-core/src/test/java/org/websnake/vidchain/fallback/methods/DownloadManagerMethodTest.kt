@@ -55,6 +55,14 @@ class DownloadManagerMethodTest {
 		assertEquals(listOf(77L), fake.removed)
 	}
 
+	@Test fun aServerThatNeverSendsAByteIsGivenUpLikeTheAppsOwnDownload() = runBlocking {
+		// T9 (full pass, hang fault): DownloadManager keeps retrying a hanging server; no first byte -> the next method
+		val fake = Fake(listOf(SystemDownloads.Status(SystemDownloads.State.RUNNING, bytes = 0)))
+		val r = DownloadManagerMethod({ fake }, pollMs = 5, noStartMs = 40).attempt(ctx())
+		assertTrue(r.toString(), r is MethodOutcome.Failed && r.reason.contains("no data"))
+		assertEquals(listOf(77L), fake.removed)
+	}
+
 	@Test fun cancelRemovesTheSystemDownload() = runBlocking {
 		val fake = Fake(listOf(SystemDownloads.Status(SystemDownloads.State.RUNNING, bytes = 1)))
 		val job = launch(Dispatchers.Default) { DownloadManagerMethod({ fake }, pollMs = 10).attempt(ctx()) }
