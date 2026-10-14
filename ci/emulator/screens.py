@@ -81,6 +81,9 @@ report, problems_total = [], 0
 screen_size = tuple(map(int, re.search(r"(\d+)x(\d+)", sh("wm size").split("Override")[-1]).groups()))
 
 
+lost = []                                         # screens not judged because the emulator itself went away
+
+
 def look(name, spinner=False, scroll=None):
     """screenshot + dump + overlap check of what is on screen now ([spinner]: a busy dialog that may not be dumped)"""
     global problems_total
@@ -103,6 +106,12 @@ def look(name, spinner=False, scroll=None):
             probs, system, titles, vs = overlap.check_views(act, win, PKG)
             if not vs:
                 probs = ["not checked: no UI dump and no view tree"]
+                # T2b: the API 35 emulator itself vanished during the share step's yt-dlp run (adb: device not found;
+                # API 33/36 and the A50 pass the same flow): an emulator lost is listed, not counted as an overlap
+                if "device" not in adb("get-state", timeout=15):
+                    probs = []
+                    lost.append(name)
+                    print(f"{name}: EMULATOR LOST (adb sees no device) - not judged", flush=True)
             print(f"{name}: no UI dump, judged from the view tree ({len(vs)} views)", flush=True)
         else:
             probs, system, titles = [], {}, []
@@ -133,7 +142,8 @@ def window_size():
 def write_report():
     """written after every screen, so a run that stops half way still leaves its findings"""
     api_ = sh("getprop ro.build.version.sdk").strip()
-    lines = [f"# Bar overlap check (API {api_})", "", f"**{problems_total} overlap(s) on {len(report)} screens**", "",
+    lines = [f"# Bar overlap check (API {api_})", "", f"**{problems_total} overlap(s) on {len(report)} screens**", ""] + \
+            ([f"Not judged, the emulator went away: {', '.join(lost)}", ""] if lost else []) + ["",
              "| screen | activity | overlaps |", "|---|---|---|"]
     for r in report:
         lines.append(f"| {r['screen']} | {r['front'].split('/')[-1]} | {'; '.join(r['problems'])[:600] or 'none'} |")
