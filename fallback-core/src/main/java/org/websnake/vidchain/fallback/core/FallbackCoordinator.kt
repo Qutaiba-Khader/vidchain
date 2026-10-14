@@ -60,7 +60,6 @@ class FallbackCoordinator(
 	private val refreshes = java.util.concurrent.ConcurrentHashMap<String, Int>()
 	class Config(
 		val includeStub: Boolean = true,
-		val enabled: () -> Boolean = { true },
 		val methodOn: (String) -> Boolean = { true },
 		/** wraps executor attempts (in the app: an EngineHost lease keeps the process alive while the method works) */
 		val keepAlive: suspend (reason: String, block: suspend () -> MethodOutcome) -> MethodOutcome = { _, block -> block() },
@@ -157,10 +156,6 @@ class FallbackCoordinator(
 		Trace.event { TraceEvent("failure", downloadId = d.id, failureClass = v.cls.name, reason = if (parentId != null) "child of $parentId" else "current method") }
 		if (!v.fallbackEligible) {
 			Trace.event { TraceEvent("decision", downloadId = d.id, failureClass = v.cls.name, result = "not-eligible") }
-			return
-		}
-		if (!config.enabled()) {
-			Trace.event { TraceEvent("decision", downloadId = d.id, failureClass = v.cls.name, result = "fallbacks-off") }
 			return
 		}
 		if (!ledger.markHandled(d.id, "${v.cls.name}#${ledger.intentSeq(d.id)}", now)) {
@@ -276,6 +271,12 @@ class FallbackCoordinator(
 				return
 			}
 			val next = ChainSpec.nextMethod(steps, done.map { it.method }) { it in methods && config.methodOn(it) }
+			if (next == null && done.isEmpty() && MethodSwitches.noCapableMethod(steps, methods.keys) { config.methodOn(it) }) {
+				TrailBoard.put(Trail(root.id, urlClass.chain, 0, 0, "-", Trail.State.NO_METHOD))
+				Trace.event { TraceEvent("chain.exhausted", downloadId = root.id, chain = urlClass.chain, failureClass = failureClass,
+					result = "nothing", reason = "no switched-on method for this kind of link") }
+				return
+			}
 			if (next == null) {
 				val best = done.lastOrNull { it.state == AttemptState.UNSURE }
 				val available = steps.count { it in methods && config.methodOn(it) }
@@ -444,7 +445,7 @@ class FallbackCoordinator(
 		var resumed = 0
 		for (id in ids) {
 			val root = list.firstOrNull { it.id == id } ?: continue
-			if (running[id]?.isActive == true || ledger.intentOf(id) in REMOVAL || !config.enabled()) continue
+			if (running[id]?.isActive == true || ledger.intentOf(id) in REMOVAL) continue
 			val stops = ledger.attempts(id).count { it.reason == INTERRUPTED }
 			if (stops >= MAX_INTERRUPTIONS) {
 				Trace.event { TraceEvent("decision", downloadId = id, result = "not-resumed", reason = "interrupted $stops times") }

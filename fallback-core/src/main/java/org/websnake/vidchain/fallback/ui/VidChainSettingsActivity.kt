@@ -23,7 +23,7 @@ import org.websnake.vidchain.fallback.core.FallbackSettings
 import org.websnake.vidchain.fallback.trace.TraceAndroid
 import org.websnake.vidchain.fallback.trace.TraceConfig
 
-/** Settings -> VidChain fallbacks: master switch, trace log switch + open/share, one switch per method, engine self-test. */
+/** Settings -> VidChain fallbacks: trace log switch + open/share, one switch per method (no master switch, decision 10), engine self-test. */
 class VidChainSettingsActivity : AppCompatActivity() {
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 	private var lastReport: String? = null
@@ -34,10 +34,6 @@ class VidChainSettingsActivity : AppCompatActivity() {
 		setContentView(R.layout.vidchain_settings)
 		title = getString(R.string.vidchain_settings_title)
 
-		findViewById<SwitchCompat>(R.id.vidchain_fallbacks_enabled).apply {
-			isChecked = FallbackSettings.enabled(this@VidChainSettingsActivity)
-			setOnCheckedChangeListener { _, on -> FallbackSettings.setEnabled(this@VidChainSettingsActivity, on) }
-		}
 		findViewById<SwitchCompat>(R.id.vidchain_trace_enabled).apply {
 			isChecked = TraceConfig.enabled
 			setOnCheckedChangeListener { _, on -> TraceAndroid.setEnabled(this@VidChainSettingsActivity, on) }
@@ -67,7 +63,13 @@ class VidChainSettingsActivity : AppCompatActivity() {
 				text = if (id in built) TrailText.name(id) else getString(R.string.vidchain_method_not_built, TrailText.name(id))
 				isEnabled = id in built
 				isChecked = FallbackSettings.methodOn(this@VidChainSettingsActivity, id)
-				setOnCheckedChangeListener { _, on -> FallbackSettings.setMethodOn(this@VidChainSettingsActivity, id, on) }
+				setOnCheckedChangeListener { button, on ->
+					// decision 10: the last method that is on cannot be switched off
+					if (!FallbackSettings.setMethodOn(this@VidChainSettingsActivity, id, on, built)) {
+						button.isChecked = true
+						Toast.makeText(this@VidChainSettingsActivity, R.string.vidchain_method_last_on, Toast.LENGTH_SHORT).show()
+					}
+				}
 				val pad = FallbackUi.dp(box, 6)
 				setPadding(0, pad, 0, pad)
 			})

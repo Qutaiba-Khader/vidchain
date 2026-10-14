@@ -58,11 +58,11 @@ class FallbackCoordinatorTest {
 	private fun failed(key: StatusKey = StatusKey.DOWNLOAD_FAILED) = DownloadSnapshot(Engine.REGULAR, CLOSE, statusKey = key)
 	private fun paused() = DownloadSnapshot(Engine.REGULAR, CLOSE, statusKey = StatusKey.PAUSED)
 
-	private class World(scope: CoroutineScope, methods: List<FallbackMethod>, enabled: Boolean = true, stub: Boolean = true, refresher: LinkRefresher? = null) {
+	private class World(scope: CoroutineScope, methods: List<FallbackMethod>, stub: Boolean = true, refresher: LinkRefresher? = null, methodOn: (String) -> Boolean = { true }) {
 		val host = FakeHost()
 		val ledger = InMemoryLedger()
 		var now = 1_000_000L
-		val c = FallbackCoordinator(host, ledger, methods, scope, FallbackCoordinator.Config(stub, enabled = { enabled }), clock = { now }, refresher = refresher)
+		val c = FallbackCoordinator(host, ledger, methods, scope, FallbackCoordinator.Config(stub, methodOn = methodOn), clock = { now }, refresher = refresher)
 		suspend fun tick() { c.tick(); c.drain() }
 	}
 
@@ -171,11 +171,16 @@ class FallbackCoordinatorTest {
 		assertTrue(w.ledger.attempts("1").isEmpty())
 	}
 
-	@Test fun switchedOffDoesNothing() = runBlocking {
-		val w = World(this, listOf(stub), enabled = false)
+	@Test fun noSwitchedOnMethodForTheLinkTellsTheUser() = runBlocking {
+		// decision 10: every method that handles this kind of link is off (here the only one built): nothing runs and the row says why
+		org.websnake.vidchain.fallback.ui.TrailBoard.clear()
+		val o = Counting("O") { MethodOutcome.Failed("x") }
+		val w = World(this, listOf(o), stub = false, methodOn = { it != "O" })
 		w.host.set("1", running(), url = fileUrl); w.tick()
 		w.host.set("1", failed()); w.tick()
 		assertTrue(w.ledger.attempts("1").isEmpty())
+		assertEquals(0, o.calls.get())
+		assertEquals(org.websnake.vidchain.fallback.ui.Trail.State.NO_METHOD, org.websnake.vidchain.fallback.ui.TrailBoard.of("1")!!.state)
 	}
 
 	@Test fun stallAfterTwoMinutesWithoutProgress() = runBlocking {
@@ -369,7 +374,7 @@ class FallbackCoordinatorTest {
 		val r = Counting("R") { MethodOutcome.Failed("x") }
 		val o = Counting("O") { MethodOutcome.Resolved(Candidate("https://cdn.example/v.mp4")) }
 		val a = Counting("A") { MethodOutcome.Failed("y") }
-		val w = World(this, listOf(r, o, a), enabled = false, stub = false)   // automatic fallbacks off
+		val w = World(this, listOf(r, o, a), stub = false)
 		w.host.set("1", running(), url = fileUrl); w.tick()
 		assertEquals(FallbackCoordinator.Manual.STARTED, w.c.tryAnother("1")); w.c.drain()
 		assertEquals(listOf("R", "O"), w.ledger.attempts("1").map { it.method })

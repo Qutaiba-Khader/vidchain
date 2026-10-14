@@ -6,6 +6,15 @@ listed separately in BUILD-FIXES.md). `tools/drift_check.py` reads the `paths` b
 also carries FALLBACK-SEAM lines stays declared in `seams.lock` too, and `tools/seam_check.py` then checks
 only its seam lines.
 
+## T9 improvement round (owner, 2026-10-14)
+
+The owner dropped the rule "with the fallbacks off, the app sends exactly the original's requests": VidChain is an
+improved app, not a byte-identical twin. From T9 the original app's own fetch paths may change (each change is
+listed here with its files), the full test pass judges what the user gets (files) instead of comparing requests
+with the recording, and there is no "fallbacks off" mode any more (decision 10: the master switch is removed; every
+method has its own switch and at least one always stays on). `seams.lock` still lists the seam lines, and
+`tools/drift_check.py` still proves every difference from `upstream/` is declared in a ledger.
+
 | Change | Files |
 |---|---|
 | Fresh installs start with "Enable Dark UI Mode" on (T8.1) | ours only: `VidChainDefaults.kt` |

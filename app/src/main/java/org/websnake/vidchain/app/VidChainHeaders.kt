@@ -1,7 +1,6 @@
 package org.websnake.vidchain.app
 
 import android.webkit.WebResourceRequest
-import org.websnake.vidchain.fallback.core.FallbackSettings
 import org.websnake.vidchain.web.headers.RequestHeaders
 
 /**
@@ -24,7 +23,6 @@ object VidChainHeaders {
 			if (r.isForMainFrame || !r.method.equals("GET", ignoreCase = true)) return
 			val url = r.url?.toString()?.takeIf { it.startsWith("http", ignoreCase = true) && it.length <= 6000 } ?: return
 			if (STATIC.containsMatchIn(url.substringBefore('?'))) return
-			if (!FallbackSettings.enabled(app.core.AIOApp.INSTANCE)) return
 			val kept = RequestHeaders.keep(r.requestHeaders)
 			if (kept.isEmpty()) return
 			synchronized(byUrl) { byUrl[url] = kept }

@@ -2,8 +2,8 @@
 <resources>
 	<string name="vidchain_settings_title">VidChain fallbacks</string>
 	<string name="vidchain_licences_title">Open-source licences</string>
-	<string name="vidchain_fallbacks_enabled">Try other methods when a download fails</string>
-	<string name="vidchain_fallbacks_help">Your download always starts with the app\'s own method. Only when it fails does VidChain try the methods below, one by one. \"Try another method\" in a download\'s menu works even when this is off.</string>
+	<string name="vidchain_methods_help">VidChain tries the methods below when a download fails, one by one. Switch off the ones you never want; at least one always stays on.</string>
+	<string name="vidchain_method_last_on">At least one method must stay on</string>
 	<string name="vidchain_trace_enabled">Trace log (for finding problems)</string>
 	<string name="vidchain_trace_help">Records which method ran and how it ended. Stays on this phone. Never records cookies, logins or tokens.</string>
 	<string name="vidchain_trace_open">Open trace log</string>

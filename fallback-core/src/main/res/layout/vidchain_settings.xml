@@ -11,20 +11,6 @@
 		android:padding="16dp">
 
 		<androidx.appcompat.widget.SwitchCompat
-			android:id="@+id/vidchain_fallbacks_enabled"
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:minHeight="48dp"
-			android:text="@string/vidchain_fallbacks_enabled" />
-
-		<TextView
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:layout_marginBottom="16dp"
-			android:text="@string/vidchain_fallbacks_help"
-			android:textAppearance="?android:attr/textAppearanceSmall" />
-
-		<androidx.appcompat.widget.SwitchCompat
 			android:id="@+id/vidchain_trace_enabled"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
@@ -67,6 +53,13 @@
 			android:text="@string/vidchain_methods_title"
 			android:textAppearance="?android:attr/textAppearanceMedium"
 			android:textStyle="bold" />
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="4dp"
+			android:text="@string/vidchain_methods_help"
+			android:textAppearance="?android:attr/textAppearanceSmall" />
 
 		<LinearLayout
 			android:id="@+id/vidchain_methods"

@@ -166,8 +166,10 @@ object FallbackRuntime {
 			Trace.event { TraceEvent("runtime.error", reason = "${e.javaClass.simpleName}: ${e.message}") }
 		})
 		val kit = EngineKit(app)
+		// decision 10: the removed master switch is forgotten and a stored "every method off" is repaired
+		runCatching { FallbackSettings.repair(app, methods.map { it.id }) }
 		val c = FallbackCoordinator(host, l, methods.toList(), s,
-			FallbackCoordinator.Config(INCLUDE_STUB, enabled = { FallbackSettings.enabled(app) }, methodOn = { FallbackSettings.methodOn(app, it) },
+			FallbackCoordinator.Config(INCLUDE_STUB, methodOn = { FallbackSettings.methodOn(app, it) },
 				keepAlive = { reason, block -> kit.keptAlive(reason) { block() } }),
 			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe), refresher = linkRefresher(app))
 		ledger = l; coordinator = c; this.host = host; scope = s

@@ -5,10 +5,11 @@ For each scenario: write the fault control file read by world.py, force-stop the
 VidChain (exactly like the YouTube app / Morphe do: ACTION_SEND text/plain), then act like a user who
 accepts the obvious: tap the app's own "Download Now" or the first quality offered. Record what the
 user saw (texts on screen), which activity ended in front, and which files landed in the download folder.
-With fallbacks on (T6.2), after the current method's phase the driver also waits for VidChain's fallback chain to
+After the current method's phase the driver also waits for VidChain's fallback chain to
 end (trace events "commit result=ok" or "chain.exhausted" in the app's trace file) and records the trace.
 (The trace file, not logcat: a release build's Log.i lines did not reach logcat in the first run, 2026-10-03.)
-usage: drive.py <scenarios.json> <out-dir> <faults-control-file> [--fallbacks on|off] [--picker quality-first]"""
+usage: drive.py <scenarios.json> <out-dir> <faults-control-file> [--picker quality-first]
+(T9, owner 2026-10-14: there is no fallbacks master switch any more, so there is no off mode.)"""
 import hashlib
 import json
 import os
@@ -24,7 +25,9 @@ MARK = "/data/local/tmp/vidchain-scenario.mark"
 SCEN = json.loads(pathlib.Path(sys.argv[1]).read_text())
 OUT = pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 CONTROL = pathlib.Path(sys.argv[3])
-FALLBACKS = sys.argv[sys.argv.index("--fallbacks") + 1] if "--fallbacks" in sys.argv else "on"
+if "--fallbacks" in sys.argv:
+    sys.exit("drive.py: --fallbacks was removed in T9 (no master switch)")
+FALLBACKS = "on"
 # The golden (T1.3) was recorded tapping "Download Now" before a quality, which never completes a resolution picker.
 # --picker quality-first taps like a user (quality, then Download Now); the OFF pass keeps the recorded order.
 QUALITY_FIRST = "--picker" in sys.argv and sys.argv[sys.argv.index("--picker") + 1] == "quality-first"
@@ -82,21 +85,17 @@ def picker_option(texts):
     return next((t for t in texts[a + 1:b] if len(t) <= 24 and not SIZE.fullmatch(t)), None)
 
 
-def set_fallbacks(on):
-    """the owner's master switch (FallbackSettings "vidchain_fallback" / fallbacks_enabled), written as root while the app is stopped"""
+def prepare_prefs():
+    """every method at its default (VidChain's method switches deleted) and the trace log on, written as root while the app is stopped"""
     sh(f"am force-stop {PKG}")
     d = f"/data/data/{PKG}/shared_prefs"
-    local = OUT / "vidchain_fallback.xml"
-    local.write_text("<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n"
-                     f"    <boolean name=\"fallbacks_enabled\" value=\"{'true' if on else 'false'}\" />\n</map>\n")
-    sh(f"mkdir -p {d}")
-    adb("push", str(local), f"{d}/vidchain_fallback.xml")
+    sh(f"mkdir -p {d} && rm -f {d}/vidchain_fallback.xml")
     # the trace log is off by default from v1.0.0: the test turns it on like Settings -> Trace log (the chains are read from it)
     trace_xml = OUT / "vidchain_trace.xml"
     trace_xml.write_text("<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n    <boolean name=\"enabled\" value=\"true\" />\n</map>\n")
     adb("push", str(trace_xml), f"{d}/vidchain_trace.xml")
-    sh(f"chown $(stat -c %u:%g /data/data/{PKG}) {d} {d}/vidchain_fallback.xml {d}/vidchain_trace.xml && chmod 660 {d}/vidchain_fallback.xml {d}/vidchain_trace.xml && restorecon -R {d}")
-    print("fallbacks:", "on" if on else "off", "->", sh(f"cat {d}/vidchain_fallback.xml").strip().replace("\n", " "), flush=True)
+    sh(f"chown $(stat -c %u:%g /data/data/{PKG}) {d} {d}/vidchain_trace.xml && chmod 660 {d}/vidchain_trace.xml && restorecon -R {d}")
+    print("prefs: method defaults, trace on", flush=True)
 
 
 TRACE_FILE = f"/data/data/{PKG}/files/trace/trace.log"
@@ -126,7 +125,7 @@ def chain_state(lines):
     return None
 
 
-set_fallbacks(FALLBACKS == "on")
+prepare_prefs()
 results = []
 scenarios = SCEN["scenarios"]
 # a diagnostic run of a few scenarios (VIDCHAIN_ONLY=id1,id2): not a full pass

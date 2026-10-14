@@ -12,7 +12,7 @@ data class Trail(
 	val method: String,
 	val state: State,
 ) {
-	enum class State { RUNNING, WAITING_CHILD, VERIFYING, DELIVERED, BEST_SO_FAR, EXHAUSTED, INTERRUPTED }
+	enum class State { RUNNING, WAITING_CHILD, VERIFYING, DELIVERED, BEST_SO_FAR, EXHAUSTED, INTERRUPTED, NO_METHOD }
 }
 
 /** In-memory board (no disk on the UI path). Empty after a restart until the chain moves again; the "methods tried" sheet reads the ledger. */
@@ -61,7 +61,11 @@ object TrailText {
 		Trail.State.BEST_SO_FAR -> "Fallback: kept the file from ${name(t.method)} (could not fully check it)"
 		Trail.State.EXHAUSTED -> "Fallback: no other method worked (${t.total} tried)"
 		Trail.State.INTERRUPTED -> "Fallback: stopped when Android closed the app after ${t.total} method(s) — tap Try another method"
+		Trail.State.NO_METHOD -> NO_METHOD
 	}
+
+	/** decision 10: every method that can handle this kind of link is switched off */
+	const val NO_METHOD = "No switched-on method can handle this link — open Settings › VidChain fallbacks › Methods"
 
 	fun childCard(method: String): String = "Fallback download via ${name(method)} (tap for the methods tried)"
 

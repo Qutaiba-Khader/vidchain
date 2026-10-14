@@ -2,7 +2,7 @@ name: Full test (manual)
 
 # The long emulator suites (owner decision, INBOX #3): run once on the finished app, by hand, never per push.
 #   fixture-cross-exam  every fixture's expected outcome confirmed by desktop reference tools
-#   golden-twin         the app driven through every fixture and fault in the CI emulator, compared later with ci/golden
+#   golden-twin         the app driven through every fixture and fault in the CI emulator; outcomes judged against ci/golden
 on:
   workflow_dispatch:
     inputs:
@@ -131,7 +131,7 @@ jobs:
           "$ANDROID_HOME/emulator/emulator" -accel-check || true
           ls -l /dev/kvm
 
-      - name: Drive every fixture with fallbacks off and on, then every fault with fallbacks on (T6.2)
+      - name: Drive every fixture, then every fault (T9: there is no fallbacks-off mode any more)
         env:
           VIDCHAIN_ONLY: ${{ inputs.only }}
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
@@ -145,25 +145,19 @@ jobs:
             python3 ci/emulator/coldstart.py coldstart.json v1.0.1=before/vidchain-x86_64.apk this-build=apk/app-x86_64-release.apk || true
             bash ci/emulator/fixture_env.sh apk/app-x86_64-release.apk ${{ runner.temp }}/fixture-ca.pem
             python3 ci/emulator/screens.py screens || true
-            python3 ci/emulator/drive.py ci/golden/scenarios-golden.json off-out ${{ runner.temp }}/faults.json --fallbacks off
-            python3 ci/emulator/drive.py ci/golden/scenarios-golden.json off-out2 ${{ runner.temp }}/faults.json --fallbacks off
-            python3 ci/emulator/drive.py ci/golden/scenarios-golden.json on-out ${{ runner.temp }}/faults.json --fallbacks on --picker quality-first
-            python3 ci/emulator/drive.py ci/golden/scenarios-faults.json faults-out ${{ runner.temp }}/faults.json --fallbacks on --picker quality-first
-            python3 ci/emulator/drive.py ci/golden/scenarios-faults.json faults-off-out ${{ runner.temp }}/faults.json --fallbacks off
+            python3 ci/emulator/drive.py ci/golden/scenarios-golden.json on-out ${{ runner.temp }}/faults.json --picker quality-first
+            python3 ci/emulator/drive.py ci/golden/scenarios-faults.json faults-out ${{ runner.temp }}/faults.json --picker quality-first
 
       - name: Canonicalise
         run: |
-          python3 ci/golden/canonicalise.py off-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" off-out/off.json
-          python3 ci/golden/canonicalise.py off-out2/outcomes.json "$RUNNER_TEMP/flows.jsonl" off-out/off2.json
           python3 ci/golden/canonicalise.py on-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" on-out/on.json
           python3 ci/golden/canonicalise.py faults-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" faults-out/faults.json
-          python3 ci/golden/canonicalise.py faults-off-out/outcomes.json "$RUNNER_TEMP/flows.jsonl" faults-out/faults-off.json
           cp "$RUNNER_TEMP/flows.jsonl" on-out/flows.jsonl
 
       - name: Judge against the committed golden and fallback-expect.json
         run: |
           python3 ci/golden/full_compare.py ci/golden/golden.json ci/golden/fault-matrix.json ci/golden/fallback-expect.json \
-            off-out/off.json on-out/on.json on-out/outcomes.json faults-out/faults.json faults-out/outcomes.json full-test-report.md off-out/off2.json faults-out/faults-off.json
+            on-out/on.json on-out/outcomes.json faults-out/faults.json faults-out/outcomes.json full-test-report.md
           cat full-test-report.md >> "$GITHUB_STEP_SUMMARY"
           { echo "### Cold start (launcher tap to main screen drawn, ms)"; echo '```'; cat coldstart.json 2>/dev/null || echo "no measurement"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
@@ -174,9 +168,6 @@ jobs:
           path: |
             coldstart.json
             screens/
-            off-out/
-            off-out2/outcomes.json
-            faults-off-out/outcomes.json
             on-out/
             faults-out/
             full-test-report.md

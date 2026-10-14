@@ -95,7 +95,11 @@ object VidChainShareRescue {
 		try {
 			val u = uri?.trim() ?: return false
 			if (activity == null || UrlClass.of(u) != UrlClass.MAGNET_TORRENT) return false
-			if (!FallbackSettings.enabled(activity) || !FallbackSettings.methodOn(activity, "A")) return false
+			if (!FallbackSettings.methodOn(activity, "A")) {
+				// decision 10: aria2c is the only method for torrents; say so instead of doing nothing
+				Toast.makeText(activity.applicationContext, org.websnake.vidchain.fallback.ui.TrailText.NO_METHOD, Toast.LENGTH_LONG).show()
+				return true
+			}
 			val c = FallbackRuntime.coordinator ?: return false
 			if (!aria2Ready()) {
 				// 32-bit phones carry no aria2c (Q8), and the first start unpacks it a moment after the app opens
@@ -128,7 +132,7 @@ object VidChainShareRescue {
 			if (url != null && UrlClass.of(url) == UrlClass.MAGNET_TORRENT) { torrent(activity, url); return }
 			if (activity == null || url.isNullOrBlank() || !url.startsWith("http", ignoreCase = true)) return
 			if (UrlClass.of(url) == UrlClass.YOUTUBE) return                       // YouTube has its own methods (C, P)
-			if (!FallbackSettings.enabled(activity) || !FallbackSettings.methodOn(activity, "Y")) return
+			if (!FallbackSettings.methodOn(activity, "Y")) return
 			val engine = FallbackRuntime.ytdlp ?: return
 			if (!engine.ready) return
 			if (!busy.compareAndSet(false, true)) return

@@ -19,7 +19,7 @@ object SelfTest {
 		val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
 		lines += "VidChain ${version ?: "?"} self-test"
 		lines += "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ABI ${kit.abi}"
-		lines += "Fallbacks: ${if (FallbackSettings.enabled(context)) "on" else "off"}; trace log: ${if (TraceConfig.enabled) "on" else "off"}"
+		lines += "Methods off: ${FallbackRuntime.methods.filter { !FallbackSettings.methodOn(context, it.id) }.joinToString(", ") { TrailText.name(it.id) }.ifEmpty { "none" }}; trace log: ${if (TraceConfig.enabled) "on" else "off"}"
 		lines += "Methods built: ${FallbackRuntime.methods.joinToString(", ") { TrailText.name(it.id) }}"
 		lines += "Process groups (setsid): ${if (kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { launcher.groups }) launcher.setsid else "not available - a cancel stops only the launcher shell"}"
 		lines += "Library runtime extracted: ${if (l.pythonReady) "yes" else "no (open a video once so the downloader sets it up)"}"

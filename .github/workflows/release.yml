@@ -239,7 +239,7 @@ jobs:
               echo
             fi
             if [ "$tested" = "True" ] && [ -n "$run" ]; then
-              echo "> **Fully tested:** the full emulator test pass is clean (55 / 55): with fallbacks off the app behaves exactly like the recording of the original app on all 22 test links; with fallbacks on, and under 11 injected faults, every link ends as expected. Run: $run"
+              echo "> **Fully tested:** the full emulator test pass is clean: every test link, and every link under an injected fault, ends as expected. Run: $run"
               echo
             fi
             echo "VidChain ${VERSION} - an Android video downloader based on [AIO Video Downloader](https://github.com/shibaFoss/AIO-Video-Downloader) by shibaFoss (independent, non-commercial, not official)."

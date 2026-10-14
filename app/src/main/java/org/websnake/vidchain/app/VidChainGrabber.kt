@@ -10,7 +10,6 @@ import app.core.engines.video_parser.parsers.SupportedURLs.isM3U8Url
 import app.ui.main.fragments.browser.webengine.VideoUrlInfo
 import app.ui.main.fragments.browser.webengine.WebVideoParser
 import app.ui.main.fragments.browser.webengine.WebViewEngine
-import org.websnake.vidchain.fallback.core.FallbackSettings
 import org.websnake.vidchain.web.catcher.CatchCollector
 import org.websnake.vidchain.web.probe.WebProbe
 import org.websnake.vidchain.web.refetch.RefetchPolicy
@@ -65,9 +64,8 @@ object VidChainGrabber {
 	/** Seam grabber (WebViewEngine.updateEngineOfWebView): once per WebView, and only where the probe fully works. */
 	@JvmStatic
 	fun attach(engine: WebViewEngine, webView: WebView) {
-		// part of VidChain's fallbacks: with the master switch off the browser behaves exactly like the original app
-		// (no probe, so no extra requests - full test pass 15, golden OFF audio-only / og-video)
-		if (states.containsKey(webView) || !WebProbe.fullySupported() || !FallbackSettings.enabled(webView.context)) return
+		// T9 decision 10: there is no master switch any more, so the probe always runs where it fully works
+		if (states.containsKey(webView) || !WebProbe.fullySupported()) return
 		states[webView] = PageState(null)
 		refetches[webView] = Refetch(engine)
 		runCatching { WebProbe.attach(webView, autoplay = false) { f -> accept(engine, webView, f) } }
@@ -75,7 +73,6 @@ object VidChainGrabber {
 
 	/** runs on the UI thread (WebMessageListener); cheap checks first, the list is touched only for accepted finds */
 	private fun accept(engine: WebViewEngine, view: WebView, f: WebProbe.Find) {
-		if (!FallbackSettings.enabled(view.context)) return
 		runCatching { Refetcher.get(view.context).observed(f.url, f.how) }
 		// the page plays or holds a video (not merely a media address named in data): re-fetch may start
 		if (f.how in TAGS || f.url.startsWith("blob:", ignoreCase = true)) refetches[view]?.gate?.armed = true
@@ -107,14 +104,13 @@ object VidChainGrabber {
 
 	/**
 	 * Seam refetch (BrowserWebClient.shouldInterceptRequest, a WebView network thread): a response for the page, or
-	 * null to let the WebView load it as always. Off with the fallbacks master switch.
+	 * null to let the WebView load it as always.
 	 */
 	@JvmStatic
 	fun refetch(view: WebView?, request: WebResourceRequest?): WebResourceResponse? = runCatching {
 		val v = view ?: return null
 		val r = request ?: return null
 		val st = refetches[v] ?: return null
-		if (!FallbackSettings.enabled(v.context)) return null
 		if (r.isForMainFrame) {                                               // a new page: a new, dormant allowance
 			st.gate.summary()?.let { s -> org.websnake.vidchain.fallback.trace.Trace.event { org.websnake.vidchain.fallback.trace.TraceEvent("refetch.page", reason = s) } }
 			st.gate = RefetchPolicy.PageGate(REFETCH_PER_PAGE, armed = false); return null

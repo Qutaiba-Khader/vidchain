@@ -4,6 +4,11 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## Unreleased (T9 improvement round)
+- There is no "fallbacks" master switch any more (owner, 2026-10-14): each method has its own switch in Settings ›
+  VidChain fallbacks › Methods, and the last one that is on cannot be switched off. A link that no switched-on method
+  can handle says so on its download row. A saved "all off" is repaired to every method on at start.
+
 ## 1.1.5
 - Checked by the full emulator test pass ([run 38442777392](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38442777392), 55 / 55).
 
