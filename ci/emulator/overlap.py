@@ -112,7 +112,7 @@ def views(activity_text, package=PKG):
     if sec is None or "View Hierarchy:" not in sec:
         return []
     lines = sec.split("View Hierarchy:", 1)[1].splitlines()
-    out, stack = [], []          # stack of (indent, abs_left, abs_top, visible, in_title)
+    out, stack = [], []          # stack of (indent, abs_left, abs_top, visible, in_title, entry, clip)
     for ln in lines:
         m = VIEW.match(ln)
         if not m:
@@ -123,17 +123,21 @@ def views(activity_text, package=PKG):
         while stack and stack[-1][0] >= ind:
             stack.pop()
         px, py, pvis, ptitle = (stack[-1][1], stack[-1][2], stack[-1][3], stack[-1][4]) if stack else (0, 0, True, False)
+        pclip = stack[-1][6] if stack else (-10**6, -10**6, 10**6, 10**6)
         l, t, r, b = (int(m.group(i)) for i in range(5, 9))
         rid = m.group(9) or ""
         vis = pvis and m.group(3) == "V"
         title = ptitle or bool(re.search(r"id/(action_bar|toolbar)$", rid))
-        rect = (px + l, py + t, px + r, py + b)
+        full = (px + l, py + t, px + r, py + b)
+        # what the user can see of it: a parent clips its children (a list's rows below its end are scrolled, not hidden)
+        clip = (max(full[0], pclip[0]), max(full[1], pclip[1]), min(full[2], pclip[2]), min(full[3], pclip[3]))
+        rect = clip
         if out and stack and out[-1][0] is not None:
             pass
         entry = [rect, m.group(2), rid, m.group(4) == "C", False, title, vis]
         if stack:
             stack[-1][5][4] = True    # the parent has a child
-        stack.append((ind, rect[0], rect[1], vis, title, entry))
+        stack.append((ind, full[0], full[1], vis, title, entry, clip))
         out.append(entry)
     return [(e[0], e[1], e[2], e[3], e[4], e[5]) for e in out if e[6] and e[0][2] > e[0][0] and e[0][3] > e[0][1]]
 

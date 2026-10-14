@@ -22,7 +22,7 @@ import time
 SERIAL = "R58M463R4JP"
 PKG = "org.websnake.vidchain"
 SHARE = f"{PKG}/app.ui.others.information.IntentInterceptActivity"
-PICKER = ("Download Now", "Download The File To Private Folder", "Pick Video Resolution To Generate File Name")
+PICKER = ("Download Now", "Download Available", "Download The File To Private Folder", "Pick Video Resolution To Generate File Name")   # "Download Available": a direct file
 EVENT = re.compile(r"EventType: (\w+); EventTime: (\d+);.*?PackageName: ([\w.]+);.*?Text: \[([^\]]*)\]")
 
 
@@ -111,11 +111,19 @@ def share_once(url, warm, download):
     rec = {"url": url, "mode": "warm" if warm else "cold"}
     deadline = time.time() + 120
     pick = None
-    while time.time() < deadline and not pick:
+    direct = bool(re.search(r"\.(mp4|webm|mkv|mov|zip|mp3|m4a)(\?|$)", url, re.I))   # its dialog sends no naming event
+    while not direct and time.time() < deadline and not pick:
         time.sleep(0.3)
         pick = events.first(t0, lambda e: e[2] == PKG and any(p in e[3] for p in PICKER))
     events.stop()
     time.sleep(0.5)
+    if not pick:
+        # some dialogs (a direct file's "Download Available") send no event that names them: look at the screen instead
+        while time.time() < deadline and not pick:
+            if any(any(p in t for p in PICKER) for t, _, _ in nodes()):
+                pick = (uptime_ms(sh("cat /proc/uptime")),)
+            else:
+                time.sleep(0.3)
     if not pick:
         rec["picker_s"] = None
         rec["result"] = "no picker in 120 s"
