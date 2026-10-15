@@ -52,10 +52,13 @@ class DownloadManagerMethod(
 					else -> {
 						// review run 25: queued, or waiting for a network / Wi-Fi, is not the server failing to answer
 						// (the app's own downloads wait for the network too); PAUSED reason 1 = waiting to retry
-						// (review run 26: only PAUSED 2 = waiting for a network and 3 = queued for Wi-Fi; any other pause counts)
+						// (review runs 26-27: PAUSED 2 = waiting for a network and 3 = queued for Wi-Fi stop both clocks; PENDING -
+						// Android keeps an offline download there - stops only the no-data clock; any other pause counts)
 						val waitingForDevice = s.state == SystemDownloads.State.PAUSED && (s.reason == 2 || s.reason == 3)
-						if (waitingForDevice) { waitingSince = System.currentTimeMillis(); lastMove = waitingSince }   // review run 26: nor a stall
-						if (s.bytes <= 0 && !waitingForDevice && System.currentTimeMillis() - waitingSince > noStartMs)
+						val pending = s.state == SystemDownloads.State.PENDING
+						if (waitingForDevice || pending) waitingSince = System.currentTimeMillis()
+						if (waitingForDevice) lastMove = waitingSince
+						if (s.bytes <= 0 && !waitingForDevice && !pending && System.currentTimeMillis() - waitingSince > noStartMs)
 							return MethodOutcome.Failed("DownloadManager: no data in ${noStartMs / 1000} s (${s.state.name.lowercase()})")
 						if (s.bytes != lastBytes) { lastBytes = s.bytes; lastMove = System.currentTimeMillis() }
 						else if (System.currentTimeMillis() - lastMove > stallMs) return MethodOutcome.Failed("DownloadManager: no progress for ${stallMs / 60_000} min (${s.state.name.lowercase()})")

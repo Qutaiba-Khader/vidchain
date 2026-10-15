@@ -58,9 +58,17 @@ object VidChainAnalysis {
 	fun key(url: String, cookie: String? = cookiesFor(url)): AnalysisStore.Key =
 		AnalysisStore.Key(normalise(url), cookie?.let { sha(it).take(12) } ?: "-")
 
+	/**
+	 * review run 27: the cookies an analysis of [url] uses, one rule for analyse / recordFor / refused (their store keys
+	 * must agree): the caller's cookies belong to the shared address's host, so for a rewritten address
+	 * (vimeo.com -> player.vimeo.com) the WebView store's own cookies of that host are used
+	 */
+	private fun cookieFor(url: String, cookie: String?): String? =
+		cookie?.takeIf { it.isNotBlank() && normalise(url) == url } ?: cookiesFor(normalise(url))
+
 	/** a kept analysis of [url] that may be replayed now, or null ([cookie] as given to [analyse]) */
 	fun recordFor(url: String, cookie: String? = null): Record? =
-		store.get(key(url, cookie?.takeIf { it.isNotBlank() } ?: cookiesFor(normalise(url))))?.takeIf { it.replayable && it.file.isFile }
+		store.get(key(url, cookieFor(url, cookie)))?.takeIf { it.replayable && it.file.isFile }
 
 	/**
 	 * the analysis of [url]: kept, joined while another caller runs it, or run now. [cookie] = the cookies the caller
@@ -75,7 +83,7 @@ object VidChainAnalysis {
 		val page = normalise(url)
 		// review run 26: cookies given for the shared address belong to its host only; for a rewritten address
 		// (vimeo.com -> player.vimeo.com) the WebView store's own cookies of that host are used
-		val cookies = cookie?.takeIf { it.isNotBlank() && page == url } ?: cookiesFor(page)
+		val cookies = cookieFor(url, cookie)
 		val k = key(page, cookies)
 		return store.analyse(k) {
 			val t0 = System.currentTimeMillis()
@@ -134,7 +142,7 @@ object VidChainAnalysis {
 	 * the download of [url] was refused with its kept analysis (expired / 403 / 410): drop it. true = analyse once more;
 	 * false = it was already analysed again once, so the fallback methods take over
 	 */
-	fun refused(url: String, cookie: String? = null): Boolean = store.invalidate(key(url, cookie?.takeIf { it.isNotBlank() } ?: cookiesFor(normalise(url)))).also {
+	fun refused(url: String, cookie: String? = null): Boolean = store.invalidate(key(url, cookieFor(url, cookie))).also {
 		Trace.event { TraceEvent("analysis", result = "refused", reason = if (it) "analysing once more" else "second refusal") }
 	}
 

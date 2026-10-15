@@ -122,7 +122,7 @@ object VidChainFallbackHost : FallbackHost {
 		m.fileDirectory = dir
 		m.fileCategoryName = p?.fileCategoryName.orEmpty()
 		m.fileURL = parent.mediaUrl
-		m.siteReferrer = p?.siteReferrer ?: parent.referer.orEmpty()     // review run 26: a shared page's file names its page
+		m.siteReferrer = p?.siteReferrer ?: parent.url                    // review runs 26-27: a shared page's file names its page
 		m.fileMimeType = p?.fileMimeType.orEmpty()
 		m.fileSize = file.length()
 		m.fileSizeInFormat = humanReadableSizeOf(m.fileSize)

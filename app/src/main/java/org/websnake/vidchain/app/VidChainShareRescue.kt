@@ -150,6 +150,7 @@ object VidChainShareRescue {
 						Trace.event { TraceEvent("share.rescue", method = "Y", result = "not-needed", reason = "the app started its own download") }
 						return@launch
 					}
+
 					// a share from another app has closed its screen by now: show the result on the app's screen in front
 					val a = ref.get()?.takeIf { !it.isFinishing && !it.isDestroyed }
 						?: front?.get()?.takeIf { !it.isFinishing && !it.isDestroyed } ?: return@launch
@@ -157,7 +158,7 @@ object VidChainShareRescue {
 						// T9 (owner, 2026-10-15: "if there's a stream link, there's a download"): yt-dlp found nothing, so
 						// VidChain's other methods look for the video on the page (its hidden browser W, as Web Video
 						// Caster's in-page detection does, the page scan H, the other downloaders)
-						if (!pageChain(a.applicationContext, url, known, tried))
+						if (!pageChain(a.applicationContext, url, tried))
 							Toast.makeText(a.applicationContext, "VidChain: no downloadable video found on this page", Toast.LENGTH_SHORT).show()
 						return@launch
 					}
@@ -177,17 +178,15 @@ object VidChainShareRescue {
 	 * T9: VidChain's method chain on a shared page nothing else could read; the file appears in Finished downloads.
 	 * The same link shared again while it runs is one chain (its id is the link's hash). false = could not start.
 	 */
-	private fun pageChain(context: android.content.Context, url: String, known: Set<Int>, tried: Map<String, String>): Boolean {
+	private fun pageChain(context: android.content.Context, url: String, tried: Map<String, String>): Boolean {
 		val c = FallbackRuntime.coordinator ?: return false
 		val dir = app.core.engines.downloader.DownloadDataModel().fileDirectory.takeIf { it.isNotEmpty() } ?: return false
 		val hash = java.security.MessageDigest.getInstance("SHA-1").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
-		val host = runCatching { URI(url).host?.removePrefix("www.") }.getOrNull()?.replace(Regex("[^A-Za-z0-9.-]"), "_") ?: "video"
 		val id = "share-$hash"
 		val root = org.websnake.vidchain.fallback.core.HostDownload(
 			id = id, url = url, mediaUrl = url,
 			snapshot = org.websnake.vidchain.fallback.classifier.DownloadSnapshot(org.websnake.vidchain.fallback.classifier.Engine.REGULAR, org.websnake.vidchain.fallback.classifier.DownloadSnapshot.CLOSE),
-			filePath = File(dir, "$host-${hash.take(6)}.mp4").path, expectMedia = true,
-			referer = url,                                                 // review run 26: the listed file names its page
+			filePath = File(dir, "${shareFilePrefix(url)}.mp4").path, expectMedia = true,
 		)
 		Trace.event { TraceEvent("share.rescue", downloadId = id, chain = UrlClass.of(url).chain, result = "page-chain") }
 		scope.launch {
@@ -202,14 +201,9 @@ object VidChainShareRescue {
 			var state = org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.RUNNING
 			val until = System.currentTimeMillis() + 30 * 60_000L
 			while (state == org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.RUNNING && System.currentTimeMillis() < until) {
+				// (review runs 25-27: no "the app downloads it too" cancel any more: telling the chain's own files, a redirected
+				// page and other shares apart reopened a defect each time; the start message says where the file appears)
 				kotlinx.coroutines.delay(3_000)
-				// review run 25: the user downloaded it from the app's browser meanwhile: one copy, not two. Review run 26:
-				// only a new download of this link counts (not the chain's own file, not another link shared meanwhile)
-				if (ownDownloadOf(url, known, c.listedIds(id))) {
-					withContext(Dispatchers.Default) { c.cancelChain(id) }
-					Trace.event { TraceEvent("share.rescue", downloadId = id, result = "page-chain-stopped", reason = "the app started its own download") }
-					return@launch
-				}
 				state = c.standalone(id)
 			}
 			val text = when (state) {
@@ -234,19 +228,35 @@ object VidChainShareRescue {
 	 * the app's own path worked: a download appeared since the share (its browser found the file, also after a
 	 * redirect, when the file's URL is not the shared one), or the app already has one for this link
 	 */
-	private fun ownDownloadOf(url: String, before: Set<Int>, own: Set<String>): Boolean = runCatching {
-		models().any { m ->
-			m.downloadId !in before && m.downloadId.toString() !in own &&
-				(m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url)
-		}
-	}.getOrDefault(false)
 
 	/** review run 26: a look-up or a page chain runs yt-dlp now (its update must wait) */
 	@JvmStatic
 	fun busy(): Boolean = busy.get()
 
+	/** the site of a page: its host without www. / m. / mobile. */
+	private fun site(u: String?): String? = runCatching { URI(u ?: return null).host?.lowercase() }.getOrNull()
+		?.removePrefix("www.")?.removePrefix("m.")?.removePrefix("mobile.")
+
+	/** the name a page chain gives the file of [url] (its host and the link's hash) */
+	private fun shareFilePrefix(url: String): String {
+		val hash = java.security.MessageDigest.getInstance("SHA-1").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
+		val host = runCatching { URI(url).host?.removePrefix("www.") }.getOrNull()?.replace(Regex("[^A-Za-z0-9.-]"), "_") ?: "video"
+		return "$host-${hash.take(6)}"
+	}
+
+	/**
+	 * the app's own path worked: a download of this link (or of a page of its site, e.g. after a redirect inside the
+	 * site) appeared since the share. Review runs 26-27: never "any new download" (a second link shared meanwhile is
+	 * not this one), never a file a page chain listed for it (its name starts with [shareFilePrefix]).
+	 */
 	private fun ownDownloadStarted(url: String, before: Set<Int>): Boolean = runCatching {
-		models().any { m -> m.downloadId !in before || m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url }
+		val s = site(url)
+		val prefix = shareFilePrefix(url)
+		models().any { m ->
+			m.downloadId !in before && !m.fileName.startsWith(prefix) &&
+				(m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url ||
+					s != null && (site(m.siteReferrer) == s || site(m.videoInfo?.videoUrl) == s))
+		} || models().any { m -> m.downloadId in before && (m.fileURL == url || m.videoInfo?.videoUrl == url) }
 	}.getOrDefault(false)
 
 	private suspend fun lookUp(engine: YtDlpEngine, url: String, cookie: String?, tried: MutableMap<String, String>): VideoInfo? {
@@ -260,6 +270,7 @@ object VidChainShareRescue {
 			val options = YtDlpEngine.Options(userAgent = AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null }, cookiesFile = cookieFile)
 			// review run 26: the address yt-dlp can read (vimeo.com/<id> -> its public player), as the app's analysis does
 			val page = VidChainAnalysis.normalise(url)
+			val pageCookie = cookie.takeIf { page == url }                  // review run 27: never another host's cookies
 			val stable = engine.info(page, options)
 			if (stable is YtDlpEngine.Result.Failed) tried["Y"] = "the share's look-up: ${stable.problem}"
 			// T9 (corpus test): an out-of-date extractor -> the nightly yt-dlp (method N's) tries once
@@ -275,7 +286,7 @@ object VidChainShareRescue {
 						videoUrl = info.webpageUrl ?: url,
 						videoTitle = info.title,
 						videoThumbnailUrl = info.thumbnail,
-						videoCookie = cookie,
+						videoCookie = pageCookie,
 						videoDuration = info.durationSec?.let { (it * 1000).toLong() } ?: 0L,
 						videoFormats = info.formats.filter { it.hasVideo || it.hasAudio || (it.vcodec == null && it.acodec == null) }.map { f ->
 							VideoFormat(

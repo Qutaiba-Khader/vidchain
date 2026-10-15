@@ -192,7 +192,7 @@ object FallbackRuntime {
 				weightOf = { if (it in HEAVY) org.websnake.vidchain.fallback.race.BatchPlanner.Weight.HEAVY else org.websnake.vidchain.fallback.race.BatchPlanner.Weight.LIGHT },
 				scorecard = scorecardFor(app),
 				probe = ::probe,
-				onChainEnd = { saveScorecard(app) },
+				onChainEnd = { saveScorecard(app); wake() },   // review run 27: the observer looks now (its busy flag ends with the chain)
 				hedge = true),
 			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe), refresher = linkRefresher(app))
 		ledger = l; coordinator = c; this.host = host; scope = s
