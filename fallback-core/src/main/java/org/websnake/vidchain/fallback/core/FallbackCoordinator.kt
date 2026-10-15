@@ -143,7 +143,7 @@ class FallbackCoordinator(
 		// review run 31: the number of an earlier child (deleted outside VidChain's seams), now on a download started after
 		// that child's row ended: not the chain's child (it would skip the hedge and report to the old parent)
 		else if (prev == null && d.startedAtMs != null && running[d.id]?.isActive != true) ledger.parentOf(d.id)?.let { p ->
-			val ended = ledger.attempts(p).lastOrNull { it.childId == d.id }?.endedMs
+			val ended = ledger.attempts(p).lastOrNull { it.childId == d.id }?.takeIf { it.state != AttemptState.CHILD }?.endedMs   // (a child still downloading is its child)
 			if (ended != null && d.startedAtMs > ended + REUSE_SLACK_MS) forgetLocked(d.id, "number of an earlier child reused by a new download")
 		}
 		val st = prev ?: Seen(d.bytes, d.snapshot.status, now, armed = false, intentSeq = ledger.intentSeq(d.id)).also { seen[d.id] = it }
@@ -727,7 +727,12 @@ class FallbackCoordinator(
 						decoded(x, verifier.verify(x, exp), root.expectMedia).takeIf { it.check == Check.PASS }?.let { x to it }
 					}?.let { (x, rx) -> extras = extras - x; temp.delete(); temp = x; r = rx }
 					// review run 31: one copy that does not decode is kept; another one is only noise more
-					if (r !== checked && r.check == Check.UNSURE && ledger.attempts(root.id).any { it.state == AttemptState.UNSURE && it.childId != null && it.reason?.contains("DRM") == true })
+					// (review run 32: only while that copy is still there - after the user deleted it, the next copy is kept)
+					if (r !== checked && r.check == Check.UNSURE && ledger.attempts(root.id).any { it.state == AttemptState.UNSURE && it.childId != null && it.reason?.contains("DRM") == true }.let { drm ->
+							drm && (try { withContext(hostContext) { host.downloads() } } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }).let { list ->
+								ledger.attempts(root.id).any { row -> row.state == AttemptState.UNSURE && row.reason?.contains("DRM") == true && stillItsFile(row, list.firstOrNull { it.id == row.childId }) }
+							}
+						})
 						r = Delivery(Check.FAIL, r.kind, "${r.reason} (a copy that does not decode is already kept)", r.durationMs)
 				}
 				traceVerify(root.id, next, r, "file")
@@ -847,8 +852,18 @@ class FallbackCoordinator(
 	}
 
 	/** the user deleted / cleared [downloadId]: stop its chain now (the engines are killed through cancellation) */
+	/** tests only: a running chain job for [id] */
+	internal fun testRun(id: String, job: Job) { running[id] = job }
+	internal fun testRunning(id: String) = running[id]?.isActive == true
+
 	suspend fun cancelChain(downloadId: String) {
-		val job = lock.withLock { running[ledger.parentOf(downloadId) ?: downloadId] }
+		val job = lock.withLock {
+			val parent = ledger.parentOf(downloadId)
+			// review run 32: a child the chain already judged (a copy it kept or dropped) is removed by the user from the
+			// Finished list - the parent's search for a better copy goes on; only a child still being downloaded stops it
+			if (parent != null && ledger.attempts(parent).lastOrNull { it.childId == downloadId }?.state != AttemptState.CHILD) null
+			else running[parent ?: downloadId]
+		}
 		job?.cancel()
 	}
 

@@ -1,5 +1,6 @@
 package org.websnake.vidchain.fallback.core
 
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -35,8 +36,13 @@ class FallbackCoordinatorTest {
 		val resumedWith = ArrayList<String>()
 		override fun resumeWithUrl(parent: HostDownload, url: String): Boolean { resumedWith += url; return true }
 		override fun downloads() = list.values.toList()
+		/** review run 32: list delivered files as the app does (finished, with their path and start time) */
+		var listsDelivered = false
+		var clock: () -> Long = { 0L }
 		override fun registerDelivered(parent: HostDownload, file: File, method: String): String? =
-			if (!lists) null else { delivered += file; "d${nextId++}" }
+			if (!lists) null else { delivered += file; "d${nextId++}".also { id ->
+				if (listsDelivered) list[id] = HostDownload(id, parent.url, parent.url, DownloadSnapshot(Engine.REGULAR, COMPLETE, isComplete = true), filePath = file.path, startedAtMs = clock())
+			} }
 		override fun enqueueChild(parent: HostDownload, candidate: Candidate, attemptNo: Int, method: String): String {
 			val id = (nextId++).toString()
 			queued += parent.id to candidate
@@ -260,11 +266,16 @@ class FallbackCoordinatorTest {
 		val a = Counting("O") { MethodOutcome.Delivered(goodMp4()) }
 		val b = Counting("A") { MethodOutcome.Delivered(goodMp4()) }
 		val w = World(this, listOf(a, b), config = config)
+		w.host.listsDelivered = true; w.host.clock = { w.now }
 		val root = HostDownload("share-7", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
 		w.c.startStandalone(root, fresh = true); w.c.drain()
 		assertEquals(1, a.calls.get()); assertEquals(1, b.calls.get())                    // both methods ran
 		assertEquals(1, w.host.delivered.size)
 		assertEquals(FallbackCoordinator.Standalone.DRM_COPY, w.c.standalone("share-7"))
+		// the user deleted that copy: a later undecodable copy is kept again (never no copy at all)
+		w.host.delivered.single().delete()
+		w.c.startStandalone(root, fresh = true); w.c.drain()                             // ALREADY_UNSURE no longer: it starts
+		assertEquals(2, w.host.delivered.size)
 	}
 
 	@Test fun anEarlierChildsNumberOnANewDownloadIsNotTheChainsChild() = runBlocking {
@@ -276,6 +287,37 @@ class FallbackCoordinatorTest {
 		w.host.list["c1"] = HostDownload("c1", fileUrl, fileUrl, running(), startedAtMs = w.now)
 		w.tick()
 		assertEquals(null, w.ledger.parentOf("c1"))
+	}
+
+	@Test fun aSameNumberStartedLaterIsNotTheChainsFile() = runBlocking {
+		// review run 32: the time rule's negative case - a download started after the chain's row ended
+		val o = Counting("O") { MethodOutcome.Delivered(goodMp4()) }
+		val w = World(this, listOf(o))
+		val root = HostDownload("share-8", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		w.c.startStandalone(root, fresh = true); w.c.drain()
+		val listed = w.c.listedIds("share-8").single()
+		val saved = w.host.delivered.single()
+		w.host.list[listed] = HostDownload(listed, fileUrl, fileUrl, done, filePath = saved.path, startedAtMs = w.now + 60_000)
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
+		assertEquals(2, o.calls.get())
+	}
+
+	@Test fun removingAJudgedChildDoesNotStopTheParentsSearch() = runBlocking {
+		// review run 32: the Finished list's delete of a copy the chain kept must not cancel the search for a better one
+		val w = World(this, listOf(stub))
+		w.ledger.claim("P", 1, "O", w.now)
+		w.ledger.update("P", 1, AttemptState.UNSURE, "c2", "kept, could not verify", w.now)
+		w.ledger.mapChild("c2", "P")
+		val job = kotlinx.coroutines.CompletableDeferred<Unit>()
+		w.c.testRun("P", kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch { job.await() })
+		w.c.cancelChain("c2")
+		assertTrue(w.c.testRunning("P"))
+		w.ledger.claim("P", 2, "A", w.now)
+		w.ledger.update("P", 2, AttemptState.CHILD, "c3", null, w.now)
+		w.ledger.mapChild("c3", "P")
+		w.c.cancelChain("c3")                                                         // a child still downloading: stops it
+		assertTrue(!w.c.testRunning("P"))
+		job.complete(Unit); Unit
 	}
 
 	@Test fun userPauseNeverStartsAChain() = runBlocking {
