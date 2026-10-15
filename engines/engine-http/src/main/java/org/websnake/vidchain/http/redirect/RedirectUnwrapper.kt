@@ -97,8 +97,24 @@ class RedirectUnwrapper(baseClient: OkHttpClient, private val maxHops: Int = 10,
 			Triple("slack-redir.net", "/link", listOf("url")),
 		)
 
+		private val VIMEO_PAGE = Regex("""^/(\d{4,12})(?:/([0-9a-f]{6,20}))?/?$""")
+
+		/**
+		 * T9 corpus test (2026-10-15): a page whose public player is its own address. vimeo.com/<id> now answers yt-dlp
+		 * with "the web client only works when logged-in" (and the page's player starts only on a tap), while
+		 * player.vimeo.com/video/<id> plays for everyone; a private link's hash goes along as ?h=. null = no such page.
+		 */
+		fun playerOf(url: String): String? {
+			val u = url.toHttpUrlOrNull() ?: return null
+			val host = u.host.lowercase(Locale.ROOT)
+			if (host != "vimeo.com" && host != "www.vimeo.com") return null
+			val m = VIMEO_PAGE.find(u.encodedPath) ?: return null
+			return "https://player.vimeo.com/video/${m.groupValues[1]}" + (m.groupValues[2].takeIf { it.isNotEmpty() }?.let { "?h=$it" } ?: "")
+		}
+
 		/** the wrapped target, or null when [url] is not a known wrapper */
 		fun unwrapKnown(url: String): String? {
+			playerOf(url)?.let { return it }
 			val u = url.toHttpUrlOrNull() ?: return null
 			val host = u.host.lowercase(Locale.ROOT)
 			for ((suffix, path, params) in WRAPPERS) {

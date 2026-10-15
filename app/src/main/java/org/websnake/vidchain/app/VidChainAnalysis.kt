@@ -51,7 +51,8 @@ object VidChainAnalysis {
 	private fun cookiesFor(url: String): String? = runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull()?.takeIf { it.isNotBlank() }
 
 	/** the link as the analysis sees it (a YouTube playlist parameter removed) */
-	fun normalise(url: String): String = if (isYouTubeUrl(url)) filterYoutubeUrlWithoutPlaylist(url) else url
+	fun normalise(url: String): String = if (isYouTubeUrl(url)) filterYoutubeUrlWithoutPlaylist(url)
+		else org.websnake.vidchain.http.redirect.RedirectUnwrapper.playerOf(url) ?: url   // T9: vimeo.com/<id> -> its public player
 
 	/** the store key: the link and a generation of its site's cookies (only a short hash of them, never the cookies) */
 	fun key(url: String, cookie: String? = cookiesFor(url)): AnalysisStore.Key =

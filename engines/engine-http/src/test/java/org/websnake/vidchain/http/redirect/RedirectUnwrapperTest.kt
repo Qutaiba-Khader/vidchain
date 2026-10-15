@@ -67,6 +67,13 @@ class RedirectUnwrapperTest {
 		assertTrue(!RedirectUnwrapper.isLocal("https://172.32.0.1/")); assertTrue(!RedirectUnwrapper.isLocal("https://example.org/"))
 	}
 
+	@Test fun aVimeoPageBecomesItsPublicPlayer() {
+		assertEquals("https://player.vimeo.com/video/76979871", RedirectUnwrapper.unwrapKnown("https://vimeo.com/76979871"))
+		assertEquals("https://player.vimeo.com/video/1017406920?h=af2c3dbf5d", RedirectUnwrapper.playerOf("https://www.vimeo.com/1017406920/af2c3dbf5d"))
+		assertEquals(null, RedirectUnwrapper.playerOf("https://vimeo.com/channels/staffpicks"))
+		assertEquals(null, RedirectUnwrapper.playerOf("https://player.vimeo.com/video/76979871"))   // already the player
+	}
+
 	@Test fun knownWrappersNeedNoRequest() {
 		assertEquals("https://example.org/v.mp4", RedirectUnwrapper.unwrapKnown("https://www.google.com/url?sa=t&url=https%3A%2F%2Fexample.org%2Fv.mp4&ved=x"))
 		assertEquals("https://vimeo.com/1", RedirectUnwrapper.unwrapKnown("https://l.facebook.com/l.php?u=https%3A%2F%2Fvimeo.com%2F1&h=AT0"))
