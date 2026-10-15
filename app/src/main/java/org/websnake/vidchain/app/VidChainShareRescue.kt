@@ -202,6 +202,7 @@ object VidChainShareRescue {
 		)
 		Trace.event { TraceEvent("share.rescue", downloadId = id, chain = UrlClass.of(url).chain, result = "page-chain") }
 		val start = withContext(Dispatchers.Default) { c.startStandalone(root, fresh = true, alreadyTried = tried) }
+		Trace.event { TraceEvent("share.rescue", downloadId = id, result = "page-chain-${start.name.lowercase()}") }   // corpus run 5
 		scope.launch {
 			runCatching { FallbackRuntime.wake() }                            // its observer keeps the service while it runs
 			Toast.makeText(context, when (start) {
@@ -281,9 +282,13 @@ object VidChainShareRescue {
 	 */
 	private fun ownDownloadStarted(url: String, sites: Set<String>, before: Set<Int>, sharedAt: Long): Boolean = runCatching {
 		val prefix = shareFilePrefix(url)
-		val chainFiles = FallbackRuntime.coordinator?.listedIds(shareId(url)).orEmpty()
+		val c = FallbackRuntime.coordinator
+		val chain = shareId(url)
 		fun vidChains(m: app.core.engines.downloader.DownloadDataModel) =
-			VidChainFallbackHost.issued(m.downloadId) || m.downloadId.toString() in chainFiles || m.fileName.startsWith(prefix)
+			VidChainFallbackHost.issued(m.downloadId) || m.fileName.startsWith(prefix) ||
+				c?.isChainFile(chain, org.websnake.vidchain.fallback.core.HostDownload(m.downloadId.toString(), m.fileURL, m.fileURL,
+					org.websnake.vidchain.fallback.classifier.DownloadSnapshot(org.websnake.vidchain.fallback.classifier.Engine.REGULAR, org.websnake.vidchain.fallback.classifier.DownloadSnapshot.CLOSE),
+					filePath = if (m.fileName.isNotEmpty()) File(m.fileDirectory, m.fileName).path else null)) == true
 		models().any { m ->
 			m.downloadId !in before && !vidChains(m) && (m.startTimeDate == 0L || m.startTimeDate >= sharedAt - 1_000) &&
 				(m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url ||

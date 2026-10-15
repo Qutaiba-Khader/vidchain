@@ -165,12 +165,23 @@ class FallbackCoordinatorTest {
 		val root = HostDownload("share-2", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
 		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
 		val listed = w.c.listedIds("share-2").single()
-		w.host.list[listed] = HostDownload(listed, fileUrl, fileUrl, done)
+		val saved = w.host.delivered.single()
+		w.host.list[listed] = HostDownload(listed, fileUrl, fileUrl, done, filePath = saved.path)
 		assertEquals(FallbackCoordinator.Start.ALREADY_DELIVERED, w.c.startStandalone(root, fresh = true))
 		assertEquals(1, o.calls.get())
-		w.host.list.remove(listed)                                                      // the user deleted it
+		// corpus run 5: the app reused the number for another download - not the chain's file any more
+		val other = File.createTempFile("other", ".mp4")
+		w.host.list[listed] = HostDownload(listed, fileUrl, fileUrl, done, filePath = other.path)
 		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
 		assertEquals(2, o.calls.get())
+		// the file deleted outside the app (still listed): looked for again
+		val listed2 = w.c.listedIds("share-2").single()
+		val saved2 = w.host.delivered.last()
+		w.host.list[listed2] = HostDownload(listed2, fileUrl, fileUrl, done, filePath = saved2.path)
+		assertEquals(FallbackCoordinator.Start.ALREADY_DELIVERED, w.c.startStandalone(root, fresh = true))
+		saved2.delete()
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
+		assertEquals(3, o.calls.get())
 	}
 
 	@Test fun aReShareWhoseOnlyFileIsAPossibleCopySaysSoAndRetriesOnceItIsDeleted() = runBlocking {
@@ -180,7 +191,7 @@ class FallbackCoordinatorTest {
 		val root = HostDownload("share-3", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
 		w.ledger.claim("share-3", 1, "O", w.now - 60_000)
 		w.ledger.update("share-3", 1, AttemptState.UNSURE, "90", "could not verify", w.now - 59_000)
-		w.host.list["90"] = HostDownload("90", fileUrl, fileUrl, done)
+		w.host.list["90"] = HostDownload("90", fileUrl, fileUrl, done, filePath = File.createTempFile("copy", ".mp4").path)
 		assertEquals(FallbackCoordinator.Start.ALREADY_UNSURE, w.c.startStandalone(root, fresh = true))
 		assertEquals(0, o.calls.get())
 		w.host.list.remove("90")                                                        // the user deleted it

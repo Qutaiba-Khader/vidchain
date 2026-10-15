@@ -17,6 +17,7 @@ import org.websnake.vidchain.fallback.classifier.TerminalClassifier
 import org.websnake.vidchain.fallback.classifier.UserIntent
 import org.websnake.vidchain.fallback.classifier.Verdict
 import org.websnake.vidchain.fallback.ledger.AttemptLedger
+import org.websnake.vidchain.fallback.ledger.AttemptRow
 import org.websnake.vidchain.fallback.ledger.AttemptState
 import org.websnake.vidchain.fallback.trace.Trace
 import org.websnake.vidchain.fallback.trace.TraceEvent
@@ -863,8 +864,9 @@ class FallbackCoordinator(
 		// Review run 26: an earlier run whose file is still listed answers it (never a second copy).
 		if (fresh && ledger.attempts(root.id).isNotEmpty()) {
 			val listed = try { withContext(hostContext) { host.downloads() } } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
-				.mapTo(HashSet()) { it.id }
-			val kept = ledger.attempts(root.id).filter { it.childId != null && it.childId in listed }
+			// corpus run 5: the app reuses download numbers, and a file can be deleted outside the app - only the file the
+			// chain saved, still there, answers the re-share
+			val kept = ledger.attempts(root.id).filter { row -> stillItsFile(row, listed.firstOrNull { it.id == row.childId }) }
 			if (kept.any { it.state == AttemptState.DELIVERED }) return@withLock Start.ALREADY_DELIVERED
 			// review run 28: a file the chain only called "a possible copy" is not "the video": say so (deleting it retries)
 			if (kept.any { it.state == AttemptState.UNSURE }) return@withLock Start.ALREADY_UNSURE
@@ -878,8 +880,25 @@ class FallbackCoordinator(
 		Start.STARTED
 	}
 
-	/** review run 26: the downloads a standalone chain listed (its own files, never "the app's own download"; review run 28: the share's check skips them) */
+	/** review run 26: the downloads a standalone chain listed (its own files, never "the app's own download") */
 	fun listedIds(id: String): Set<String> = runCatching { ledger.attempts(id).mapNotNullTo(HashSet()) { it.childId } }.getOrDefault(emptySet())
+
+	/**
+	 * corpus run 5: is [d] still the file [row] listed? The app reuses download numbers (a later download takes a deleted
+	 * one's number), so the number alone is never enough: the file must exist and carry the name the chain saved
+	 */
+	private fun stillItsFile(row: AttemptRow, d: HostDownload?): Boolean {
+		val path = d?.filePath ?: return false
+		if (row.childId == null || !File(path).isFile) return false
+		return savedName(row)?.let { it == File(path).name } ?: true
+	}
+
+	/** a chain's own file among the app's downloads (the share's check skips them; corpus run 5: by number AND name) */
+	fun isChainFile(id: String, download: HostDownload): Boolean = runCatching {
+		ledger.attempts(id).any { it.childId == download.id && stillItsFile(it, download) }
+	}.getOrDefault(false)
+
+	private fun savedName(row: AttemptRow): String? = row.reason?.substringAfterLast("; saved as ", "")?.takeIf { it.isNotEmpty() }
 
 	enum class Standalone { RUNNING, DELIVERED, BEST_SO_FAR, NOTHING, DRM, DRM_COPY }
 
