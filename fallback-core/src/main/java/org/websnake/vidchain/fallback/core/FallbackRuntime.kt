@@ -193,6 +193,7 @@ object FallbackRuntime {
 				scorecard = scorecardFor(app),
 				probe = ::probe,
 				onChainEnd = { saveScorecard(app); wake() },   // review run 27: the observer looks now (its busy flag ends with the chain)
+				decodeCheck = { f -> ffmpeg?.decodeProblem(f) },   // review run 28: an encrypted stream is never a delivery
 				hedge = true),
 			hostContext = Dispatchers.Main, verifier = DeliveryVerifier(AndroidDurationProbe), refresher = linkRefresher(app))
 		ledger = l; coordinator = c; this.host = host; scope = s

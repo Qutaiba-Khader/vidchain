@@ -9,6 +9,7 @@ import app.ui.main.fragments.downloads.intercepter.VideoResolutionPicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.websnake.vidchain.fallback.context.SessionContext
@@ -17,6 +18,7 @@ import org.websnake.vidchain.fallback.core.FallbackSettings
 import org.websnake.vidchain.fallback.core.UrlClass
 import org.websnake.vidchain.fallback.trace.Trace
 import org.websnake.vidchain.fallback.trace.TraceEvent
+import org.websnake.vidchain.http.redirect.RedirectUnwrapper
 import org.websnake.vidchain.ytdlp.YtDlpEngine
 import org.websnake.vidchain.ytdlp.YtDlpFormats
 import java.io.File
@@ -138,15 +140,24 @@ object VidChainShareRescue {
 			track(activity)
 			val ref = WeakReference(activity)
 			val sharedAt = System.currentTimeMillis()
-			val known = downloadIds()
 			Trace.event { TraceEvent("share.rescue", chain = UrlClass.of(url).chain, method = "Y", result = "start") }
 			scope.launch {
 				try {
+					// review run 28: the download lists loaded first (a cold start from a share), so old downloads are not "new"
+					val loadedBy = System.currentTimeMillis() + 20_000
+					while (runCatching { AIOApp.downloadSystem.isInitializing }.getOrDefault(false) && System.currentTimeMillis() < loadedBy)
+						kotlinx.coroutines.delay(250)
+					val known = downloadIds()
+					// review run 28: never while yt-dlp is being replaced (its update waits for this share in turn)
+					val updatedBy = System.currentTimeMillis() + 120_000
+					while (VidChainYtDlpUpdate.updating() && System.currentTimeMillis() < updatedBy) kotlinx.coroutines.delay(1_000)
+					// review run 28: where the link leads (a short link or a wrapper opens another site in the app's browser)
+					val sites = async(Dispatchers.IO) { shareSites(url) }
 					val tried = LinkedHashMap<String, String>()                   // what the page chain need not run again
 					val found = engine?.let { e -> withContext(Dispatchers.Default) { lookUp(e, url, cookie, tried) } }
 					// the app's own way (its browser offers the file) goes first: wait, and stay away if it started a download
 					kotlinx.coroutines.delay((sharedAt + OWN_PATH_GRACE_MS - System.currentTimeMillis()).coerceAtLeast(0))
-					if (ownDownloadStarted(url, known)) {
+					if (ownDownloadStarted(url, sites.await(), known, sharedAt)) {
 						Trace.event { TraceEvent("share.rescue", method = "Y", result = "not-needed", reason = "the app started its own download") }
 						return@launch
 					}
@@ -181,8 +192,7 @@ object VidChainShareRescue {
 	private fun pageChain(context: android.content.Context, url: String, tried: Map<String, String>): Boolean {
 		val c = FallbackRuntime.coordinator ?: return false
 		val dir = app.core.engines.downloader.DownloadDataModel().fileDirectory.takeIf { it.isNotEmpty() } ?: return false
-		val hash = java.security.MessageDigest.getInstance("SHA-1").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
-		val id = "share-$hash"
+		val id = shareId(url)
 		val root = org.websnake.vidchain.fallback.core.HostDownload(
 			id = id, url = url, mediaUrl = url,
 			snapshot = org.websnake.vidchain.fallback.classifier.DownloadSnapshot(org.websnake.vidchain.fallback.classifier.Engine.REGULAR, org.websnake.vidchain.fallback.classifier.DownloadSnapshot.CLOSE),
@@ -195,6 +205,7 @@ object VidChainShareRescue {
 			Toast.makeText(context, when (start) {
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.STARTED -> "VidChain: looking for the video with its other methods - it will appear in Finished downloads"
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.ALREADY_DELIVERED -> "VidChain: this video is already in Finished downloads"
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.ALREADY_UNSURE -> "VidChain: a possible copy of this video is in Finished downloads - delete it and share again to look once more"
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.RUNNING -> "VidChain: already looking for this video"
 			}, Toast.LENGTH_LONG).show()
 			if (start != org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.STARTED) return@launch
@@ -210,6 +221,7 @@ object VidChainShareRescue {
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.DELIVERED -> "VidChain: the video is in Finished downloads"
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.BEST_SO_FAR -> "VidChain: a possible copy of the video is in Finished downloads"
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.NOTHING -> "VidChain: no method found a video on this page"
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.DRM -> "VidChain: this video is DRM-protected (encrypted) - it cannot be saved"
 				else -> null
 			}
 			text?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
@@ -223,11 +235,6 @@ object VidChainShareRescue {
 	private fun models() = AIOApp.downloadSystem.let { s -> ArrayList(s.activeDownloadDataModels) + ArrayList(s.finishedDownloadDataModels) }
 
 	private fun downloadIds(): Set<Int> = runCatching { models().map { it.downloadId }.toSet() }.getOrDefault(emptySet())
-
-	/**
-	 * the app's own path worked: a download appeared since the share (its browser found the file, also after a
-	 * redirect, when the file's URL is not the shared one), or the app already has one for this link
-	 */
 
 	/** review run 26: a look-up or a page chain runs yt-dlp now (its update must wait) */
 	@JvmStatic
@@ -245,19 +252,50 @@ object VidChainShareRescue {
 	}
 
 	/**
-	 * the app's own path worked: a download of this link (or of a page of its site, e.g. after a redirect inside the
-	 * site) appeared since the share. Review runs 26-27: never "any new download" (a second link shared meanwhile is
-	 * not this one), never a file a page chain listed for it (its name starts with [shareFilePrefix]).
+	 * review run 28: the sites [url] stands for - its own, the page yt-dlp reads, and every site its redirects pass
+	 * through (a short link or a wrapper opens another site in the app's browser). Only the link's host is asked: no
+	 * cookies, no other headers.
 	 */
-	private fun ownDownloadStarted(url: String, before: Set<Int>): Boolean = runCatching {
-		val s = site(url)
+	private suspend fun shareSites(url: String): Set<String> {
+		val out = LinkedHashSet<String>()
+		listOf(url, VidChainAnalysis.normalise(url), RedirectUnwrapper.unwrapKnown(url)).forEach { u -> site(u)?.let { out += it } }
+		val r = kotlinx.coroutines.withTimeoutOrNull(15_000) {
+			runCatching { RedirectUnwrapper(FallbackRuntime.http).unwrap(url) }.getOrNull()
+		}
+		when (r) {
+			is RedirectUnwrapper.Result.Unwrapped -> (r.hops + r.url).forEach { u -> site(u)?.let { out += it } }
+			is RedirectUnwrapper.Result.Failed -> r.hops.forEach { u -> site(u)?.let { out += it } }
+			else -> {}
+		}
+		return out
+	}
+
+	/**
+	 * the app's own path worked: a download of this link (or of a page of one of its [sites], e.g. after a redirect)
+	 * appeared since the share. Review runs 26-28: never "any new download" (a second link shared meanwhile is not
+	 * this one), never a file VidChain listed itself (a page chain's, for this share or another: [VidChainFallbackHost.issued],
+	 * the chain's ledger, its name), never a download older than the share.
+	 */
+	private fun ownDownloadStarted(url: String, sites: Set<String>, before: Set<Int>, sharedAt: Long): Boolean = runCatching {
 		val prefix = shareFilePrefix(url)
+		val chainFiles = FallbackRuntime.coordinator?.listedIds(shareId(url)).orEmpty()
+		fun vidChains(m: app.core.engines.downloader.DownloadDataModel) =
+			VidChainFallbackHost.issued(m.downloadId) || m.downloadId.toString() in chainFiles || m.fileName.startsWith(prefix)
 		models().any { m ->
-			m.downloadId !in before && !m.fileName.startsWith(prefix) &&
+			m.downloadId !in before && !vidChains(m) && (m.startTimeDate == 0L || m.startTimeDate >= sharedAt - 1_000) &&
 				(m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url ||
-					s != null && (site(m.siteReferrer) == s || site(m.videoInfo?.videoUrl) == s))
-		} || models().any { m -> m.downloadId in before && (m.fileURL == url || m.videoInfo?.videoUrl == url) }
+					site(m.siteReferrer) in sites || site(m.videoInfo?.videoUrl) in sites)
+		} || models().any { m -> m.downloadId in before && !vidChains(m) && (m.fileURL == url || m.videoInfo?.videoUrl == url) }
 	}.getOrDefault(false)
+
+	/** the id of [url]'s page chain (the same link shared again is the same chain) */
+	private fun shareId(url: String) =
+		"share-" + java.security.MessageDigest.getInstance("SHA-1").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
+
+	private fun sameHost(a: String, b: String): Boolean {
+		val ha = runCatching { URI(a).host?.lowercase() }.getOrNull() ?: return false
+		return ha == runCatching { URI(b).host?.lowercase() }.getOrNull()
+	}
 
 	private suspend fun lookUp(engine: YtDlpEngine, url: String, cookie: String?, tried: MutableMap<String, String>): VideoInfo? {
 		val host = runCatching { URI(url).host }.getOrNull()
@@ -286,7 +324,7 @@ object VidChainShareRescue {
 						videoUrl = info.webpageUrl ?: url,
 						videoTitle = info.title,
 						videoThumbnailUrl = info.thumbnail,
-						videoCookie = pageCookie,
+						videoCookie = pageCookie?.takeIf { sameHost(info.webpageUrl ?: url, url) },   // review run 28: nor the page yt-dlp names
 						videoDuration = info.durationSec?.let { (it * 1000).toLong() } ?: 0L,
 						videoFormats = info.formats.filter { it.hasVideo || it.hasAudio || (it.vcodec == null && it.acodec == null) }.map { f ->
 							VideoFormat(

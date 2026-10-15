@@ -58,7 +58,7 @@ class DownloadManagerMethod(
 						val pending = s.state == SystemDownloads.State.PENDING
 						if (waitingForDevice || pending) waitingSince = System.currentTimeMillis()
 						if (waitingForDevice) lastMove = waitingSince
-						if (s.bytes <= 0 && !waitingForDevice && !pending && System.currentTimeMillis() - waitingSince > noStartMs)
+						if (s.bytes <= 0 && System.currentTimeMillis() - waitingSince > noStartMs)   // (a wait above restarted it)
 							return MethodOutcome.Failed("DownloadManager: no data in ${noStartMs / 1000} s (${s.state.name.lowercase()})")
 						if (s.bytes != lastBytes) { lastBytes = s.bytes; lastMove = System.currentTimeMillis() }
 						else if (System.currentTimeMillis() - lastMove > stallMs) return MethodOutcome.Failed("DownloadManager: no progress for ${stallMs / 60_000} min (${s.state.name.lowercase()})")

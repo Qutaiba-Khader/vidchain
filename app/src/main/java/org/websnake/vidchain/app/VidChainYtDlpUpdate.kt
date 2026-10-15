@@ -27,6 +27,12 @@ object VidChainYtDlpUpdate {
 			VidChainAnalysis.busy() || VidChainShareRescue.busy()
 	}.getOrDefault(true)
 	private val running = AtomicBoolean(false)
+
+	/** review run 28: set while yt-dlp is replaced; a share's look-up does not start then (checked again after setting it) */
+	private val updating = AtomicBoolean(false)
+
+	@JvmStatic
+	fun updating(): Boolean = updating.get()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 	@JvmStatic
@@ -46,13 +52,19 @@ object VidChainYtDlpUpdate {
 				// (a download, VidChain's chain, a share's analysis), at most 10 minutes, then try later
 				kotlinx.coroutines.delay(120_000)                        // a cold start from a share: its analysis goes first
 				val waitUntil = System.currentTimeMillis() + 10 * 60_000L
-				while (inUse()) {
+				while (true) {
+					// review run 28: claim first, then check (a share starting between the two sees the claim and waits)
+					if (!inUse()) { updating.set(true); if (!inUse()) break; updating.set(false) }
 					if (System.currentTimeMillis() > waitUntil) return@launch
 					kotlinx.coroutines.delay(15_000)
 				}
 				val t0 = System.currentTimeMillis()
 				// a blocking call with its own network time-outs, on this IO coroutine only (nothing waits for it)
-				val status = runCatching { YoutubeDL.getInstance().updateYoutubeDL(app, YoutubeDL.UpdateChannel.STABLE) }
+				val status = try {
+					runCatching { YoutubeDL.getInstance().updateYoutubeDL(app, YoutubeDL.UpdateChannel.STABLE) }
+				} finally {
+					updating.set(false)
+				}
 				val ok = status.isSuccess && status.getOrNull() != null
 				prefs.edit().putLong(if (ok) KEY else KEY_FAILED, System.currentTimeMillis()).apply()
 				val version = runCatching { YoutubeDL.getInstance().version(app) }.getOrNull()

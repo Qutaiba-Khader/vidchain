@@ -65,6 +65,24 @@ class FfmpegEngine(
 		return if (out.isFile && out.length() > 0) Result.Ok(out) else Result.Failed("ffmpeg wrote no file", r.outcome)
 	}
 
+	/**
+	 * Review run 28 (corpus test: a DRM-protected Vimeo stream copied as it is passed every file check): decodes the
+	 * first [seconds] of [file] and says why its picture or sound does not decode, or null (it decodes, or no verdict:
+	 * no ffmpeg, a time-out, a file ffmpeg cannot open).
+	 */
+	suspend fun decodeProblem(file: File, seconds: Int = 4, timeoutMs: Long = 40_000L): String? {
+		if (!ready || !file.isFile) return null
+		val errors = java.util.concurrent.atomic.AtomicInteger()
+		val frames = java.util.concurrent.atomic.AtomicLong()
+		val argv = listOf(ffmpeg.absolutePath, "-hide_banner", "-nostdin", "-loglevel", "error", "-t", seconds.toString(), "-i", file.absolutePath,
+			"-map", "0:v:0?", "-map", "0:a:0?", "-progress", "pipe:1", "-f", "null", "-")
+		val r = runner.run(EngineSpec(argv, layout.env(), timeoutMs = timeoutMs), onStdout = { line ->
+			if (line.startsWith("frame=")) line.substringAfter('=').trim().toLongOrNull()?.let { frames.set(it) }
+		}, onStderr = { if (it.isNotBlank()) errors.incrementAndGet() })
+		if (r.outcome != EngineOutcome.Success) return null
+		return decodeVerdict(errors.get(), frames.get())
+	}
+
 	internal fun argv(inputs: List<Input>, out: File, format: String = "mp4"): List<String> = buildList {
 		add(ffmpeg.absolutePath)
 		addAll(listOf("-hide_banner", "-nostdin", "-y", "-loglevel", "error"))
@@ -87,6 +105,14 @@ class FfmpegEngine(
 	}
 
 	companion object {
+		/**
+		 * an encrypted stream decodes as noise: errors on every frame (measured: 258 error lines in 144 frames); a healthy
+		 * file has none, a stream that starts between key frames a few
+		 */
+		fun decodeVerdict(errorLines: Int, frames: Long): String? =
+			if (errorLines >= 30 && errorLines >= frames) "the picture or sound does not decode ($errorLines decoder errors in $frames frames): an encrypted (DRM-protected) stream?"
+			else null
+
 		/** the MP4 muxer refused the streams as they are (e.g. MPEG-4 Part 2 in TS has no global header): MPEG-TS takes them */
 		fun needsOtherContainer(reason: String) = "could not write header" in reason.lowercase() || "codec not currently supported in container" in reason.lowercase()
 

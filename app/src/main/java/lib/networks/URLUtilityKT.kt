@@ -523,7 +523,17 @@ object URLUtilityKT {
 			connection.connectTimeout = 5000
 			connection.readTimeout = 5000
 			connection.connect()
-			val responseCode = connection.responseCode
+			var responseCode = connection.responseCode
+			connection.disconnect()
+			// VidChain review run 28: a server that refuses HEAD (405 / 501, e.g. player.vimeo.com) says nothing about
+			// the link; ask for its first byte instead
+			if (responseCode == 405 || responseCode == 501) {
+				val get = url.openConnection() as HttpURLConnection
+				get.setRequestProperty("Range", "bytes=0-0")
+				get.connectTimeout = 5000
+				get.readTimeout = 5000
+				responseCode = try { get.responseCode } finally { get.disconnect() }
+			}
 			val isExpired = responseCode >= 400
 			isExpired
 		} catch (error: Exception) {

@@ -64,6 +64,9 @@ object VidChainFallbackHost : FallbackHost {
 	/** ids handed out this session: a new model takes max(id on disk)+1, but its file is written in the background */
 	private val issuedIds = HashSet<Int>()
 
+	/** review run 28: a download VidChain itself listed this session (a chain's file, never "the app's own download") */
+	fun issued(id: Int): Boolean = synchronized(issuedIds) { id in issuedIds }
+
 	@Volatile private var sawLoading = false
 	private val createdAt = android.os.SystemClock.elapsedRealtime()
 

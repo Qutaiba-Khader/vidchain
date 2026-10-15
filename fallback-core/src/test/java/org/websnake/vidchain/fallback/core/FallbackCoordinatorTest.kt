@@ -173,6 +173,42 @@ class FallbackCoordinatorTest {
 		assertEquals(2, o.calls.get())
 	}
 
+	@Test fun aReShareWhoseOnlyFileIsAPossibleCopySaysSoAndRetriesOnceItIsDeleted() = runBlocking {
+		// review run 28: an UNSURE file is "a possible copy", never "the video is already there"
+		val o = Counting("O") { MethodOutcome.Delivered(goodMp4()) }
+		val w = World(this, listOf(o))
+		val root = HostDownload("share-3", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		w.ledger.claim("share-3", 1, "O", w.now - 60_000)
+		w.ledger.update("share-3", 1, AttemptState.UNSURE, "90", "could not verify", w.now - 59_000)
+		w.host.list["90"] = HostDownload("90", fileUrl, fileUrl, done)
+		assertEquals(FallbackCoordinator.Start.ALREADY_UNSURE, w.c.startStandalone(root, fresh = true))
+		assertEquals(0, o.calls.get())
+		w.host.list.remove("90")                                                        // the user deleted it
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
+		assertEquals(1, o.calls.get())
+	}
+
+	@Test fun aFileThatDoesNotDecodeIsNeverADeliveryAndAShareSaysDrm() = runBlocking {
+		// review run 28 (corpus test): a DRM-protected Vimeo stream copied as it is passed every file check
+		val encrypted = HashSet<String>()
+		val config = FallbackCoordinator.Config(includeStub = false, decodeCheck = { f -> if (f.name in encrypted) "does not decode: an encrypted (DRM-protected) stream?" else null })
+		val root = HostDownload("share-4", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		val t = Counting("O") { MethodOutcome.Delivered(goodMp4().also { encrypted += File(it).name }) }
+		val w = World(this, listOf(t), config = config)
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
+		val row = w.ledger.attempts("share-4").single()
+		assertEquals(AttemptState.FAILED, row.state)
+		assertTrue(row.reason!!, row.reason!!.contains("DRM"))
+		assertTrue(w.host.delivered.isEmpty())                                          // nothing listed
+		assertEquals(FallbackCoordinator.Standalone.DRM, w.c.standalone("share-4"))
+		// a file that decodes is delivered as before
+		val o = Counting("O") { MethodOutcome.Delivered(goodMp4()) }
+		val w2 = World(this, listOf(o), config = config)
+		assertEquals(FallbackCoordinator.Start.STARTED, w2.c.startStandalone(root, fresh = true)); w2.c.drain()
+		assertEquals(FallbackCoordinator.Standalone.DELIVERED, w2.c.standalone("share-4"))
+		assertEquals(1, w2.host.delivered.size)
+	}
+
 	@Test fun userPauseNeverStartsAChain() = runBlocking {
 		val w = World(this, listOf(stub))
 		w.host.set("1", running(), url = fileUrl); w.tick()

@@ -74,6 +74,19 @@ class DownloadManagerMethodTest {
 		assertTrue(r2.toString(), r2 is MethodOutcome.Failed && r2.reason.contains("no data"))
 	}
 
+	@Test fun pendingStopsOnlyTheNoDataClock() = runBlocking {
+		// review run 28: Android keeps an offline download PENDING; past noStartMs it is still not "no data" ...
+		val pending = List(30) { SystemDownloads.Status(SystemDownloads.State.PENDING, bytes = 0) } +
+			SystemDownloads.Status(SystemDownloads.State.FAILED, reason = 404)
+		val r = DownloadManagerMethod({ Fake(pending) }, pollMs = 5, noStartMs = 40).attempt(ctx())
+		assertEquals(MethodOutcome.Failed("DownloadManager: HTTP 404"), r)
+		// ... but the stall clock still runs: a download PENDING for ever is given up
+		val stuck = Fake(listOf(SystemDownloads.Status(SystemDownloads.State.PENDING, bytes = 0)))
+		val r2 = DownloadManagerMethod({ stuck }, pollMs = 5, noStartMs = 40, stallMs = 30).attempt(ctx())
+		assertTrue(r2.toString(), r2 is MethodOutcome.Failed && r2.reason.contains("no progress") && r2.reason.contains("pending"))
+		assertEquals(listOf(77L), stuck.removed)
+	}
+
 	@Test fun cancelRemovesTheSystemDownload() = runBlocking {
 		val fake = Fake(listOf(SystemDownloads.Status(SystemDownloads.State.RUNNING, bytes = 1)))
 		val job = launch(Dispatchers.Default) { DownloadManagerMethod({ fake }, pollMs = 10).attempt(ctx()) }

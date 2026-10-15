@@ -3,6 +3,8 @@ package org.websnake.vidchain.engine.ffmpeg
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.websnake.vidchain.engine.EngineLayout
 import org.websnake.vidchain.engine.ProcessEngineRunner
@@ -26,6 +28,15 @@ class FfmpegEngineTest {
 		val a = engine.argv(listOf(FfmpegEngine.Input("https://v"), FfmpegEngine.Input("https://a")), File("/o/j.mp4"))
 		assertEquals(2, a.count { it == "-i" })
 		assertTrue(a.containsAll(listOf("0:v:0", "1:a:0")))
+	}
+
+	@Test fun anEncryptedStreamIsTold() {
+		// review run 28: measured on the phone's DRM-protected Vimeo file and on healthy HLS/DASH/MP4 files
+		assertNotNull(FfmpegEngine.decodeVerdict(258, 144))
+		assertNotNull(FfmpegEngine.decodeVerdict(280, 0))                               // sound only
+		assertNull(FfmpegEngine.decodeVerdict(0, 360))
+		assertNull(FfmpegEngine.decodeVerdict(12, 360))                                // a start between key frames
+		assertNull(FfmpegEngine.decodeVerdict(40, 360))
 	}
 
 	@Test fun parsing() {

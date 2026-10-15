@@ -74,6 +74,8 @@ class FallbackCoordinator(
 		val probe: (suspend (Candidate, FallbackContext) -> Boolean)? = null,
 		/** T9: a chain ended (the runtime keeps the scorecard) */
 		val onChainEnd: () -> Unit = {},
+		/** review run 28: why a delivered media file does not decode (an encrypted stream), null = it decodes or no verdict */
+		val decodeCheck: (suspend (File) -> String?)? = null,
 		/** T9: start the methods beside a slow own download (the hedged start); off = only after it failed */
 		val hedge: Boolean = false,
 	)
@@ -323,11 +325,19 @@ class FallbackCoordinator(
 			previous?.join()
 			val path = d.filePath
 			val result = if (path == null) Delivery(Check.UNSURE, org.websnake.vidchain.fallback.verify.FileKind.UNKNOWN, "child file path unknown")
-			else verifier.verify(File(path), expectationFor(d, root))
+			else expectationFor(d, root).let { exp -> decoded(File(path), verifier.verify(File(path), exp), exp.expectMedia) }
 			traceVerify(parentId, row.method, result, "child ${d.id}")
 			val state = record(parentId, row.attemptNo, row.method, result, null)
 			if (state != AttemptState.DELIVERED && root != null && ledger.intentOf(parentId) !in REMOVAL) runChain(root, "DELIVERY_${result.check.name}")
 		}
+	}
+
+	/** review run 28 (corpus test): a picture or sound that does not decode (a DRM-protected stream saved as it is) is never the video */
+	private suspend fun decoded(file: File, r: Delivery, expectMedia: Boolean): Delivery {
+		if (r.check == Check.FAIL || !expectMedia) return r
+		val check = config.decodeCheck ?: return r
+		val problem = try { check(file) } catch (e: CancellationException) { throw e } catch (e: Exception) { null } ?: return r
+		return Delivery(Check.FAIL, r.kind, problem, r.durationMs)
 	}
 
 	private fun expectationFor(d: HostDownload, root: HostDownload?) = Expectation(
@@ -695,6 +705,7 @@ class FallbackCoordinator(
 						extras = extras - x + temp; temp = x; r = rx
 					}
 				}
+				if (!root.keepNames) r = decoded(temp, r, root.expectMedia)
 				traceVerify(root.id, next, r, "file")
 				if (r.check != Check.FAIL && !root.keepNames) extras = extras.filter { x ->
 					(verifier.verify(x, exp.copy(expectedDurationMs = null)).check != Check.FAIL).also { ok -> if (!ok) x.delete() }
@@ -831,7 +842,7 @@ class FallbackCoordinator(
 	 * Runs [root]'s chain for something the app has no download for (a shared magnet link). The root is not in the
 	 * upstream lists; delivered files are listed in the app's finished downloads. false = already running.
 	 */
-	enum class Start { STARTED, RUNNING, ALREADY_DELIVERED }
+	enum class Start { STARTED, RUNNING, ALREADY_DELIVERED, ALREADY_UNSURE }
 
 	suspend fun startStandalone(root: HostDownload, fresh: Boolean = false, alreadyTried: Map<String, String> = emptyMap()): Start = lock.withLock {
 		if (running[root.id]?.isActive == true) return@withLock Start.RUNNING
@@ -841,8 +852,10 @@ class FallbackCoordinator(
 		if (fresh && ledger.attempts(root.id).isNotEmpty()) {
 			val listed = try { withContext(hostContext) { host.downloads() } } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
 				.mapTo(HashSet()) { it.id }
-			val kept = ledger.attempts(root.id).any { (it.state == AttemptState.DELIVERED || it.state == AttemptState.UNSURE) && it.childId != null && it.childId in listed }
-			if (kept) return@withLock Start.ALREADY_DELIVERED
+			val kept = ledger.attempts(root.id).filter { it.childId != null && it.childId in listed }
+			if (kept.any { it.state == AttemptState.DELIVERED }) return@withLock Start.ALREADY_DELIVERED
+			// review run 28: a file the chain only called "a possible copy" is not "the video": say so (deleting it retries)
+			if (kept.any { it.state == AttemptState.UNSURE }) return@withLock Start.ALREADY_UNSURE
 			forgetLocked(root.id, "shared again")
 		}
 		var no = (ledger.attempts(root.id).maxOfOrNull { it.attemptNo } ?: 0) + 1
@@ -853,10 +866,10 @@ class FallbackCoordinator(
 		Start.STARTED
 	}
 
-	/** review run 26: the downloads a standalone chain listed (its own files, never "the app's own download") */
+	/** review run 26: the downloads a standalone chain listed (its own files, never "the app's own download"; review run 28: the share's check skips them) */
 	fun listedIds(id: String): Set<String> = runCatching { ledger.attempts(id).mapNotNullTo(HashSet()) { it.childId } }.getOrDefault(emptySet())
 
-	enum class Standalone { RUNNING, DELIVERED, BEST_SO_FAR, NOTHING }
+	enum class Standalone { RUNNING, DELIVERED, BEST_SO_FAR, NOTHING, DRM }
 
 	/** T9: how a standalone chain (a shared torrent or page) stands (review run 25: an unsure file is listed too) */
 	fun standalone(id: String): Standalone = runCatching {
@@ -865,6 +878,8 @@ class FallbackCoordinator(
 			running[id]?.isActive == true || rows.lastOrNull()?.state == AttemptState.CHILD -> Standalone.RUNNING
 			rows.any { it.state == AttemptState.DELIVERED } -> Standalone.DELIVERED
 			rows.any { it.state == AttemptState.UNSURE && it.childId != null } -> Standalone.BEST_SO_FAR
+			// review run 28: nothing was saved and a method met an encrypted stream (yt-dlp's message or the decode check)
+			rows.any { it.reason?.contains("DRM") == true } -> Standalone.DRM
 			else -> Standalone.NOTHING
 		}
 	}.getOrDefault(Standalone.RUNNING)
