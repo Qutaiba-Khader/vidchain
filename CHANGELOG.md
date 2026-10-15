@@ -5,6 +5,8 @@ lading). Versions before 1.0.0 were marked "not fully tested yet": they passed t
 traffic test; the one full emulator test pass ran before 1.0.0.
 
 ## 1.2.1
+- Checked by the full emulator test pass ([run 38687625318](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38687625318), 33 / 33) and by 33 real links shared on the Android 11 test phone (31 saved and decoded; TikTok and OK.ru do not answer on that network).
+
 Owner's report (2026-10-14): Web Video Caster downloaded a Facebook reel at once, while VidChain's test said every
 method failed on Facebook.
 - That test link was a removed Facebook video; on the owner's reel 1.2.0 already shows the picker in 1.3 s and saves
@@ -37,6 +39,10 @@ Found by testing 31 real links on the Android 11 phone (2026-10-15):
 - A page that refuses the quick "is this link alive?" question (Vimeo's player) is no longer called "Link Expired".
 - A shared short link (t.co, bit.ly) that the app's browser downloads is no longer downloaded a second time by
   VidChain; a re-share after "a possible copy" says so instead of "already in Finished downloads".
+- A shared page link that VidChain had saved before is looked for again when its file is gone: the app reuses
+  download numbers, and the old number alone answered "already in Finished downloads" with nothing saved.
+- Removing a download from Finished is now known to VidChain: a later download that gets the same number no longer
+  inherits the old one's history, and removing a copy VidChain kept never stops its search for a better one.
 
 ## 1.2.0 (T9 improvement round)
 - Checked by the full emulator test pass ([run 38600707739](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38600707739), 33 / 33: every test link and every link under an injected fault ends as expected).
