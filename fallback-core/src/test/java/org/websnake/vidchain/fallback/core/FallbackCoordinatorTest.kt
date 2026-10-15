@@ -272,10 +272,20 @@ class FallbackCoordinatorTest {
 		assertEquals(1, a.calls.get()); assertEquals(1, b.calls.get())                    // both methods ran
 		assertEquals(1, w.host.delivered.size)
 		assertEquals(FallbackCoordinator.Standalone.DRM_COPY, w.c.standalone("share-7"))
-		// the user deleted that copy: a later undecodable copy is kept again (never no copy at all)
-		w.host.delivered.single().delete()
-		w.c.startStandalone(root, fresh = true); w.c.drain()                             // ALREADY_UNSURE no longer: it starts
-		assertEquals(2, w.host.delivered.size)
+	}
+
+	@Test fun whenTheKeptCopyWasDeletedTheNextUndecodableCopyIsKept() = runBlocking {
+		// review run 33: inside one chain - the user deleted the first copy before the next method delivered
+		val config = FallbackCoordinator.Config(includeStub = false, decodeCheck = { "does not decode: DRM?" })
+		lateinit var w: World
+		val a = Counting("O") { MethodOutcome.Delivered(goodMp4()) }
+		val b = Counting("A") { w.host.delivered.single().delete(); MethodOutcome.Delivered(goodMp4()) }
+		w = World(this, listOf(a, b), config = config)
+		w.host.listsDelivered = true; w.host.clock = { w.now }
+		val root = HostDownload("share-9", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		w.c.startStandalone(root, fresh = true); w.c.drain()
+		assertEquals(1, b.calls.get())
+		assertEquals(2, w.host.delivered.size)                                          // never no copy at all
 	}
 
 	@Test fun anEarlierChildsNumberOnANewDownloadIsNotTheChainsChild() = runBlocking {

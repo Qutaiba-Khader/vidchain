@@ -158,7 +158,7 @@ object VidChainShareRescue {
 					// the app's own way (its browser offers the file) goes first: wait, and stay away if it started a download
 					kotlinx.coroutines.delay((sharedAt + OWN_PATH_GRACE_MS - System.currentTimeMillis()).coerceAtLeast(0))
 					val s = sites.await()
-					val listed = models()                                         // review run 32: copied here, on the main thread
+					val listed = runCatching { models() }.getOrDefault(emptyList())   // review run 32: copied here, on the main thread
 					if (withContext(Dispatchers.Default) { ownDownloadStarted(url, s, known, sharedAt, listed) }) {   // review run 31: the checks off it
 						Trace.event { TraceEvent("share.rescue", method = "Y", result = "not-needed", reason = "the app started its own download") }
 						return@launch
