@@ -58,13 +58,14 @@ object VidChainFallbackHost : FallbackHost {
 		child.globalSettings.downloadHttpUserAgent = candidate.headers["User-Agent"] ?: p.globalSettings.downloadHttpUserAgent
 		child.additionalWebHeaders = candidate.headers.filterKeys { it !in RESERVED_HEADERS }.ifEmpty { null }
 		AIOApp.downloadSystem.addDownload(child)
+		synchronized(issuedIds) { issuedIds += child.downloadId }       // review run 28: never "the app's own download" of a share
 		return child.downloadId.toString()
 	}
 
 	/** ids handed out this session: a new model takes max(id on disk)+1, but its file is written in the background */
 	private val issuedIds = HashSet<Int>()
 
-	/** review run 28: a download VidChain itself listed this session (a chain's file, never "the app's own download") */
+	/** review run 28: a download VidChain itself listed or queued this session (never "the app's own download") */
 	fun issued(id: Int): Boolean = synchronized(issuedIds) { id in issuedIds }
 
 	@Volatile private var sawLoading = false

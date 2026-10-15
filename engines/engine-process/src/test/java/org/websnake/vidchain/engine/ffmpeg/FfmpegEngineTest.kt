@@ -32,11 +32,20 @@ class FfmpegEngineTest {
 
 	@Test fun anEncryptedStreamIsTold() {
 		// review run 28: measured on the phone's DRM-protected Vimeo file and on healthy HLS/DASH/MP4 files
-		assertNotNull(FfmpegEngine.decodeVerdict(258, 144))
-		assertNotNull(FfmpegEngine.decodeVerdict(280, 0))                               // sound only
-		assertNull(FfmpegEngine.decodeVerdict(0, 360))
-		assertNull(FfmpegEngine.decodeVerdict(12, 360))                                // a start between key frames
+		assertNotNull(FfmpegEngine.decodeVerdict(176, 96))                              // the DRM file, first 4 s
+		assertNull(FfmpegEngine.decodeVerdict(280, 0))                                  // sound only: no verdict
+		assertNull(FfmpegEngine.decodeVerdict(0, 360))                                  // healthy, and raw TS cut mid-GOP
+		assertNull(FfmpegEngine.decodeVerdict(12, 96))                                  // a few damaged frames (lost packets)
 		assertNull(FfmpegEngine.decodeVerdict(40, 360))
+	}
+
+	@Test fun onlyDamagedPicturesCount() {
+		// review run 28: a raw TS cut between key frames logs these, and is healthy
+		val midGop = listOf("[h264 @ 0x5] non-existing PPS 0 referenced", "[h264 @ 0x5] decode_slice_header error", "[h264 @ 0x5] no frame!", "    Last message repeated 1 times")
+		assertTrue(midGop.none { FfmpegEngine.damaged(it) })
+		// the DRM-protected Vimeo file logs these
+		val drm = listOf("[h264 @ 0x5] error while decoding MB 0 0, bytestream 50235", "[h264 @ 0x5] Reference 5 >= 4", "[h264 @ 0x5] top block unavailable for requested intra mode -1")
+		assertTrue(drm.all { FfmpegEngine.damaged(it) })
 	}
 
 	@Test fun parsing() {

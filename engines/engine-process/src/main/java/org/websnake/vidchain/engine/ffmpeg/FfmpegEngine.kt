@@ -72,15 +72,15 @@ class FfmpegEngine(
 	 */
 	suspend fun decodeProblem(file: File, seconds: Int = 4, timeoutMs: Long = 40_000L): String? {
 		if (!ready || !file.isFile) return null
-		val errors = java.util.concurrent.atomic.AtomicInteger()
+		val damaged = java.util.concurrent.atomic.AtomicInteger()
 		val frames = java.util.concurrent.atomic.AtomicLong()
 		val argv = listOf(ffmpeg.absolutePath, "-hide_banner", "-nostdin", "-loglevel", "error", "-t", seconds.toString(), "-i", file.absolutePath,
 			"-map", "0:v:0?", "-map", "0:a:0?", "-progress", "pipe:1", "-f", "null", "-")
 		val r = runner.run(EngineSpec(argv, layout.env(), timeoutMs = timeoutMs), onStdout = { line ->
 			if (line.startsWith("frame=")) line.substringAfter('=').trim().toLongOrNull()?.let { frames.set(it) }
-		}, onStderr = { if (it.isNotBlank()) errors.incrementAndGet() })
+		}, onStderr = { if (damaged(it)) damaged.incrementAndGet() })
 		if (r.outcome != EngineOutcome.Success) return null
-		return decodeVerdict(errors.get(), frames.get())
+		return decodeVerdict(damaged.get(), frames.get())
 	}
 
 	internal fun argv(inputs: List<Input>, out: File, format: String = "mp4"): List<String> = buildList {
@@ -106,11 +106,21 @@ class FfmpegEngine(
 
 	companion object {
 		/**
-		 * an encrypted stream decodes as noise: errors on every frame (measured: 258 error lines in 144 frames); a healthy
-		 * file has none, a stream that starts between key frames a few
+		 * review run 28: errors inside a decoded picture (its data is noise). A healthy stream that starts between key frames
+		 * logs only missing parameter sets ("non-existing PPS", "decode_slice_header error", "no frame!": measured 1,263 such
+		 * lines and none of these on raw TS cut mid-GOP), so those are never counted
 		 */
-		fun decodeVerdict(errorLines: Int, frames: Long): String? =
-			if (errorLines >= 30 && errorLines >= frames) "the picture or sound does not decode ($errorLines decoder errors in $frames frames): an encrypted (DRM-protected) stream?"
+		fun damaged(stderrLine: String) = DAMAGED.containsMatchIn(stderrLine)
+
+		private val DAMAGED = Regex("""error while decoding MB|Reference \d+ >= \d+|(top|left) block unavailable|concealing \d+ (DC|AC|MV) errors""")
+
+		/**
+		 * an encrypted picture decodes as noise: damaged pictures throughout (measured on the phone's DRM-protected Vimeo
+		 * file: 176 damage lines in 4 s, about 96 frames); a healthy file has none, a damaged download a few. Sound alone
+		 * gives no verdict (no measured case)
+		 */
+		fun decodeVerdict(damagedLines: Int, frames: Long): String? =
+			if (frames > 0 && damagedLines >= 30 && damagedLines * 2 >= frames) "the picture does not decode ($damagedLines damaged-picture errors in $frames frames): an encrypted (DRM-protected) stream?"
 			else null
 
 		/** the MP4 muxer refused the streams as they are (e.g. MPEG-4 Part 2 in TS has no global header): MPEG-TS takes them */

@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.websnake.vidchain.fallback.classifier.DownloadSnapshot
 import org.websnake.vidchain.fallback.classifier.Engine
 import org.websnake.vidchain.fallback.classifier.FailureClass
@@ -336,7 +337,8 @@ class FallbackCoordinator(
 	private suspend fun decoded(file: File, r: Delivery, expectMedia: Boolean): Delivery {
 		if (r.check == Check.FAIL || !expectMedia) return r
 		val check = config.decodeCheck ?: return r
-		val problem = try { check(file) } catch (e: CancellationException) { throw e } catch (e: Exception) { null } ?: return r
+		// review run 28: bounded here too (the engine's own time limit starts only once it has a slot)
+		val problem = try { withTimeoutOrNull(60_000L) { check(file) } } catch (e: CancellationException) { throw e } catch (e: Exception) { null } ?: return r
 		return Delivery(Check.FAIL, r.kind, problem, r.durationMs)
 	}
 
@@ -705,7 +707,13 @@ class FallbackCoordinator(
 						extras = extras - x + temp; temp = x; r = rx
 					}
 				}
-				if (!root.keepNames) r = decoded(temp, r, root.expectMedia)
+				if (!root.keepNames) {
+					r = decoded(temp, r, root.expectMedia)
+					// review run 28: another file of the delivery may decode when the first one does not
+					if (r.check == Check.FAIL) extras.firstNotNullOfOrNull { x ->
+						decoded(x, verifier.verify(x, exp), root.expectMedia).takeIf { it.check != Check.FAIL }?.let { x to it }
+					}?.let { (x, rx) -> extras = extras - x + temp; temp = x; r = rx }
+				}
 				traceVerify(root.id, next, r, "file")
 				if (r.check != Check.FAIL && !root.keepNames) extras = extras.filter { x ->
 					(verifier.verify(x, exp.copy(expectedDurationMs = null)).check != Check.FAIL).also { ok -> if (!ok) x.delete() }

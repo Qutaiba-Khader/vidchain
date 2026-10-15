@@ -188,8 +188,10 @@ object VidChainShareRescue {
 	/**
 	 * T9: VidChain's method chain on a shared page nothing else could read; the file appears in Finished downloads.
 	 * The same link shared again while it runs is one chain (its id is the link's hash). false = could not start.
+	 * Review run 28: returns once the chain is marked busy (the share's own busy flag holds until then, so yt-dlp's
+	 * update never finds a gap between the two).
 	 */
-	private fun pageChain(context: android.content.Context, url: String, tried: Map<String, String>): Boolean {
+	private suspend fun pageChain(context: android.content.Context, url: String, tried: Map<String, String>): Boolean {
 		val c = FallbackRuntime.coordinator ?: return false
 		val dir = app.core.engines.downloader.DownloadDataModel().fileDirectory.takeIf { it.isNotEmpty() } ?: return false
 		val id = shareId(url)
@@ -199,8 +201,8 @@ object VidChainShareRescue {
 			filePath = File(dir, "${shareFilePrefix(url)}.mp4").path, expectMedia = true,
 		)
 		Trace.event { TraceEvent("share.rescue", downloadId = id, chain = UrlClass.of(url).chain, result = "page-chain") }
+		val start = withContext(Dispatchers.Default) { c.startStandalone(root, fresh = true, alreadyTried = tried) }
 		scope.launch {
-			val start = withContext(Dispatchers.Default) { c.startStandalone(root, fresh = true, alreadyTried = tried) }
 			runCatching { FallbackRuntime.wake() }                            // its observer keeps the service while it runs
 			Toast.makeText(context, when (start) {
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.STARTED -> "VidChain: looking for the video with its other methods - it will appear in Finished downloads"
