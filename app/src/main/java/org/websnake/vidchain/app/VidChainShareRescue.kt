@@ -117,7 +117,7 @@ object VidChainShareRescue {
 			)
 			val app = activity.applicationContext
 			scope.launch {
-				val started = withContext(Dispatchers.Default) { c.startStandalone(root) }
+				val started = withContext(Dispatchers.Default) { c.startStandalone(root) } == org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.STARTED
 				Toast.makeText(app, if (started) "VidChain: downloading with aria2c - the files appear in Finished downloads" else "VidChain: this torrent is already downloading", Toast.LENGTH_LONG).show()
 			}
 			return true
@@ -187,19 +187,25 @@ object VidChainShareRescue {
 			id = id, url = url, mediaUrl = url,
 			snapshot = org.websnake.vidchain.fallback.classifier.DownloadSnapshot(org.websnake.vidchain.fallback.classifier.Engine.REGULAR, org.websnake.vidchain.fallback.classifier.DownloadSnapshot.CLOSE),
 			filePath = File(dir, "$host-${hash.take(6)}.mp4").path, expectMedia = true,
+			referer = url,                                                 // review run 26: the listed file names its page
 		)
 		Trace.event { TraceEvent("share.rescue", downloadId = id, chain = UrlClass.of(url).chain, result = "page-chain") }
 		scope.launch {
-			val started = withContext(Dispatchers.Default) { c.startStandalone(root, fresh = true, alreadyTried = tried) }
-			Toast.makeText(context, if (started) "VidChain: looking for the video with its other methods - it will appear in Finished downloads"
-				else "VidChain: already looking for this video", Toast.LENGTH_LONG).show()
-			if (!started) return@launch
+			val start = withContext(Dispatchers.Default) { c.startStandalone(root, fresh = true, alreadyTried = tried) }
+			runCatching { FallbackRuntime.wake() }                            // its observer keeps the service while it runs
+			Toast.makeText(context, when (start) {
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.STARTED -> "VidChain: looking for the video with its other methods - it will appear in Finished downloads"
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.ALREADY_DELIVERED -> "VidChain: this video is already in Finished downloads"
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.RUNNING -> "VidChain: already looking for this video"
+			}, Toast.LENGTH_LONG).show()
+			if (start != org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.STARTED) return@launch
 			var state = org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.RUNNING
 			val until = System.currentTimeMillis() + 30 * 60_000L
 			while (state == org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.RUNNING && System.currentTimeMillis() < until) {
 				kotlinx.coroutines.delay(3_000)
-				// review run 25: the user downloaded it from the app's browser meanwhile: one copy, not two
-				if (ownDownloadStarted(url, known)) {
+				// review run 25: the user downloaded it from the app's browser meanwhile: one copy, not two. Review run 26:
+				// only a new download of this link counts (not the chain's own file, not another link shared meanwhile)
+				if (ownDownloadOf(url, known, c.listedIds(id))) {
 					withContext(Dispatchers.Default) { c.cancelChain(id) }
 					Trace.event { TraceEvent("share.rescue", downloadId = id, result = "page-chain-stopped", reason = "the app started its own download") }
 					return@launch
@@ -228,6 +234,17 @@ object VidChainShareRescue {
 	 * the app's own path worked: a download appeared since the share (its browser found the file, also after a
 	 * redirect, when the file's URL is not the shared one), or the app already has one for this link
 	 */
+	private fun ownDownloadOf(url: String, before: Set<Int>, own: Set<String>): Boolean = runCatching {
+		models().any { m ->
+			m.downloadId !in before && m.downloadId.toString() !in own &&
+				(m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url)
+		}
+	}.getOrDefault(false)
+
+	/** review run 26: a look-up or a page chain runs yt-dlp now (its update must wait) */
+	@JvmStatic
+	fun busy(): Boolean = busy.get()
+
 	private fun ownDownloadStarted(url: String, before: Set<Int>): Boolean = runCatching {
 		models().any { m -> m.downloadId !in before || m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url }
 	}.getOrDefault(false)
@@ -241,11 +258,13 @@ object VidChainShareRescue {
 		try {
 			// (the browser's User-Agent: the cookies may be tied to it; YtDlpEngine gives Facebook yt-dlp's own - T9)
 			val options = YtDlpEngine.Options(userAgent = AIOApp.aioSettings.browserHttpUserAgent.ifEmpty { null }, cookiesFile = cookieFile)
-			val stable = engine.info(url, options)
+			// review run 26: the address yt-dlp can read (vimeo.com/<id> -> its public player), as the app's analysis does
+			val page = VidChainAnalysis.normalise(url)
+			val stable = engine.info(page, options)
 			if (stable is YtDlpEngine.Result.Failed) tried["Y"] = "the share's look-up: ${stable.problem}"
 			// T9 (corpus test): an out-of-date extractor -> the nightly yt-dlp (method N's) tries once
 			val nightly = if (stable is YtDlpEngine.Result.Failed && (stable.problem == YtDlpEngine.Problem.FORMAT || stable.problem == YtDlpEngine.Problem.OTHER))
-				runCatching { FallbackRuntime.nightlyYtdlp() }.getOrNull()?.info(url, options) else null
+				runCatching { FallbackRuntime.nightlyYtdlp() }.getOrNull()?.info(page, options) else null
 			if (nightly is YtDlpEngine.Result.Failed) tried["N"] = "the share's look-up: ${nightly.problem}"
 			val r = nightly?.takeIf { it is YtDlpEngine.Result.Ok } ?: stable
 			return when (r) {

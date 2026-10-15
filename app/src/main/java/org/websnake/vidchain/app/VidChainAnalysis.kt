@@ -73,7 +73,9 @@ object VidChainAnalysis {
 		if (isYouTubeUrl(url)) return null
 		val engine = FallbackRuntime.ytdlp?.takeIf { it.ready } ?: return null
 		val page = normalise(url)
-		val cookies = cookie?.takeIf { it.isNotBlank() } ?: cookiesFor(page)
+		// review run 26: cookies given for the shared address belong to its host only; for a rewritten address
+		// (vimeo.com -> player.vimeo.com) the WebView store's own cookies of that host are used
+		val cookies = cookie?.takeIf { it.isNotBlank() && page == url } ?: cookiesFor(page)
 		val k = key(page, cookies)
 		return store.analyse(k) {
 			val t0 = System.currentTimeMillis()
@@ -83,13 +85,13 @@ object VidChainAnalysis {
 			try {
 				val ua = runCatching { AIOApp.aioSettings.downloadHttpUserAgent }.getOrNull()?.ifBlank { null }
 				val options = YtDlpEngine.Options(userAgent = ua, cookiesFile = cookieFile)
-				val stable = withTimeoutOrNull(ANALYSIS_MS) { engine.infoWithJson(page, options, timeoutMs = ANALYSIS_MS) }
+				// review runs 25/26: the share screen waits VidChainWaits.ANALYSIS_MS (40 s) for a picker; an answer after that
+				// is wasted (the rescue looks again), so a picker's analysis budgets on it; a download / social one on 60 s
+				val social = runCatching { app.core.engines.video_parser.parsers.SupportedURLs.isSocialMediaUrl(page) }.getOrDefault(true)
+				val budget = if (why == "download" || social) ANALYSIS_MS else VidChainWaits.ANALYSIS_MS - 2_000L
+				val stable = withTimeoutOrNull(budget) { engine.infoWithJson(page, options, timeoutMs = budget) }
 				// T9 (corpus test): the stable yt-dlp could not read the page (an extractor out of date): the nightly one
 				// tries with the time left (Dailymotion "No video formats found" with 2025.11.12)
-				// review run 25: the share screen waits VidChainWaits.ANALYSIS_MS (40 s) for a picker; a nightly answer after
-				// that is wasted, so a picker's analysis budgets on it (a download's on the full 60 s)
-				val social = runCatching { app.core.engines.video_parser.parsers.SupportedURLs.isSocialMediaUrl(page) }.getOrDefault(true)
-				val budget = if (why == "download" || why == "social" || social) ANALYSIS_MS else VidChainWaits.ANALYSIS_MS - 2_000L
 				val left = budget - (System.currentTimeMillis() - t0)
 				val night = if (stable is YtDlpEngine.Result.Failed && stable.problem in NIGHTLY_HELPS && left > 15_000)
 					runCatching { FallbackRuntime.nightlyYtdlp() }.getOrNull()

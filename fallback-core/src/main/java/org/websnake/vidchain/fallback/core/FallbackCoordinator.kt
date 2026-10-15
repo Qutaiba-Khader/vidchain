@@ -152,8 +152,9 @@ class FallbackCoordinator(
 		if (!st.reuseChecked && d.startedAtMs != null) {
 			st.reuseChecked = true
 			val rows = ledger.attempts(d.id)
+			val listedIds = list.mapTo(HashSet()) { it.id }
 			if (rows.isNotEmpty() && ledger.parentOf(d.id) == null && running[d.id]?.isActive != true &&
-				rows.none { it.state == AttemptState.DELIVERED || it.state == AttemptState.CHILD } &&
+				rows.none { (it.state == AttemptState.DELIVERED || it.state == AttemptState.CHILD) && it.childId in listedIds } &&
 				rows.all { it.startedMs < d.startedAtMs - REUSE_SLACK_MS }) {
 				forgetLocked(d.id, "rows of an earlier download with this id")
 				seen[d.id] = st                                              // review run 25: this look's state stays
@@ -830,17 +831,30 @@ class FallbackCoordinator(
 	 * Runs [root]'s chain for something the app has no download for (a shared magnet link). The root is not in the
 	 * upstream lists; delivered files are listed in the app's finished downloads. false = already running.
 	 */
-	suspend fun startStandalone(root: HostDownload, fresh: Boolean = false, alreadyTried: Map<String, String> = emptyMap()): Boolean = lock.withLock {
-		if (running[root.id]?.isActive == true) return@withLock false
+	enum class Start { STARTED, RUNNING, ALREADY_DELIVERED }
+
+	suspend fun startStandalone(root: HostDownload, fresh: Boolean = false, alreadyTried: Map<String, String> = emptyMap()): Start = lock.withLock {
+		if (running[root.id]?.isActive == true) return@withLock Start.RUNNING
 		// review run 25: a shared page starts again each time it is shared (an earlier run that found nothing, or whose
-		// file the user deleted, must not answer for it); methods the share already tried are recorded as tried
-		if (fresh && ledger.attempts(root.id).isNotEmpty()) forgetLocked(root.id, "shared again")
+		// file the user deleted, must not answer for it); methods the share already tried are recorded as tried.
+		// Review run 26: an earlier run whose file is still listed answers it (never a second copy).
+		if (fresh && ledger.attempts(root.id).isNotEmpty()) {
+			val listed = try { withContext(hostContext) { host.downloads() } } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
+				.mapTo(HashSet()) { it.id }
+			val kept = ledger.attempts(root.id).any { (it.state == AttemptState.DELIVERED || it.state == AttemptState.UNSURE) && it.childId != null && it.childId in listed }
+			if (kept) return@withLock Start.ALREADY_DELIVERED
+			forgetLocked(root.id, "shared again")
+		}
 		var no = (ledger.attempts(root.id).maxOfOrNull { it.attemptNo } ?: 0) + 1
 		for ((m, why) in alreadyTried) if (ledger.claim(root.id, no, m, clock())) ledger.update(root.id, no++, AttemptState.FAILED, null, why, clock())
 		Trace.event { TraceEvent("decision", downloadId = root.id, chain = UrlClass.of(root.url).chain, result = "standalone") }
+		busy = true
 		running[root.id] = scope.launch { runChain(root, "SHARED") }
-		true
+		Start.STARTED
 	}
+
+	/** review run 26: the downloads a standalone chain listed (its own files, never "the app's own download") */
+	fun listedIds(id: String): Set<String> = runCatching { ledger.attempts(id).mapNotNullTo(HashSet()) { it.childId } }.getOrDefault(emptySet())
 
 	enum class Standalone { RUNNING, DELIVERED, BEST_SO_FAR, NOTHING }
 

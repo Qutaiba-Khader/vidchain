@@ -135,21 +135,42 @@ class FallbackCoordinatorTest {
 		val w = World(this, listOf(y, o))
 		val page = "https://site.example/watch/1"                                    // B3: ... Y ... H ...
 		val root = HostDownload("share-1", page, page, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
-		assertTrue(w.c.startStandalone(root, fresh = true, alreadyTried = mapOf("Y" to "the share's look-up: FORMAT"))); w.c.drain()
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true, alreadyTried = mapOf("Y" to "the share's look-up: FORMAT"))); w.c.drain()
 		assertEquals(0, y.calls.get()); assertEquals(1, o.calls.get())
 		assertEquals(FallbackCoordinator.Standalone.NOTHING, w.c.standalone("share-1"))
-		assertTrue(w.c.startStandalone(root, fresh = true)); w.c.drain()                 // shared again: runs again
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()   // shared again: runs again
 		assertEquals(1, y.calls.get()); assertEquals(2, o.calls.get())
 		assertEquals(FallbackCoordinator.Standalone.NOTHING, w.c.standalone("share-1"))
 	}
 
-	@Test fun aReusedIdKeepsAHistoryThatDelivered() = runBlocking {
+	@Test fun aReusedIdKeepsAHistoryOnlyWhileItsFileIsListed() = runBlocking {
+		// review run 26: a delivered history stays only while the file it listed is still there
 		val w = World(this, listOf(stub))
 		w.ledger.claim("7", 1, "R", w.now - 60_000)
-		w.ledger.update("7", 1, AttemptState.DELIVERED, null, "its own file", w.now - 59_000)
+		w.ledger.update("7", 1, AttemptState.DELIVERED, "70", "its own file", w.now - 59_000)
+		w.host.list["70"] = HostDownload("70", fileUrl, fileUrl, done)
 		w.host.list["7"] = HostDownload("7", fileUrl, fileUrl, done, startedAtMs = w.now - 1_000)
 		w.tick()
 		assertEquals(1, w.ledger.attempts("7").size)
+		w.ledger.claim("8", 1, "R", w.now - 60_000)
+		w.ledger.update("8", 1, AttemptState.DELIVERED, "80", "a file deleted since", w.now - 59_000)
+		w.host.list["8"] = HostDownload("8", fileUrl, fileUrl, done, startedAtMs = w.now - 1_000)
+		w.tick()
+		assertTrue(w.ledger.attempts("8").isEmpty())
+	}
+
+	@Test fun aReShareWhoseFileIsStillListedDownloadsNothingAgain() = runBlocking {
+		val o = Counting("O") { MethodOutcome.Delivered(goodMp4()) }
+		val w = World(this, listOf(o))
+		val root = HostDownload("share-2", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
+		val listed = w.c.listedIds("share-2").single()
+		w.host.list[listed] = HostDownload(listed, fileUrl, fileUrl, done)
+		assertEquals(FallbackCoordinator.Start.ALREADY_DELIVERED, w.c.startStandalone(root, fresh = true))
+		assertEquals(1, o.calls.get())
+		w.host.list.remove(listed)                                                      // the user deleted it
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
+		assertEquals(2, o.calls.get())
 	}
 
 	@Test fun userPauseNeverStartsAChain() = runBlocking {
@@ -603,7 +624,7 @@ class FallbackCoordinatorTest {
 		val w = World(this, listOf(aria), stub = false)
 		val root = HostDownload("share-x", "magnet:?xt=urn:btih:abc", "magnet:?xt=urn:btih:abc", DownloadSnapshot(Engine.REGULAR, CLOSE),
 			filePath = File(dir, "torrent").path, expectMedia = false, keepNames = true)
-		assertTrue(w.c.startStandalone(root)); w.c.drain()
+		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root)); w.c.drain()
 		assertEquals(AttemptState.DELIVERED, w.ledger.attempts("share-x").single().state)
 		assertTrue(File(dir, "book.txt").isFile && File(dir, "notes.srt").isFile)
 		assertEquals(2, w.host.delivered.size)

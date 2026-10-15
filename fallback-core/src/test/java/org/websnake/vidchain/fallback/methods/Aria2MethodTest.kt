@@ -85,7 +85,7 @@ class Aria2MethodTest {
 		val dir = tmp.newFolder("Downloads")
 		val root = HostDownload("share-1", "magnet:?xt=urn:btih:abc", "magnet:?xt=urn:btih:abc", DownloadSnapshot(Engine.REGULAR, DownloadSnapshot.CLOSE),
 			filePath = File(dir, "torrent").path, expectMedia = false, keepNames = true)
-		assertTrue(c.startStandalone(root)); c.drain()
+		assertEquals(org.websnake.vidchain.fallback.core.FallbackCoordinator.Start.STARTED, c.startStandalone(root)); c.drain()
 		assertEquals(AttemptState.DELIVERED, ledger.attempts("share-1").single().state)
 		assertEquals(listOf("ep1.mkv", "ep2.mkv"), listed)                                   // largest first, names kept
 		assertTrue(File(dir, "ep1.mkv").isFile && File(dir, "ep2.mkv").isFile)

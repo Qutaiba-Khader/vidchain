@@ -24,7 +24,7 @@ object VidChainYtDlpUpdate {
 
 	private fun inUse(): Boolean = runCatching {
 		app.core.AIOApp.downloadSystem.hasActiveWork() || org.websnake.vidchain.fallback.core.FallbackRuntime.coordinator?.busy == true ||
-			VidChainAnalysis.busy()
+			VidChainAnalysis.busy() || VidChainShareRescue.busy()
 	}.getOrDefault(true)
 	private val running = AtomicBoolean(false)
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

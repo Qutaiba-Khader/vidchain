@@ -52,8 +52,9 @@ class DownloadManagerMethod(
 					else -> {
 						// review run 25: queued, or waiting for a network / Wi-Fi, is not the server failing to answer
 						// (the app's own downloads wait for the network too); PAUSED reason 1 = waiting to retry
-						val waitingForDevice = s.state == SystemDownloads.State.PENDING || s.state == SystemDownloads.State.PAUSED && s.reason != 1
-						if (waitingForDevice) waitingSince = System.currentTimeMillis()
+						// (review run 26: only PAUSED 2 = waiting for a network and 3 = queued for Wi-Fi; any other pause counts)
+						val waitingForDevice = s.state == SystemDownloads.State.PAUSED && (s.reason == 2 || s.reason == 3)
+						if (waitingForDevice) { waitingSince = System.currentTimeMillis(); lastMove = waitingSince }   // review run 26: nor a stall
 						if (s.bytes <= 0 && !waitingForDevice && System.currentTimeMillis() - waitingSince > noStartMs)
 							return MethodOutcome.Failed("DownloadManager: no data in ${noStartMs / 1000} s (${s.state.name.lowercase()})")
 						if (s.bytes != lastBytes) { lastBytes = s.bytes; lastMove = System.currentTimeMillis() }
