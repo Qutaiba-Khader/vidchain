@@ -197,16 +197,30 @@ class FallbackCoordinatorTest {
 		val w = World(this, listOf(t), config = config)
 		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
 		val row = w.ledger.attempts("share-4").single()
-		assertEquals(AttemptState.FAILED, row.state)
+		// review run 29: kept as a possible copy, never deleted (packet loss damages as many pictures), never "the video"
+		assertEquals(AttemptState.UNSURE, row.state)
 		assertTrue(row.reason!!, row.reason!!.contains("DRM"))
-		assertTrue(w.host.delivered.isEmpty())                                          // nothing listed
-		assertEquals(FallbackCoordinator.Standalone.DRM, w.c.standalone("share-4"))
+		assertEquals(1, w.host.delivered.size)
+		assertEquals(FallbackCoordinator.Standalone.DRM_COPY, w.c.standalone("share-4"))
 		// a file that decodes is delivered as before
 		val o = Counting("O") { MethodOutcome.Delivered(goodMp4()) }
 		val w2 = World(this, listOf(o), config = config)
 		assertEquals(FallbackCoordinator.Start.STARTED, w2.c.startStandalone(root, fresh = true)); w2.c.drain()
 		assertEquals(FallbackCoordinator.Standalone.DELIVERED, w2.c.standalone("share-4"))
 		assertEquals(1, w2.host.delivered.size)
+	}
+
+	@Test fun aFileOfTheDeliveryThatDecodesReplacesOneThatDoesNot() = runBlocking {
+		// review run 29: the file that did not decode is dropped, never listed beside the good one
+		val bad = goodMp4(); val good = goodMp4()
+		val config = FallbackCoordinator.Config(includeStub = false, decodeCheck = { f -> if (f.path == bad) "does not decode: DRM?" else null })
+		val o = Counting("O") { MethodOutcome.Delivered(bad, extras = listOf(good)) }
+		val w = World(this, listOf(o), config = config)
+		val root = HostDownload("share-5", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		w.c.startStandalone(root, fresh = true); w.c.drain()
+		assertEquals(FallbackCoordinator.Standalone.DELIVERED, w.c.standalone("share-5"))
+		assertEquals(1, w.host.delivered.size)
+		assertTrue(!File(bad).exists())
 	}
 
 	@Test fun userPauseNeverStartsAChain() = runBlocking {

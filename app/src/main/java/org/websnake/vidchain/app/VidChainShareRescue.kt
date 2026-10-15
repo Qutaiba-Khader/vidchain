@@ -224,6 +224,7 @@ object VidChainShareRescue {
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.BEST_SO_FAR -> "VidChain: a possible copy of the video is in Finished downloads"
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.NOTHING -> "VidChain: no method found a video on this page"
 				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.DRM -> "VidChain: this video is DRM-protected (encrypted) - it cannot be saved"
+				org.websnake.vidchain.fallback.core.FallbackCoordinator.Standalone.DRM_COPY -> "VidChain: this video seems DRM-protected (encrypted) - the copy in Finished downloads may not play"
 				else -> null
 			}
 			text?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }

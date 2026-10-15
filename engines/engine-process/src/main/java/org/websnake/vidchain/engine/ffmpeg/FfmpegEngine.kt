@@ -112,12 +112,13 @@ class FfmpegEngine(
 		 */
 		fun damaged(stderrLine: String) = DAMAGED.containsMatchIn(stderrLine)
 
-		private val DAMAGED = Regex("""error while decoding MB|Reference \d+ >= \d+|(top|left) block unavailable|concealing \d+ (DC|AC|MV) errors""")
+		private val DAMAGED = Regex("""error while decoding MB|Reference \d+ >= \d+|(top|left) block unavailable""")
 
 		/**
 		 * an encrypted picture decodes as noise: damaged pictures throughout (measured on the phone's DRM-protected Vimeo
 		 * file: 176 damage lines in 4 s, about 96 frames); a healthy file has none, a damaged download a few. Sound alone
-		 * gives no verdict (no measured case)
+		 * gives no verdict (no measured case); H.264 only (HEVC, MPEG-2/4 print other messages: no verdict). The coordinator
+		 * keeps such a file as a possible copy (heavy packet loss damages as many pictures)
 		 */
 		fun decodeVerdict(damagedLines: Int, frames: Long): String? =
 			if (frames > 0 && damagedLines >= 30 && damagedLines * 2 >= frames) "the picture does not decode ($damagedLines damaged-picture errors in $frames frames): an encrypted (DRM-protected) stream?"

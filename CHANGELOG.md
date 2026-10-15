@@ -31,8 +31,9 @@ Found by testing 31 real links on the Android 11 phone (2026-10-15):
 - A download that only passes through "stopped" while it starts is no longer taken for a failure, and a reused
   download number no longer inherits the earlier download's history.
 - A DRM-protected (encrypted) video is never reported as saved: VidChain saved one Vimeo video as a file that
-  played only noise. Every file VidChain's methods save is now test-played for its first seconds, and a shared
-  video that only exists encrypted is answered with "this video is DRM-protected (encrypted) - it cannot be saved".
+  played only noise and called it done. Every file VidChain's methods save is now test-played for its first
+  seconds; one whose picture does not decode is kept only as "a possible copy" while the other methods go on, and a
+  share says "this video seems DRM-protected (encrypted) - the copy in Finished downloads may not play".
 - A page that refuses the quick "is this link alive?" question (Vimeo's player) is no longer called "Link Expired".
 - A shared short link (t.co, bit.ly) that the app's browser downloads is no longer downloaded a second time by
   VidChain; a re-share after "a possible copy" says so instead of "already in Finished downloads".

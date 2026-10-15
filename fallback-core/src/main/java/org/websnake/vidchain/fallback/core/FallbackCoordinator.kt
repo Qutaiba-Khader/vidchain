@@ -333,13 +333,17 @@ class FallbackCoordinator(
 		}
 	}
 
-	/** review run 28 (corpus test): a picture or sound that does not decode (a DRM-protected stream saved as it is) is never the video */
+	/**
+	 * review run 28 (corpus test): a picture that does not decode (a DRM-protected stream saved as it is) is never "the
+	 * video". Review run 29: only UNSURE (kept as a possible copy, the chain keeps looking), never FAIL - heavy packet loss
+	 * damages as many pictures as encryption does (measured), and a real but damaged recording must never be deleted
+	 */
 	private suspend fun decoded(file: File, r: Delivery, expectMedia: Boolean): Delivery {
 		if (r.check == Check.FAIL || !expectMedia) return r
 		val check = config.decodeCheck ?: return r
 		// review run 28: bounded here too (the engine's own time limit starts only once it has a slot)
 		val problem = try { withTimeoutOrNull(60_000L) { check(file) } } catch (e: CancellationException) { throw e } catch (e: Exception) { null } ?: return r
-		return Delivery(Check.FAIL, r.kind, problem, r.durationMs)
+		return Delivery(Check.UNSURE, r.kind, problem, r.durationMs)
 	}
 
 	private fun expectationFor(d: HostDownload, root: HostDownload?) = Expectation(
@@ -709,10 +713,10 @@ class FallbackCoordinator(
 				}
 				if (!root.keepNames) {
 					r = decoded(temp, r, root.expectMedia)
-					// review run 28: another file of the delivery may decode when the first one does not
-					if (r.check == Check.FAIL) extras.firstNotNullOfOrNull { x ->
-						decoded(x, verifier.verify(x, exp), root.expectMedia).takeIf { it.check != Check.FAIL }?.let { x to it }
-					}?.let { (x, rx) -> extras = extras - x + temp; temp = x; r = rx }
+					// review runs 28-29: another file of the delivery that decodes replaces one that does not (which is dropped)
+					if (r.check == Check.UNSURE) extras.firstNotNullOfOrNull { x ->
+						decoded(x, verifier.verify(x, exp), root.expectMedia).takeIf { it.check == Check.PASS }?.let { x to it }
+					}?.let { (x, rx) -> extras = extras - x; temp.delete(); temp = x; r = rx }
 				}
 				traceVerify(root.id, next, r, "file")
 				if (r.check != Check.FAIL && !root.keepNames) extras = extras.filter { x ->
@@ -877,7 +881,7 @@ class FallbackCoordinator(
 	/** review run 26: the downloads a standalone chain listed (its own files, never "the app's own download"; review run 28: the share's check skips them) */
 	fun listedIds(id: String): Set<String> = runCatching { ledger.attempts(id).mapNotNullTo(HashSet()) { it.childId } }.getOrDefault(emptySet())
 
-	enum class Standalone { RUNNING, DELIVERED, BEST_SO_FAR, NOTHING, DRM }
+	enum class Standalone { RUNNING, DELIVERED, BEST_SO_FAR, NOTHING, DRM, DRM_COPY }
 
 	/** T9: how a standalone chain (a shared torrent or page) stands (review run 25: an unsure file is listed too) */
 	fun standalone(id: String): Standalone = runCatching {
@@ -885,8 +889,10 @@ class FallbackCoordinator(
 		when {
 			running[id]?.isActive == true || rows.lastOrNull()?.state == AttemptState.CHILD -> Standalone.RUNNING
 			rows.any { it.state == AttemptState.DELIVERED } -> Standalone.DELIVERED
+			// review runs 28-29: every copy kept is one whose picture did not decode (an encrypted stream)
+			rows.filter { it.state == AttemptState.UNSURE && it.childId != null }.let { kept -> kept.isNotEmpty() && kept.all { it.reason?.contains("DRM") == true } } -> Standalone.DRM_COPY
 			rows.any { it.state == AttemptState.UNSURE && it.childId != null } -> Standalone.BEST_SO_FAR
-			// review run 28: nothing was saved and a method met an encrypted stream (yt-dlp's message or the decode check)
+			// review run 28: nothing was saved and a method met an encrypted stream (yt-dlp's message)
 			rows.any { it.reason?.contains("DRM") == true } -> Standalone.DRM
 			else -> Standalone.NOTHING
 		}
