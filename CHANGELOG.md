@@ -5,7 +5,7 @@ lading). Versions before 1.0.0 were marked "not fully tested yet": they passed t
 traffic test; the one full emulator test pass ran before 1.0.0.
 
 ## 1.2.1
-- Checked by the full emulator test pass ([run 38687625318](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38687625318), 33 / 33) and by 33 real links shared on the Android 11 test phone (31 saved and decoded; TikTok and OK.ru do not answer on that network).
+- Checked by the full emulator test pass ([run 38687625318](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38687625318), 33 / 33) and by 32 real links shared on the Android 11 test phone: every one that answers and is not DRM-protected (29) saved as a video that decodes; the DRM-protected one is kept only as "a possible copy"; TikTok and OK.ru do not answer on that network.
 
 Owner's report (2026-10-14): Web Video Caster downloaded a Facebook reel at once, while VidChain's test said every
 method failed on Facebook.
