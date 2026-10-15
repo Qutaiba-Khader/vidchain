@@ -179,6 +179,11 @@ class FallbackCoordinatorTest {
 		val saved2 = w.host.delivered.last()
 		w.host.list[listed2] = HostDownload(listed2, fileUrl, fileUrl, done, filePath = saved2.path)
 		assertEquals(FallbackCoordinator.Start.ALREADY_DELIVERED, w.c.startStandalone(root, fresh = true))
+		// review run 31: renamed in the app (same number, started before the chain's row ended): still its file
+		val renamed = File(saved2.parentFile, "renamed-${saved2.name}").also { saved2.copyTo(it, overwrite = true) }
+		w.host.list[listed2] = HostDownload(listed2, fileUrl, fileUrl, done, filePath = renamed.path, startedAtMs = w.now)
+		assertEquals(FallbackCoordinator.Start.ALREADY_DELIVERED, w.c.startStandalone(root, fresh = true))
+		w.host.list[listed2] = HostDownload(listed2, fileUrl, fileUrl, done, filePath = saved2.path)
 		saved2.delete()
 		assertEquals(FallbackCoordinator.Start.STARTED, w.c.startStandalone(root, fresh = true)); w.c.drain()
 		assertEquals(3, o.calls.get())
@@ -232,6 +237,45 @@ class FallbackCoordinatorTest {
 		assertEquals(FallbackCoordinator.Standalone.DELIVERED, w.c.standalone("share-5"))
 		assertEquals(1, w.host.delivered.size)
 		assertTrue(!File(bad).exists())
+	}
+
+	@Test fun anUnsureFileForAnotherReasonKeepsItsExtras() = runBlocking {
+		// review run 31: the swap is only for a picture that does not decode (a raw stream + a short promo keeps both)
+		val raw = File.createTempFile("raw", ".mp4").apply {
+			fun box(t: String, n: Int) = byteArrayOf(0, 0, ((8 + n) shr 8).toByte(), (8 + n).toByte()) + t.toByteArray() + ByteArray(n)
+			writeBytes(box("ftyp", 8) + box("moof", 200) + box("mdat", 3000))                // fragmented, no moov: UNSURE
+		}.path
+		val promo = goodMp4()
+		val config = FallbackCoordinator.Config(includeStub = false, decodeCheck = { null })
+		val o = Counting("O") { MethodOutcome.Delivered(raw, extras = listOf(promo)) }
+		val w = World(this, listOf(o), config = config)
+		val root = HostDownload("share-6", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		w.c.startStandalone(root, fresh = true); w.c.drain()
+		assertEquals(2, w.host.delivered.size)
+	}
+
+	@Test fun aSecondCopyThatDoesNotDecodeIsNotListed() = runBlocking {
+		// review run 31: one undecodable copy is kept; later methods' identical noise is not listed again
+		val config = FallbackCoordinator.Config(includeStub = false, decodeCheck = { "does not decode: DRM?" })
+		val a = Counting("O") { MethodOutcome.Delivered(goodMp4()) }
+		val b = Counting("A") { MethodOutcome.Delivered(goodMp4()) }
+		val w = World(this, listOf(a, b), config = config)
+		val root = HostDownload("share-7", fileUrl, fileUrl, DownloadSnapshot(Engine.REGULAR, CLOSE), filePath = File.createTempFile("share", ".mp4").path)
+		w.c.startStandalone(root, fresh = true); w.c.drain()
+		assertEquals(1, a.calls.get()); assertEquals(1, b.calls.get())                    // both methods ran
+		assertEquals(1, w.host.delivered.size)
+		assertEquals(FallbackCoordinator.Standalone.DRM_COPY, w.c.standalone("share-7"))
+	}
+
+	@Test fun anEarlierChildsNumberOnANewDownloadIsNotTheChainsChild() = runBlocking {
+		// review run 31: deleted from Finished outside the seams, the number reused by a download started later
+		val w = World(this, listOf(stub))
+		w.ledger.claim("P", 1, "O", w.now - 60_000)
+		w.ledger.update("P", 1, AttemptState.DELIVERED, "c1", "verify PASS MP4: ok; saved as a.mp4", w.now - 59_000)
+		w.ledger.mapChild("c1", "P")
+		w.host.list["c1"] = HostDownload("c1", fileUrl, fileUrl, running(), startedAtMs = w.now)
+		w.tick()
+		assertEquals(null, w.ledger.parentOf("c1"))
 	}
 
 	@Test fun userPauseNeverStartsAChain() = runBlocking {

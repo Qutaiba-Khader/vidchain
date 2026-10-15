@@ -140,6 +140,12 @@ class FallbackCoordinator(
 		// record dropped on restart): a download created since VidChain started cannot have chain history of its own
 		else if (prev == null && d.startedAtMs != null && d.startedAtMs >= startedAtMs && ledger.parentOf(d.id) == null &&
 			running[d.id]?.isActive != true && ledger.attempts(d.id).isNotEmpty()) forgetLocked(d.id, "id reused by a new download")
+		// review run 31: the number of an earlier child (deleted outside VidChain's seams), now on a download started after
+		// that child's row ended: not the chain's child (it would skip the hedge and report to the old parent)
+		else if (prev == null && d.startedAtMs != null && running[d.id]?.isActive != true) ledger.parentOf(d.id)?.let { p ->
+			val ended = ledger.attempts(p).lastOrNull { it.childId == d.id }?.endedMs
+			if (ended != null && d.startedAtMs > ended + REUSE_SLACK_MS) forgetLocked(d.id, "number of an earlier child reused by a new download")
+		}
 		val st = prev ?: Seen(d.bytes, d.snapshot.status, now, armed = false, intentSeq = ledger.intentSeq(d.id)).also { seen[d.id] = it }
 		if (d.bytes != st.bytes || d.snapshot.status != st.status) {
 			st.bytes = d.bytes; st.status = d.snapshot.status; st.lastChangeMs = now
@@ -713,11 +719,16 @@ class FallbackCoordinator(
 					}
 				}
 				if (!root.keepNames) {
+					val checked = r
 					r = decoded(temp, r, root.expectMedia)
 					// review runs 28-29: another file of the delivery that decodes replaces one that does not (which is dropped)
-					if (r.check == Check.UNSURE) extras.firstNotNullOfOrNull { x ->
+					// review run 31: only when the picture did not decode (an UNSURE for another reason keeps both files)
+					if (r !== checked && r.check == Check.UNSURE) extras.firstNotNullOfOrNull { x ->
 						decoded(x, verifier.verify(x, exp), root.expectMedia).takeIf { it.check == Check.PASS }?.let { x to it }
 					}?.let { (x, rx) -> extras = extras - x; temp.delete(); temp = x; r = rx }
+					// review run 31: one copy that does not decode is kept; another one is only noise more
+					if (r !== checked && r.check == Check.UNSURE && ledger.attempts(root.id).any { it.state == AttemptState.UNSURE && it.childId != null && it.reason?.contains("DRM") == true })
+						r = Delivery(Check.FAIL, r.kind, "${r.reason} (a copy that does not decode is already kept)", r.durationMs)
 				}
 				traceVerify(root.id, next, r, "file")
 				if (r.check != Check.FAIL && !root.keepNames) extras = extras.filter { x ->
@@ -889,14 +900,19 @@ class FallbackCoordinator(
 	 */
 	private fun stillItsFile(row: AttemptRow, d: HostDownload?): Boolean {
 		val path = d?.filePath ?: return false
-		if (row.childId == null || !File(path).isFile) return false
+		if (row.childId == null || row.childId != d.id || !File(path).isFile) return false
+		// review run 31: a reused number belongs to a download started later; the start time survives a rename in the app
+		val started = d.startedAtMs
+		val ended = row.endedMs
+		if (started != null && ended != null) return started <= ended + REUSE_SLACK_MS
 		return savedName(row)?.let { it == File(path).name } ?: true
 	}
 
-	/** a chain's own file among the app's downloads (the share's check skips them; corpus run 5: by number AND name) */
-	fun isChainFile(id: String, download: HostDownload): Boolean = runCatching {
-		ledger.attempts(id).any { it.childId == download.id && stillItsFile(it, download) }
-	}.getOrDefault(false)
+	/** a chain's own files among the app's downloads (the share's check skips them); the rows are read once */
+	fun chainFiles(id: String): (HostDownload) -> Boolean {
+		val rows = runCatching { ledger.attempts(id).filter { it.childId != null } }.getOrDefault(emptyList())
+		return { d -> rows.any { stillItsFile(it, d) } }
+	}
 
 	private fun savedName(row: AttemptRow): String? = row.reason?.substringAfterLast("; saved as ", "")?.takeIf { it.isNotEmpty() }
 

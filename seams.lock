@@ -37,6 +37,9 @@
 #   BaseActivity.kt            battery-once  battery-optimization request: never when already exempt, at most once (T7.2)
 #   BaseActivity.kt            battery-direct "Disable Now" asks Android directly for this app (T7.2)
 #   DownloadFileRenamer.kt     rename-resume intent RESUME when the app resumes the download it paused to rename it (T6.2)
+#   FinishedDownloadOptions.kt finished-clear / finished-delete  intent CLEAR / DELETE before a finished download is
+#                                            removed (review run 31: the app reuses its number; the file also carries
+#                                            inherited fixes declared in BUILD-FIXES.md)
 #   app/build.gradle           abi-natives   packaging: aria2c on 64-bit ABIs only (Q8 = A) (file declared in BRANDING.md)
 # The added adapter VidChainFallbackHost.kt (new file inside the upstream source tree) only reads the download
 # lists and adds child downloads through DownloadSystem.addDownload.
@@ -51,6 +54,7 @@ modified app/src/main/java/app/ui/main/fragments/downloads/intercepter/SharedVid
 modified app/src/main/java/app/ui/others/information/IntentInterceptActivity.kt
 modified app/src/main/java/app/core/engines/video_parser/dialogs/VideoLinkPasteEditor.kt
 modified app/src/main/java/app/core/bases/BaseActivity.kt
+modified app/src/main/java/app/ui/main/fragments/downloads/fragments/finished/FinishedDownloadOptions.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainFallbackHost.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainDefaults.kt
 added app/src/main/java/org/websnake/vidchain/app/VidChainShareRescue.kt

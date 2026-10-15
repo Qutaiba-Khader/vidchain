@@ -157,7 +157,8 @@ object VidChainShareRescue {
 					val found = engine?.let { e -> withContext(Dispatchers.Default) { lookUp(e, url, cookie, tried) } }
 					// the app's own way (its browser offers the file) goes first: wait, and stay away if it started a download
 					kotlinx.coroutines.delay((sharedAt + OWN_PATH_GRACE_MS - System.currentTimeMillis()).coerceAtLeast(0))
-					if (ownDownloadStarted(url, sites.await(), known, sharedAt)) {
+					val s = sites.await()
+					if (withContext(Dispatchers.Default) { ownDownloadStarted(url, s, known, sharedAt) }) {   // review run 31: off the main thread
 						Trace.event { TraceEvent("share.rescue", method = "Y", result = "not-needed", reason = "the app started its own download") }
 						return@launch
 					}
@@ -282,18 +283,18 @@ object VidChainShareRescue {
 	 */
 	private fun ownDownloadStarted(url: String, sites: Set<String>, before: Set<Int>, sharedAt: Long): Boolean = runCatching {
 		val prefix = shareFilePrefix(url)
-		val c = FallbackRuntime.coordinator
-		val chain = shareId(url)
+		val chainFile = FallbackRuntime.coordinator?.chainFiles(shareId(url))
 		fun vidChains(m: app.core.engines.downloader.DownloadDataModel) =
 			VidChainFallbackHost.issued(m.downloadId) || m.fileName.startsWith(prefix) ||
-				c?.isChainFile(chain, org.websnake.vidchain.fallback.core.HostDownload(m.downloadId.toString(), m.fileURL, m.fileURL,
+				chainFile?.invoke(org.websnake.vidchain.fallback.core.HostDownload(m.downloadId.toString(), m.fileURL, m.fileURL,
 					org.websnake.vidchain.fallback.classifier.DownloadSnapshot(org.websnake.vidchain.fallback.classifier.Engine.REGULAR, org.websnake.vidchain.fallback.classifier.DownloadSnapshot.CLOSE),
-					filePath = if (m.fileName.isNotEmpty()) File(m.fileDirectory, m.fileName).path else null)) == true
+					filePath = if (m.fileName.isNotEmpty()) File(m.fileDirectory, m.fileName).path else null,
+					startedAtMs = m.startTimeDate.takeIf { it > 0 })) == true
 		models().any { m ->
 			m.downloadId !in before && !vidChains(m) && (m.startTimeDate == 0L || m.startTimeDate >= sharedAt - 1_000) &&
 				(m.fileURL == url || m.siteReferrer == url || m.videoInfo?.videoUrl == url ||
 					site(m.siteReferrer) in sites || site(m.videoInfo?.videoUrl) in sites)
-		} || models().any { m -> m.downloadId in before && !vidChains(m) && (m.fileURL == url || m.videoInfo?.videoUrl == url) }
+		} || models().any { m -> m.downloadId in before && (m.fileURL == url || m.videoInfo?.videoUrl == url) && !vidChains(m) }
 	}.getOrDefault(false)
 
 	/** the id of [url]'s page chain (the same link shared again is the same chain) */

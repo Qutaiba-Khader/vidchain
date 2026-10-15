@@ -272,6 +272,7 @@ class FinishedDownloadOptions(finishedFragment: FinishedTasksFragment?) : OnClic
 			val dataModels = downloadSys.finishedDownloadDataModels
 			val toastMsgResId = R.string.title_successfully_cleared
 
+			org.websnake.vidchain.fallback.core.FallbackSeams.userCleared(dataModel.downloadId) // FALLBACK-SEAM:finished-clear
 			dataModel.deleteModelFromDisk()
 			dataModels.remove(dataModel)
 			val safeActivity = getSafeActivity()
@@ -317,6 +318,7 @@ class FinishedDownloadOptions(finishedFragment: FinishedTasksFragment?) : OnClic
 				val modelsList = downloadSys.finishedDownloadDataModels
 				val toastMsgResId = R.string.title_successfully_deleted
 
+				org.websnake.vidchain.fallback.core.FallbackSeams.userDeleted(dataModel.downloadId) // FALLBACK-SEAM:finished-delete
 				dataModel.deleteModelFromDisk()
 				dataModel.getDestinationFile().delete()
 				modelsList.remove(dataModel)
