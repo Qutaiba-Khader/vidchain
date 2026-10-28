@@ -16,7 +16,8 @@ apks=("$DIR"/*.apk)
 [[ ${#apks[@]} -gt 0 ]] || { echo "FAIL: no APK in $DIR"; exit 1; }
 
 ads='Lcom/(google/android/gms/ads|google/ads|unity3d/ads|unity3d/services|unity3d/mediation|amazon/device/ads|applovin|ironsource|facebook/ads|vungle|startapp|chartboost|mbridge|bytedance/sdk/openadsdk|yandex/mobile/ads|inmobi|appodeal|adcolony)/'
-trk='Lcom/(google/firebase|google/android/gms/measurement|appsflyer|adjust/sdk|onesignal|flurry|mixpanel|amplitude)/|Lio/sentry/'
+# owner 2026-10-28: Firebase Crashlytics + Analytics are wanted (one switch in VidChain settings); every other tracker stays out
+trk='Lcom/(appsflyer|adjust/sdk|onesignal|flurry|mixpanel|amplitude)/|Lio/sentry/'
 hosts='([a-z0-9-]+\.)*(tubeaio|ip-api)\.com|ipinfo\.io|ipapi\.co|ipwho\.is|back4app\.(io|com)|parseapi\.[a-z.]+|[a-z0-9-]+\.supabase\.(co|in)|raw\.githubusercontent\.com/shibafoss/aio-video-downloader'
 
 for apk in "${apks[@]}"; do
@@ -30,7 +31,9 @@ for apk in "${apks[@]}"; do
   unzip -oq "$apk" 'classes*.dex' -d "$work/dex" || { echo "$name: FAIL: no classes*.dex"; fail=1; continue; }
   s=$(cat "$work"/dex/*.dex | strings -n 6)
   all=$(unzip -p "$apk" | strings -n 6)
-  a=$(grep -cE "$ads" <<<"$s" || true)
+  # owner 2026-10-28: Firebase Analytics carries Google's advertising-ID client (gms/ads/identifier, not an ad SDK);
+  # the AD_ID permission is removed and ad-ID collection is off in the manifest. Every ad SDK stays banned.
+  a=$(grep -E "$ads" <<<"$s" | grep -cvE 'Lcom/google/android/gms/ads/identifier/' || true)
   t=$(grep -cE "$trk" <<<"$s" || true)
   h=$(grep -oiE "$hosts" <<<"$all" | tr 'A-Z' 'a-z' | sort -u | tr '\n' ' ' || true); h=${h% }
   # stub sentinel: disassemble only the backend stub classes

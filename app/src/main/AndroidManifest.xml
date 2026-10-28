@@ -56,6 +56,20 @@
 		This section defines the main application configuration including
 		activities, services, receivers, and providers.
 	-->
+	<!-- VidChain (owner, 2026-10-28): Firebase Analytics without the advertising ID -->
+	<uses-permission
+		android:name="com.google.android.gms.permission.AD_ID"
+		tools:node="remove" />
+	<uses-permission
+		android:name="android.permission.ACCESS_ADSERVICES_AD_ID"
+		tools:node="remove" />
+	<uses-permission
+		android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION"
+		tools:node="remove" />
+	<uses-permission
+		android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE"
+		tools:node="remove" />
+
 	<application
 		android:name="app.core.AIOApp"
 		android:enableOnBackInvokedCallback="true"
@@ -70,6 +84,14 @@
 		android:theme="@style/style.application"
 		android:usesCleartextTraffic="true"
 		tools:targetApi="33">
+
+		<!-- VidChain (owner, 2026-10-28): Firebase Analytics never collects the advertising ID -->
+		<meta-data
+			android:name="google_analytics_adid_collection_enabled"
+			android:value="false" />
+		<meta-data
+			android:name="google_analytics_default_allow_ad_personalization_signals"
+			android:value="false" />
 		
 		<!--
 			LAUNCHER ACTIVITY: Main entry point of the application

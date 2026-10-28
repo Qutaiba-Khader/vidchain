@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Workflow policy gate (in addition to actionlint and zizmor):
   - no pull_request_target anywhere;
-  - `secrets.` and `environment:` only in release.yml (signing never reachable from PR/fork workflows);
+  - `secrets.` and `environment:` only in release.yml (signing never reachable from PR/fork workflows); the one
+    exception (owner, 2026-10-28) is `secrets.GOOGLE_SERVICES_JSON` in ci.yml: the Firebase app configuration, which
+    ships inside every APK anyway (no signing key, no token);
   - no `set -x` (would print secrets);
   - every workflow declares top-level `permissions:`;
   - every `uses:` of a third-party action is pinned to a full commit SHA.
@@ -22,7 +24,7 @@ for f in files:
     if "pull_request_target" in code:
         bad.append(f"{f.name}: pull_request_target is forbidden")
     if f.name != "release.yml":
-        if re.search(r"\bsecrets\.", code):
+        if re.search(r"\bsecrets\.", code.replace("secrets.GOOGLE_SERVICES_JSON", "") if f.name == "ci.yml" else code):
             bad.append(f"{f.name}: uses secrets.* (only release.yml may)")
         if re.search(r"^\s*environment\s*:", code, re.M):
             bad.append(f"{f.name}: uses environment: (only release.yml may)")

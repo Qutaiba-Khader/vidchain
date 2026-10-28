@@ -76,10 +76,10 @@ for f, needle in (("AIOSelfDestruct.kt", "fun shouldSelfDestructApplication() = 
     check(needle in body and "http" not in body and "Parse" not in body.replace("initParseBackend", ""),
           f"{f} is the no-op stub")
 
-print("4. no ad / tracking library")
+print("4. no ad / tracking library (owner 2026-10-28: Firebase Crashlytics + Analytics are wanted, one switch)")
 AD = re.compile(r"play-services-ads|gms[.:]ads|\badmob|applovin|ironsource|unity3d|unityads|levelplay|"
                 r"vungle|startapp|chartboost|mbridge|mintegral|pangle|bytedance|inmobi|appodeal|adcolony|"
-                r"firebase|crashlytics|sentry|onesignal|appsflyer|mixpanel|amplitude", re.I)
+                r"sentry|onesignal|appsflyer|mixpanel|amplitude", re.I)
 for cfg in (SRC / "gradle" / "libs.versions.toml", SRC / "app" / "build.gradle", SRC / "build.gradle"):
     if cfg.exists():
         found = sorted({m.group(0) for m in AD.finditer(cfg.read_text())})
@@ -88,7 +88,7 @@ libs = sorted(p.name for p in (SRC / "app" / "libs").glob("*")) if (SRC / "app" 
 check(not libs, f"no bundled jar/aar in app/libs {libs or ''}")
 imports = sorted({rel(f) for f, x in code.items()
                   if re.search(r"^\s*import\s+com\.(google\.android\.gms\.ads|unity3d|applovin|ironsource|"
-                               r"facebook\.ads|google\.firebase|bytedance)", x, re.M)})
+                               r"facebook\.ads|bytedance)", x, re.M)})
 check(not imports, f"no ad/tracking SDK imports {imports or ''}")
 
 print("5. the UI does not offer what cannot work")

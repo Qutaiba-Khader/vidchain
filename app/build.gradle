@@ -22,6 +22,15 @@ plugins {
 	alias(libs.plugins.supabase.serialization)
 }
 
+// VidChain (owner, 2026-10-28): Firebase Crashlytics + Analytics, only when the Firebase configuration is here
+// (app/google-services.json, git-ignored; CI writes it from the GOOGLE_SERVICES_JSON secret). Without it the app builds
+// and runs as before and sends nothing (BuildConfig.VIDCHAIN_FIREBASE = false).
+def vidchainFirebase = file('google-services.json').exists()
+if (vidchainFirebase) {
+	apply plugin: 'com.google.gms.google-services'
+	apply plugin: 'com.google.firebase.crashlytics'
+}
+
 /**
  * ---------------------------------------------------------------------------
  * Android project configuration
@@ -73,6 +82,9 @@ android {
 
 		// Enables backward-compatible vector drawable support.
 		vectorDrawables.useSupportLibrary = true
+
+		// VidChain (owner, 2026-10-28): this build carries a Firebase configuration
+		buildConfigField "boolean", "VIDCHAIN_FIREBASE", "${vidchainFirebase}"
 
 		// Enables MultiDex support when exceeding the 65K method limit.
 		multiDexEnabled true
@@ -259,6 +271,21 @@ dependencies {
 	implementation libs.kotlin.coroutines.core       // Core coroutine primitives
 	implementation libs.kotlin.coroutines.android    // Android coroutine support and dispatchers
 	implementation project(':fallback-core')   // FALLBACK-SEAM:dep (the VidChain fallback module)
+
+	// VidChain (owner, 2026-10-28): Firebase crash reports + statistics (one switch: VidChainLog)
+	implementation platform('com.google.firebase:firebase-bom:34.19.0')
+	implementation 'com.google.firebase:firebase-crashlytics'
+	implementation 'com.google.firebase:firebase-analytics'
+	// VidChain (owner, 2026-10-28): the optional account (Firebase Auth: e-mail + password, Google via Credential
+	// Manager) and the user's own profile in Firestore
+	implementation 'com.google.firebase:firebase-auth'
+	implementation('com.google.firebase:firebase-firestore') {
+		// protobuf-javalite (already on the classpath) carries the same well-known types: one copy only
+		exclude group: 'com.google.firebase', module: 'protolite-well-known-types'
+	}
+	implementation 'androidx.credentials:credentials:1.6.0'
+	implementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
+	implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
 
 	// Media3 for media playback (ExoPlayer's successor)
 	implementation libs.media3.exoplayer             // Core Media3 ExoPlayer implementation

@@ -26,13 +26,14 @@ UP = ROOT / "upstream"
 LEDGERS = ["BUILD-FIXES.md", "BRANDING.md", "REMOVED.md", "CHANGES.md", "seams.lock"]
 # Our own areas and files (never compared, even if upstream has a file of the same name);
 # everything else is compared with upstream/.
-OURS_TOP = {".git", "upstream", "tools", "fallback-core", "engines", "natives", "python", "ci",
+OURS_TOP = {".git", "upstream", "tools", "fallback-core", "engines", "natives", "python", "ci", "firebase",
             ".github", "docs", "signing", "VENDORED_FROM", "NOTICE", "THIRD_PARTY_NOTICES.md",
             "ATTRIBUTION.md", "PROVENANCE.md", "BUILD-FIXES.md", "REMOVED.md", "seams.lock",
             "natives.lock", "release-contract.json", ".gitleaks.toml", "README.md",
             "BRANDING.md", "PRIVACY.md", "CHANGELOG.md", "CHANGES.md"}
 # Build output and local machine files never count as drift.
-IGNORE = re.compile(r"(^|/)(build|\.gradle|\.idea|\.kotlin|captures)(/|$)|(^|/)local\.properties$|\.iml$")
+# app/google-services.json: the Firebase configuration, git-ignored and written by CI from a secret (owner 2026-10-28)
+IGNORE = re.compile(r"(^|/)(build|\.gradle|\.idea|\.kotlin|captures)(/|$)|(^|/)local\.properties$|\.iml$|^app/google-services\.json$")
 
 
 def declared():

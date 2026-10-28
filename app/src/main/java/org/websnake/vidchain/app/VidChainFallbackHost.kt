@@ -26,7 +26,9 @@ import java.util.Locale
 object VidChainFallbackHost : FallbackHost {
 	// created by the start seam (right after AIOApp.INSTANCE is set): the fresh-install defaults (T7.3, T8.1)
 	init {
-		VidChainCrashReport.captureSystemHandler()
+		runCatching { VidChainLog.init(AIOApp.INSTANCE) }                   // owner 2026-10-28: Firebase, before the handlers
+		runCatching { VidChainAccount.init(AIOApp.INSTANCE) }               // owner 2026-10-28: the optional account
+		VidChainCrashReport.captureSystemHandler(redact = VidChainLog.available())
 		runCatching { VidChainDefaults.applyThemeNow(AIOApp.INSTANCE) }
 		runCatching { VidChainDefaults.applyNightModeNow(AIOApp.INSTANCE) }
 		runCatching { VidChainDefaults.applyWhenReady(AIOApp.INSTANCE) }

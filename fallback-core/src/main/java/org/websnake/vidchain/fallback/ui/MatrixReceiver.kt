@@ -25,9 +25,12 @@ import java.io.File
  *
  *   am broadcast -a org.websnake.vidchain.MATRIX -n org.websnake.vidchain/org.websnake.vidchain.fallback.ui.MatrixReceiver \
  *     --es url <link> --es method <id> [--es run <tag>]
+ *
+ * Owner 2026-10-28: `--es test crash` sends a test crash report instead (the same as the settings button).
  */
 class MatrixReceiver : BroadcastReceiver() {
 	override fun onReceive(context: Context, intent: Intent) {
+		if (intent.getStringExtra("test") == "crash") { org.websnake.vidchain.fallback.core.CrashReporting.hooks?.testCrash(); return }
 		val url = intent.getStringExtra("url")?.takeIf { it.startsWith("http", ignoreCase = true) } ?: return
 		val id = intent.getStringExtra("method") ?: return
 		val run = intent.getStringExtra("run") ?: System.currentTimeMillis().toString()

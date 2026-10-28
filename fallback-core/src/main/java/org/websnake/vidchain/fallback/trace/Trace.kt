@@ -37,15 +37,23 @@ object Trace {
 
 	val isEnabled: Boolean get() = TraceConfig.enabled
 
+	/**
+	 * owner 2026-10-28: the crash-report sink (Firebase, its own switch). It gets every event, also while the trace on
+	 * this phone is off; null = none. Lines are formatted (and so redacted) exactly as for the trace file.
+	 */
+	@Volatile var remote: TraceSink? = null
+
 	inline fun event(build: () -> TraceEvent) {
-		if (!TraceConfig.enabled) return
+		if (!TraceConfig.enabled && remote == null) return
 		emit(build())
 	}
 
 	fun emit(e: TraceEvent) {
-		if (!TraceConfig.enabled) return
+		val r = remote
+		if (!TraceConfig.enabled && r == null) return
 		val line = format(e)
-		for (s in sinks) runCatching { s.write(line) }
+		if (TraceConfig.enabled) for (s in sinks) runCatching { s.write(line) }
+		r?.let { runCatching { it.write(line) } }
 	}
 
 	fun addSink(s: TraceSink) { sinks.add(s) }

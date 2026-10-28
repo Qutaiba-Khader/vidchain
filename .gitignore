@@ -14,3 +14,5 @@ memory_paper.txt
 release_signature_key.png
 /others/store_info/
 /others/studio_configs/settings_1.zip
+# VidChain (owner, 2026-10-28): the Firebase configuration is never committed (CI writes it from a secret)
+app/google-services.json

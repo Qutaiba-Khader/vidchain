@@ -75,6 +75,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           cache-read-only: true
+      - name: Firebase configuration (owner 2026-10-28; required for a release - crash reports, account)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then echo "::error::secret GOOGLE_SERVICES_JSON is missing"; exit 1; fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          python3 -c 'import json,sys; d=json.load(open("app/google-services.json")); assert any(c["client_info"]["android_client_info"]["package_name"]=="org.websnake.vidchain" for c in d["client"]), "no org.websnake.vidchain client"'
+
       - name: Build release APKs (throwaway key; the sign job re-signs with the release key)
         run: |
           # upstream gradle.properties caps the daemon at 2 GB; packaging the 241 MB universal APK + lint needs more

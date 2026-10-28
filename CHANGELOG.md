@@ -4,6 +4,17 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
+## Unreleased
+Owner's request (2026-10-28): Firebase as the app's backend.
+- Crash reports (Firebase Crashlytics), error reports, logs and app statistics (Analytics), behind one switch in
+  VidChain settings ("Send crash reports and app statistics", on by default). For the first period the reports are
+  generous: every step VidChain takes is kept with the next report, and failed downloads and errors are reported on
+  their own. Nothing sent carries cookies, logins, tokens, video addresses, file names or e-mail addresses; the
+  advertising ID is not collected. A "Send a test crash" button shows that reports arrive.
+- An optional account in VidChain settings: e-mail + password (with a verification e-mail and a password reset) or
+  Google. Its small profile (e-mail, name, sign-in method, first and last sign-in, app version) is stored in Firestore
+  where only its owner can read it.
+
 ## 1.2.1
 - Checked by the full emulator test pass ([run 38687625318](https://github.com/Qutaiba-Khader/vidchain/actions/runs/38687625318), 33 / 33) and by 32 real links shared on the Android 11 test phone: every one that answers and is not DRM-protected (29) saved as a video that decodes; the DRM-protected one is kept only as "a possible copy"; TikTok and OK.ru do not answer on that network.
 

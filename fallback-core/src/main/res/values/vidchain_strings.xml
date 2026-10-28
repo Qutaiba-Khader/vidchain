@@ -8,6 +8,23 @@
 	<string name="vidchain_trace_help">Records which method ran and how it ended. Stays on this phone. Never records cookies, logins or tokens.</string>
 	<string name="vidchain_trace_open">Open trace log</string>
 	<string name="vidchain_trace_share">Share trace log</string>
+	<string name="vidchain_account_title">Account</string>
+	<string name="vidchain_account_signed_out">Not signed in. An account is optional; downloads never need one.</string>
+	<string name="vidchain_account_signed_in">Signed in as %1$s</string>
+	<string name="vidchain_account_google">Google</string>
+	<string name="vidchain_account_email">E-mail</string>
+	<string name="vidchain_account_sign_out">Sign out</string>
+	<string name="vidchain_account_email_hint">E-mail address</string>
+	<string name="vidchain_account_password_hint">Password (at least 6 characters)</string>
+	<string name="vidchain_account_sign_in">Sign in</string>
+	<string name="vidchain_account_create">Create account</string>
+	<string name="vidchain_account_reset">Forgot password</string>
+	<string name="vidchain_account_reset_sent">A password reset e-mail is on its way</string>
+	<string name="vidchain_crash_enabled">Send crash reports and app statistics</string>
+	<string name="vidchain_crash_help">Crashes, errors and app usage go to the developer\'s Firebase project (Google). Never cookies, logins, tokens, video addresses, file names or e-mail addresses. Off = nothing is sent.</string>
+	<string name="vidchain_crash_not_set_up">This build has no Firebase project, so nothing is sent.</string>
+	<string name="vidchain_crash_test">Send a test crash</string>
+	<string name="vidchain_crash_test_confirm">The app closes now; the report is sent the next time it opens.</string>
 	<string name="vidchain_trace_title">Trace log</string>
 	<string name="vidchain_trace_empty">The trace log is empty</string>
 	<string name="vidchain_methods_title">Methods</string>

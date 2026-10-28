@@ -59,4 +59,9 @@ plugins {
 
 	// Kotlin Android plugin (applied in modules using Kotlin).
 	alias(libs.plugins.kotlin.android) apply false
+
+	// VidChain (owner, 2026-10-28): Firebase Crashlytics + Analytics. The app module applies these two only when
+	// app/google-services.json exists (CI writes it from the GOOGLE_SERVICES_JSON secret; it is never committed).
+	id 'com.google.gms.google-services' version '4.5.0' apply false
+	id 'com.google.firebase.crashlytics' version '3.0.8' apply false
 }

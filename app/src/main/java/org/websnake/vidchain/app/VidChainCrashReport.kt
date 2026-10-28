@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Looper
 import android.os.Process
+import org.websnake.vidchain.fallback.core.CrashReporting
 import org.websnake.vidchain.fallback.trace.Redactor
 import java.io.File
 import java.text.SimpleDateFormat
@@ -35,9 +36,23 @@ object VidChainCrashReport {
 
 	@Volatile private var systemHandler: Thread.UncaughtExceptionHandler? = null
 
-	/** Called once at app start, before any screen installs the upstream handler: remembers Android's own handler. */
-	fun captureSystemHandler() {
-		if (systemHandler == null) systemHandler = Thread.getDefaultUncaughtExceptionHandler()
+	/**
+	 * Called once at app start, before any screen installs the upstream handler: remembers Android's own handler.
+	 * Owner 2026-10-28: with Firebase in the build that handler is Crashlytics' (installed before the app starts); it
+	 * then receives a redacted copy of the crash ([CrashReporting.redact]: no token, link, address or path), also when
+	 * a crash comes before the upstream handler is in place.
+	 */
+	fun captureSystemHandler(redact: Boolean = false) {
+		if (systemHandler != null) return
+		val below = Thread.getDefaultUncaughtExceptionHandler()
+		systemHandler = if (redact && below != null) Redacting(below) else below
+		if (redact && below != null) Thread.setDefaultUncaughtExceptionHandler(systemHandler)
+	}
+
+	private class Redacting(private val below: Thread.UncaughtExceptionHandler) : Thread.UncaughtExceptionHandler {
+		override fun uncaughtException(thread: Thread, error: Throwable) {
+			below.uncaughtException(thread, runCatching { CrashReporting.redact(error) }.getOrDefault(error))
+		}
 	}
 
 	fun record(context: Context, thread: Thread, error: Throwable) {
@@ -56,6 +71,9 @@ object VidChainCrashReport {
 			File(dir, "crash_$name.txt").writeText(text)
 			// the upstream crash flag is saved in the background, which a main-thread crash no longer waits for
 			if (isMain(thread)) File(dir, PENDING).writeText("1")
+			// owner 2026-10-28: the upstream handler keeps the app open after a crash on another thread, so Crashlytics
+			// would never see it: reported as a non-fatal error (a main-thread crash reaches Crashlytics via [finish])
+			else VidChainLog.error(error, "uncaught on thread ${thread.name}")
 			dir.listFiles { f -> f.name.startsWith("crash_") }?.sortedByDescending { it.name }?.drop(KEEP)?.forEach { it.delete() }
 		}
 	}

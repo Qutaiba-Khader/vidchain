@@ -4,8 +4,13 @@ VidChain (package `org.websnake.vidchain`) is an Android video downloader **base
 by shibaFoss** - an independent, non-commercial derivative, **not** the official app and not endorsed by
 its author (see `ATTRIBUTION.md`).
 
-- No ads, no tracking, no self-updater, no remote kill switch, no developer cloud sync.
-- Everything runs on the phone; no servers.
+- No ads, no self-updater, no remote kill switch, no developer cloud sync.
+- Crash reports and app statistics go to the developer's Firebase project (Google Crashlytics and Analytics), with
+  one switch in Settings -> VidChain fallbacks ("Send crash reports and app statistics", on by default). Nothing
+  sent carries cookies, logins, tokens, video addresses, file names or e-mail addresses; the advertising ID is not
+  collected. Off = nothing is sent.
+- An optional account (Firebase: e-mail + password or Google) keeps a small profile only its owner can read;
+  downloads never need one. Downloads themselves run on the phone.
 - **When a download fails, VidChain tries other ways to get it.** The app's own download method always runs first and
   unchanged; only when it fails does VidChain try up to 18 further methods on the phone, one after another, until one
   delivers a real media file (each file is checked: an error page, a truncated file or a playlist never counts).

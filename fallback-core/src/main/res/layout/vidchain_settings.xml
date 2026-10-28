@@ -46,6 +46,91 @@
 				android:text="@string/vidchain_trace_share" />
 		</LinearLayout>
 
+		<!-- owner 2026-10-28: the VidChain account (Firebase: e-mail + password, Google; shown by the app module's hooks) -->
+		<LinearLayout
+			android:id="@+id/vidchain_account_section"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="16dp"
+			android:orientation="vertical"
+			android:visibility="gone">
+
+			<TextView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginBottom="4dp"
+				android:text="@string/vidchain_account_title"
+				android:textAppearance="?android:attr/textAppearanceMedium"
+				android:textStyle="bold" />
+
+			<TextView
+				android:id="@+id/vidchain_account_status"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:textAppearance="?android:attr/textAppearanceSmall" />
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="horizontal">
+
+				<Button
+					android:id="@+id/vidchain_account_google"
+					style="?android:attr/buttonBarButtonStyle"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_weight="1"
+					android:text="@string/vidchain_account_google" />
+
+				<Button
+					android:id="@+id/vidchain_account_email"
+					style="?android:attr/buttonBarButtonStyle"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_weight="1"
+					android:text="@string/vidchain_account_email" />
+
+				<Button
+					android:id="@+id/vidchain_account_sign_out"
+					style="?android:attr/buttonBarButtonStyle"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_weight="1"
+					android:text="@string/vidchain_account_sign_out" />
+			</LinearLayout>
+		</LinearLayout>
+
+		<!-- owner 2026-10-28: Firebase crash reports + statistics, one switch (shown by the app module's hooks) -->
+		<LinearLayout
+			android:id="@+id/vidchain_crash_section"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="16dp"
+			android:orientation="vertical"
+			android:visibility="gone">
+
+			<androidx.appcompat.widget.SwitchCompat
+				android:id="@+id/vidchain_crash_enabled"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:minHeight="48dp"
+				android:text="@string/vidchain_crash_enabled" />
+
+			<TextView
+				android:id="@+id/vidchain_crash_help"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:text="@string/vidchain_crash_help"
+				android:textAppearance="?android:attr/textAppearanceSmall" />
+
+			<Button
+				android:id="@+id/vidchain_crash_test"
+				style="?android:attr/buttonBarButtonStyle"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/vidchain_crash_test" />
+		</LinearLayout>
+
 		<TextView
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"

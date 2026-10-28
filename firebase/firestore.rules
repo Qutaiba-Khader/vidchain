@@ -1,0 +1,101 @@
+rules_version = '2';
+
+// ===============================================================
+// VidChain - Cloud Firestore Security Rules (prototype, owner 2026-10-28)
+// ===============================================================
+//
+// Assumed Data Model (written only by app/src/main/java/org/websnake/vidchain/app/VidChainAccount.kt)
+//
+// Collection: users
+// Document ID: the Firebase Auth uid of its owner
+// Fields:
+//   - email:         string    (optional, <= 320 chars, must equal the signed-in user's own e-mail)
+//   - displayName:   string    (optional, 1..100 chars)
+//   - providers:     list      (required, 1..4 items, each 'password' or 'google.com')
+//   - createdAt:     timestamp (required, the server time of the first write, immutable)
+//   - lastSignInAt:  timestamp (required, the server time of every write)
+//   - appVersion:    string    (required, 1..32 chars)
+//
+// The app reads and writes only its own users/{uid} document (no queries, no lists of other users).
+// Every other path is denied.
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------
+    // Helper Functions
+    // ---------------------------------------------------------
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    // the e-mail, when stored, is the signed-in user's own (never someone else's address)
+    function isOwnEmail() {
+      return !('email' in request.resource.data) ||
+             (request.resource.data.email is string &&
+              request.resource.data.email.size() <= 320 &&
+              request.auth.token.email != null &&
+              request.resource.data.email == request.auth.token.email);
+    }
+
+    function isValidProviders(p) {
+      return p is list && p.size() >= 1 && p.size() <= 4 &&
+             p.toSet().hasOnly(['password', 'google.com']);
+    }
+
+    // ---------------------------------------------------------
+    // Domain Validator (used in BOTH create and update)
+    // ---------------------------------------------------------
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['email', 'displayName', 'providers', 'createdAt', 'lastSignInAt', 'appVersion']) &&
+             hasRequiredFields(['providers', 'createdAt', 'lastSignInAt', 'appVersion']) &&
+             isOwnEmail() &&
+             isValidOptionalString('displayName', 1, 100) &&
+             isValidProviders(data.providers) &&
+             data.createdAt is timestamp &&
+             data.lastSignInAt == request.time &&
+             data.appVersion is string && data.appVersion.size() >= 1 && data.appVersion.size() <= 32;
+    }
+
+    // ---------------------------------------------------------
+    // users/{userId}: only its owner, always validated
+    // ---------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       isValidUser(request.resource.data) &&
+                       request.resource.data.createdAt == request.time;
+      allow update: if isOwner(userId) &&
+                       isValidUser(request.resource.data) &&
+                       request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isOwner(userId);
+    }
+
+    // ---------------------------------------------------------
+    // Default deny
+    // ---------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

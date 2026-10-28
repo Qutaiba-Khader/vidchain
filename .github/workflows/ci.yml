@@ -1,6 +1,7 @@
 name: CI
 
-# Pull requests and pushes to main. No secrets: nothing here can sign, tag or publish.
+# Pull requests and pushes to main. Nothing here can sign, tag or publish: the one secret is the Firebase app
+# configuration (GOOGLE_SERVICES_JSON, owner 2026-10-28), written on pushes only; it ships inside every APK anyway.
 on:
   pull_request:
   push:
@@ -96,6 +97,14 @@ jobs:
 
       - name: Install ffmpeg and QuickJS (real-engine JVM tests of methods F, U)
         run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg quickjs
+
+      - name: Firebase configuration (owner 2026-10-28; pushes only - the app config shipped inside every APK, never committed)
+        if: github.event_name != 'pull_request'
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json; echo "Firebase: on"
+          else echo "Firebase: no configuration, built without it"; fi
 
       - name: Build release APKs (throwaway CI key, never published)
         run: |
