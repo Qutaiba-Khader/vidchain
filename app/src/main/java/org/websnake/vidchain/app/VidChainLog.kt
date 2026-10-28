@@ -51,13 +51,16 @@ object VidChainLog : CrashReporting.Hooks {
 	}
 
 	/** a trace line: a breadcrumb, and a non-fatal report when it is an error, a failed download or an exhausted chain */
-	private fun traceLine(line: String) {
+	private fun traceLine(raw: String) {
 		val c = crashlytics() ?: return
 		runCatching {
+			// review run 34: the trace redacts secrets only; a report also drops addresses, link paths and file names
+			val line = CrashReporting.clean(raw)
 			c.log(line)
 			val event = EVENT.find(line)?.groupValues?.get(1) ?: return
 			val result = RESULT.find(line)?.groupValues?.get(1)
-			if (event in NONFATAL_EVENTS || (event == "share.rescue" && result == "error")) {
+			// review run 34: each kind once per app run (an error repeated every observer tick is one report)
+			if ((event in NONFATAL_EVENTS || (event == "share.rescue" && result == "error")) && reported.add("$event/$result")) {
 				// grouped in Crashlytics by the event name (the one stack frame); the line is the message
 				val e = TraceReport(line.substringAfter(' '))
 				e.stackTrace = arrayOf(StackTraceElement("vidchain.trace", event.replace('.', '_') + (result?.let { "_$it" } ?: ""), "trace", 1))
@@ -67,6 +70,8 @@ object VidChainLog : CrashReporting.Hooks {
 	}
 
 	class TraceReport(message: String) : RuntimeException(message)
+
+	private val reported = java.util.Collections.synchronizedSet(HashSet<String>())
 
 	private val remoteSink = TraceSink { line -> if (on) traceLine(line) }
 

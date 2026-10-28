@@ -29,6 +29,15 @@ class CrashReportingTest {
 		assertTrue(generateSequence(CrashReporting.redact(deep)) { it.cause }.count() <= 9)
 	}
 
+	@Test fun aLinkKeepsOnlyItsHostAndAFileNameIsDropped() {
+		// review run 34: a breadcrumb names neither the video's address nor its title
+		val c = CrashReporting.clean("event=commit reason=\"My Holiday Video (1).mp4\" url=https://www.tiktok.com/@someone/video/123?x=1")
+		for (leak in listOf("Holiday", "@someone", "video/123")) assertFalse(c, leak in c)
+		assertTrue(c, "https://www.tiktok.com/<path>" in c)
+		assertTrue(c, "<file>.mp4" in c)
+		assertEquals("plain words stay", CrashReporting.clean("plain words stay"))
+	}
+
 	@Test fun aLogLineIsCleaned() {
 		assertEquals("Authorization: <redacted>", CrashReporting.clean("Authorization: Bearer abcdef123456"))
 		assertEquals("", CrashReporting.clean(null))

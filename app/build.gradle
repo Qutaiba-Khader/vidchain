@@ -279,10 +279,12 @@ dependencies {
 	// VidChain (owner, 2026-10-28): the optional account (Firebase Auth: e-mail + password, Google via Credential
 	// Manager) and the user's own profile in Firestore
 	implementation 'com.google.firebase:firebase-auth'
-	implementation('com.google.firebase:firebase-firestore') {
-		// protobuf-javalite (already on the classpath) carries the same well-known types: one copy only
-		exclude group: 'com.google.firebase', module: 'protolite-well-known-types'
-	}
+	implementation 'com.google.firebase:firebase-firestore'
+	// Firestore 26.6.0 asks for protolite-well-known-types 18.0.1, which bundles its own copy of protobuf's
+	// DescriptorProtos; NewPipe's protobuf-javalite 4.x carries the same classes (duplicate-class build error).
+	// 19.0.0 (the BOM 35 line) drops the bundled copy and keeps the com.google.type / com.google.rpc classes
+	// Firestore needs (review run 34: excluding the module removed them; the first sign-in would have crashed).
+	implementation 'com.google.firebase:protolite-well-known-types:19.0.0'
 	implementation 'androidx.credentials:credentials:1.6.0'
 	implementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
 	implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'

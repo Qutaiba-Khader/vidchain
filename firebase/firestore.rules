@@ -11,13 +11,14 @@ rules_version = '2';
 // Fields:
 //   - email:         string    (optional, <= 320 chars, must equal the signed-in user's own e-mail)
 //   - displayName:   string    (optional, 1..100 chars)
-//   - providers:     list      (required, 1..4 items, each 'password' or 'google.com')
+//   - providers:     list      (required, 1..2 distinct items, each 'password' or 'google.com')
 //   - createdAt:     timestamp (required, the server time of the first write, immutable)
 //   - lastSignInAt:  timestamp (required, the server time of every write)
 //   - appVersion:    string    (required, 1..32 chars)
 //
 // The app reads and writes only its own users/{uid} document (no queries, no lists of other users).
-// Every other path is denied.
+// The app never deletes it, so delete is denied (a client delete + re-create would also reset createdAt);
+// removing a profile is an Admin SDK job. Every other path is denied.
 // ===============================================================
 
 service cloud.firestore {
@@ -59,7 +60,9 @@ service cloud.firestore {
     }
 
     function isValidProviders(p) {
-      return p is list && p.size() >= 1 && p.size() <= 4 &&
+      // the app writes providerData ids filtered to these two and made distinct
+      return p is list && p.size() >= 1 && p.size() <= 2 &&
+             p.toSet().size() == p.size() &&
              p.toSet().hasOnly(['password', 'google.com']);
     }
 
@@ -88,7 +91,7 @@ service cloud.firestore {
       allow update: if isOwner(userId) &&
                        isValidUser(request.resource.data) &&
                        request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if isOwner(userId);
+      allow delete: if false;
     }
 
     // ---------------------------------------------------------

@@ -105,6 +105,7 @@ object VidChainAccount : FirebaseAccount.Hooks {
 	override fun signOut(activity: Activity, done: () -> Unit) {
 		if (!ready) return done()
 		auth().signOut()
+		VidChainLog.key("signed_in", "no")
 		scope.launch {
 			runCatching { CredentialManager.create(activity).clearCredentialState(ClearCredentialStateRequest()) }
 			done()

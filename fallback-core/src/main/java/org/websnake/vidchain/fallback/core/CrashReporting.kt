@@ -23,10 +23,21 @@ object CrashReporting {
 
 	private val EMAIL = Regex("""[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}""")
 	private val PATH = Regex("""/(?:storage|sdcard|mnt|data/user|data/data|data/media)/[^\s:'"()]+""")
+	/** review run 34: a link keeps only its host (the path names the video) */
+	private val LINK = Regex("""(?i)\b([a-z][a-z0-9+.-]*://[^/\s"'<>?#]+)[^\s"']*""")
+	/** a media file's name (the title of a download), quoted (it may hold spaces) or as one word */
+	private const val EXT = "mp4|mkv|webm|mp3|m4a|aac|opus|ogg|wav|flac|ts|mov|avi|flv|3gp|m3u8|mpd|part|temp"
+	private val MEDIA_QUOTED = Regex("""(?i)(["'])[^"'\r\n]*\.($EXT)\1""")
+	private val MEDIA = Regex("""(?i)[^\s/\\"'=:]+\.($EXT)\b""")
 	private const val MAX_DEPTH = 8
 
-	/** a log line or a custom value as it may leave the phone */
-	fun clean(s: String?): String = Redactor.clean(s).orEmpty().replace(EMAIL, "<email>").replace(PATH, "<path>")
+	/** a log line or a custom value as it may leave the phone: no secret, address, path, link path or file name */
+	fun clean(s: String?): String = Redactor.clean(s).orEmpty()
+		.replace(EMAIL, "<email>")
+		.replace(PATH, "<path>")
+		.replace(LINK) { m -> if (m.value.length > m.groupValues[1].length) m.groupValues[1] + "/<path>" else m.value }
+		.replace(MEDIA_QUOTED) { m -> m.groupValues[1] + "<file>." + m.groupValues[2].lowercase() + m.groupValues[1] }
+		.replace(MEDIA) { m -> if (m.value.startsWith("<file>")) m.value else "<file>." + m.groupValues[1].lowercase() }
 
 	/**
 	 * A copy of [t] for a report: every message cleaned, the stack frames kept (Crashlytics groups by them). The copy's

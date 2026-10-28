@@ -30,7 +30,17 @@ await check("cannot write an unknown provider", assertFails(setDoc(doc(alice, "u
 await check("bob creates without e-mail (allowed)", assertSucceeds(setDoc(doc(bob, "users/bob"), { providers: ["google.com"], createdAt: serverTimestamp(), lastSignInAt: serverTimestamp(), appVersion: "1" })));
 await check("create needs createdAt = server time", assertFails(setDoc(doc(env.authenticatedContext("carol").firestore(), "users/carol"), { providers: ["password"], createdAt: Timestamp.fromMillis(0), lastSignInAt: serverTimestamp(), appVersion: "1" })));
 await check("other paths are closed", assertFails(setDoc(doc(alice, "logs/x"), { a: 1 })));
-await check("owner deletes own profile", assertSucceeds(deleteDoc(doc(alice, "users/alice"))));
+// the app's own two writes, exactly as VidChainAccount.saveProfile() sends them (non-ASCII names at the 100-char cut)
+const dana = env.authenticatedContext("dana", { email: "dana@example.com" }).firestore();
+const appFields = (name) => ({ email: "dana@example.com", displayName: name, providers: ["password", "google.com"], lastSignInAt: serverTimestamp(), appVersion: "1.2.3-vidchain" });
+await check("app create path (set, no merge, 100 CJK chars)", assertSucceeds(setDoc(doc(dana, "users/dana"), { ...appFields("\u540d".repeat(100)), createdAt: serverTimestamp() })));
+await check("app merge path (no createdAt, 100 UTF-16 units of emoji)", assertSucceeds(setDoc(doc(dana, "users/dana"), appFields("\u{1F600}".repeat(50)), { merge: true })));
+await check("cannot write a 101-char displayName", assertFails(setDoc(doc(dana, "users/dana"), { displayName: "x".repeat(101), lastSignInAt: serverTimestamp() }, { merge: true })));
+await check("cannot write duplicate providers", assertFails(setDoc(doc(dana, "users/dana"), { providers: ["password", "password"], lastSignInAt: serverTimestamp() }, { merge: true })));
+await check("cannot write three providers", assertFails(setDoc(doc(dana, "users/dana"), { providers: ["password", "google.com", "password"], lastSignInAt: serverTimestamp() }, { merge: true })));
+await check("cannot write empty providers", assertFails(setDoc(doc(dana, "users/dana"), { providers: [], lastSignInAt: serverTimestamp() }, { merge: true })));
+await check("owner cannot delete (would reset createdAt on re-create)", assertFails(deleteDoc(doc(alice, "users/alice"))));
+await check("another user cannot delete it", assertFails(deleteDoc(doc(bob, "users/alice"))));
 await env.cleanup();
 console.log(`${n - bad}/${n} rule checks passed`);
 process.exit(bad ? 1 : 0);

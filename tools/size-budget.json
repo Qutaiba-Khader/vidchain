@@ -1,9 +1,9 @@
 {
-  "_note": "Expected release APK size in bytes per ABI split, reset to the sizes measured in CI run 37118937815 (T5.7, all 18 methods; lux and aria2c on 64-bit only). CI fails when an APK is more than tolerance above it. Raised deliberately by a task that adds bytes.",
+  "_note": "Expected release APK size in bytes per ABI split, reset to the sizes measured in CI run 40746366850 (owner 2026-10-28: Firebase Crashlytics, Analytics, Auth and Firestore add about 11 MB per APK; before that CI run 37118937815, T5.7). CI fails when an APK is more than tolerance above it. Raised deliberately by a task that adds bytes.",
   "tolerance": 0.1,
-  "arm64-v8a": 110800000,
-  "armeabi-v7a": 90400000,
-  "x86": 95800000,
-  "x86_64": 114600000,
-  "universal": 273200000
+  "arm64-v8a": 121700000,
+  "armeabi-v7a": 101300000,
+  "x86": 106700000,
+  "x86_64": 125500000,
+  "universal": 284100000
 }
