@@ -4,7 +4,9 @@ All releases are on https://github.com/Qutaiba-Khader/vidchain/releases (each wi
 lading). Versions before 1.0.0 were marked "not fully tested yet": they passed the fast checks and a short emulator
 traffic test; the one full emulator test pass ran before 1.0.0.
 
-## Unreleased
+## 1.3.0
+- Checked by the full emulator test pass, 33 of 33 ok ([run 40758011799](https://github.com/Qutaiba-Khader/vidchain/actions/runs/40758011799)) and on the Android 11 test phone (test crash and error report received by Firebase; e-mail and Google sign-in; the profile written and updated).
+
 Owner's request (2026-10-28): Firebase as the app's backend.
 - Crash reports (Firebase Crashlytics), error reports, logs and app statistics (Analytics), behind one switch in
   VidChain settings ("Send crash reports and app statistics", on by default). For the first period the reports are
