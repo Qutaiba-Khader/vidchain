@@ -21,7 +21,8 @@ object Redactor {
 	private val COLON = Regex("""(?i)\b([a-z0-9_.-]*(?:token|secret|passw|pwd|api[-_]?key|credential|session)[a-z0-9_.-]*\s*:\s+)(?!<redacted>)[^\s"',;}]+""")
 	private val CONTROL = Regex("""[\r\n\t]+""")
 
-	fun clean(s: String?): String? = s?.let {
+	/** [max]: the length kept (a field; a crash report passes a whole line) */
+	fun clean(s: String?, max: Int = MAX_FIELD): String? = s?.let {
 		var t = COOKIE.replace(it) { m -> "${m.groupValues[1]}: <redacted>" }
 		t = AUTH.replace(t) { m -> "${m.groupValues[1]}: <redacted>" }
 		t = BEARER.replace(t) { m -> "${m.groupValues[1]} <redacted>" }
@@ -33,7 +34,7 @@ object Redactor {
 		t = NAMED.replace(t) { m -> "${m.groupValues[1]}<redacted>" }
 		t = QUOTED.replace(t) { m -> "${m.groupValues[1]}<redacted>" }
 		t = COLON.replace(t) { m -> "${m.groupValues[1]}<redacted>" }
-		CONTROL.replace(t, " ").take(MAX_FIELD)
+		CONTROL.replace(t, " ").take(max)
 	}
 
 	private const val MAX_FIELD = 300

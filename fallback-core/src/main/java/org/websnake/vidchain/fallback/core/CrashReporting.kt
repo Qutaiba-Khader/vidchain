@@ -22,22 +22,36 @@ object CrashReporting {
 	@Volatile var hooks: Hooks? = null
 
 	private val EMAIL = Regex("""[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}""")
-	private val PATH = Regex("""/(?:storage|sdcard|mnt|data/user|data/data|data/media)/[^\s:'"()]+""")
-	/** review run 34: a link keeps only its host (the path names the video) */
-	private val LINK = Regex("""(?i)\b([a-z][a-z0-9+.-]*://[^/\s"'<>?#]+)[^\s"']*""")
-	/** a media file's name (the title of a download), quoted (it may hold spaces) or as one word */
-	private const val EXT = "mp4|mkv|webm|mp3|m4a|aac|opus|ogg|wav|flac|ts|mov|avi|flv|3gp|m3u8|mpd|part|temp"
-	private val MEDIA_QUOTED = Regex("""(?i)(["'])[^"'\r\n]*\.($EXT)\1""")
-	private val MEDIA = Regex("""(?i)[^\s/\\"'=:]+\.($EXT)\b""")
+	/** the file kinds a download or a delivery can be (media, pictures, documents, subtitles, archives) */
+	private const val EXT = "mp4|mkv|webm|mp3|m4a|aac|opus|ogg|wav|flac|ts|mov|avi|flv|3gp|m3u8|mpd|part|temp|" +
+		"jpg|jpeg|png|gif|webp|pdf|srt|vtt|ass|txt|zip|rar|7z|apk|torrent|html|json|xml|csv|gz"
+	private const val PHONE_DIRS = "storage|sdcard|mnt|data/user|data/data|data/media|data/local"
+	/** review run 35: a phone path up to its file's extension (a file name may hold spaces) ... */
+	private val PATH_FILE = Regex("""(?i)/(?:$PHONE_DIRS)/[^:'"()\r\n]*?\.(?:$EXT)\b""")
+	/** ... and any other phone path */
+	private val PATH = Regex("""/(?:$PHONE_DIRS)/[^\s:'"()]+""")
+	/** review runs 34-35: a link keeps only its host (the path names the video); also behind userinfo, and www. links */
+	private val LINK = Regex("""(?i)\b([a-z][a-z0-9+.-]*://[^/\s"'?#]+)[^\s"']*""")
+	private val WWW = Regex("""(?i)\b(www\.[a-z0-9-]+(?:\.[a-z0-9-]+)+)/[^\s"']*""")
+	/** a file name in quotes (it may hold spaces; never a whole "error: ... name" reason) or as one word */
+	private val FILE_QUOTED = Regex("""(?i)(["'])[^"':\r\n]*\.($EXT)\1""")
+	private val FILE = Regex("""(?i)[^\s/\\"'=:<>]+\.($EXT)\b""")
+	private const val MAX_LINE = 1024
 	private const val MAX_DEPTH = 8
 
-	/** a log line or a custom value as it may leave the phone: no secret, address, path, link path or file name */
-	fun clean(s: String?): String = Redactor.clean(s).orEmpty()
-		.replace(EMAIL, "<email>")
-		.replace(PATH, "<path>")
+	/**
+	 * a log line or a custom value as it may leave the phone: no secret, address, path, link path or file name. Review
+	 * run 35: a whole trace line is cleaned first and shortened last (the trace keeps 300 characters per field).
+	 */
+	fun clean(s: String?): String = Redactor.clean(s, 8 * MAX_LINE).orEmpty()
 		.replace(LINK) { m -> if (m.value.length > m.groupValues[1].length) m.groupValues[1] + "/<path>" else m.value }
-		.replace(MEDIA_QUOTED) { m -> m.groupValues[1] + "<file>." + m.groupValues[2].lowercase() + m.groupValues[1] }
-		.replace(MEDIA) { m -> if (m.value.startsWith("<file>")) m.value else "<file>." + m.groupValues[1].lowercase() }
+		.replace(WWW) { m -> m.groupValues[1] + "/<path>" }
+		.replace(EMAIL, "<email>")
+		.replace(PATH_FILE, "<path>")
+		.replace(PATH, "<path>")
+		.replace(FILE_QUOTED) { m -> m.groupValues[1] + "<file>." + m.groupValues[2].lowercase() + m.groupValues[1] }
+		.replace(FILE) { m -> "<file>." + m.groupValues[1].lowercase() }
+		.take(MAX_LINE)
 
 	/**
 	 * A copy of [t] for a report: every message cleaned, the stack frames kept (Crashlytics groups by them). The copy's

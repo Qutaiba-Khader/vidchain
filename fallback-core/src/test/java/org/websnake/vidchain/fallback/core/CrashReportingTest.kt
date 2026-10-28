@@ -38,6 +38,25 @@ class CrashReportingTest {
 		assertEquals("plain words stay", CrashReporting.clean("plain words stay"))
 	}
 
+	@Test fun reviewRun35Cases() {
+		// a long line is cleaned before it is shortened (the cut used to fall inside the title)
+		val long = "event=failure reason=\"" + "x".repeat(280) + " My Long Holiday Video Title In Paris 2026 final.mp4\" class=NETWORK"
+		val l = CrashReporting.clean(long)
+		assertFalse(l, "Holiday" in l); assertTrue(l, "class=NETWORK" in l)
+		// an unquoted phone path whose file name holds spaces
+		val p = CrashReporting.clean("open failed: /storage/emulated/0/Download/My Holiday In Paris.mp4: ENOENT")
+		assertFalse(p, "Holiday" in p || "Paris" in p); assertTrue(p, "ENOENT" in p)
+		// other file kinds
+		for (n in listOf("Lecture.pdf", "Holiday.jpg", "Movie.srt")) assertFalse(n, n.substringBefore('.') in CrashReporting.clean("reason=\"$n\""))
+		// the error text of a reason survives (only the name goes)
+		val m = CrashReporting.clean("reason=\"merge failed: output.mp4\"")
+		assertTrue(m, "merge failed" in m); assertFalse(m, "output" in m)
+		// links behind userinfo and links without a scheme keep only their host
+		val u = CrashReporting.clean("from https://user:pw@cdn.example.com/a/My.Video/v.mp4 and www.tiktok.com/@someone/video/123")
+		for (leak in listOf("My.Video", "@someone", "video/123", "pw")) assertFalse(u, leak in u)
+		assertTrue(u, "www.tiktok.com/<path>" in u)
+	}
+
 	@Test fun aLogLineIsCleaned() {
 		assertEquals("Authorization: <redacted>", CrashReporting.clean("Authorization: Bearer abcdef123456"))
 		assertEquals("", CrashReporting.clean(null))
